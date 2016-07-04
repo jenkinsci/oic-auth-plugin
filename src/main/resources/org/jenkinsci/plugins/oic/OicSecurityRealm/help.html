@@ -1,0 +1,14 @@
+<div>
+    Authenticate all users with Openid Connect</a>.
+</div>
+ <div>
+     Steps:
+     <ol>
+         <li>Collect an client id & secret from your openid connect server so that jenkins can authenticate against the openid connect server.</li>
+         <li>Add to the authorized redirect URLs the following: ${JENKINS_ROOT_URL}/securityRealm/finishLogin so that the callback for this jenkins is green lit.</li>
+         <li>Fill in the client id and secret.</li>
+         <li>Determine the token and authentication url of your openid connect provider. For us it's https://[dns-name]/openid/token/ and https://[dns-name]/openid/authorize/ for google the url's are: https://accounts.google.com/o/oauth2/token and https://accounts.google.com/o/oauth2/auth - your milage may vary. This is specific to your OIC provider.</li>
+         <li>Fill in the url's and give it a go. - We suggest not setting security to logged in users only until you've successfully tested the authtentication.</li>
+     </ol>
+ </div>
+

@@ -1,0 +1,33 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
+  <f:entry title="${%Client id}" field="clientId">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Client secret}" field="clientSecret">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Token server url}" field="tokenServerUrl">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Authorization server url}" field="authorizationServerUrl">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%User name field}" field="userNameField">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Token Field Key To Check}" field="tokenFieldToCheckKey">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Token Field Value To Check}" field="tokenFieldToCheckValue">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%FullName field name}" field="fullNameFieldName">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Email field name}" field="emailFieldName">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Scopes}" field="scopes">
+    <f:textbox/>
+  </f:entry>
+</j:jelly>
