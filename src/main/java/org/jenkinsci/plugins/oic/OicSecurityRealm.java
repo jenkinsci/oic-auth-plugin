@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
+ * Copyright (c) 2016  Michael Bischoff & GeriMedica - www.gerimedica.nl
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -71,8 +71,7 @@ import java.util.Arrays;
 /**
  * Login with OpenID Connect / OAuth 2
  *
- * @author Kohsuke Kawaguchi - initial author
- * @author Michael Bischoff - adoptation
+ * @author Michael Bischoff
  */
 public class OicSecurityRealm extends SecurityRealm {
 

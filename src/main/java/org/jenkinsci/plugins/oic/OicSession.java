@@ -41,7 +41,8 @@ import java.util.UUID;
  *
  * Verifies the validity of the response by comparing the state.
  *
- * @author Kohsuke Kawaguchi - initial author
+ * @author Kohsuke Kawaguchi - initial author?
+ * @author Ryan Campbell - initial author?
  * @author Michael Bischoff - adoptation
  */
 abstract class OicSession {
