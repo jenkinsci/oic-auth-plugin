@@ -7,7 +7,7 @@
   </parent>
 
   <properties>
-    <jenkins.version>1.651.3</jenkins.version>
+    <jenkins.version>1.580.1</jenkins.version>
   </properties>
 
   <artifactId>oic-auth</artifactId>
