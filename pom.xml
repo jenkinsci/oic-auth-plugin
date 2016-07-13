@@ -11,14 +11,14 @@
   </properties>
 
   <artifactId>oic-auth</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <packaging>hpi</packaging>
 
   <scm>
     <connection>scm:git:ssh://github.com/jenkinsci/oic-auth-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/oic-auth-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/oic-auth-plugin</url>
-    <tag>HEAD</tag>
+    <tag>oic-auth-1.0</tag>
   </scm>
 
   <name>OpenId Connect Authentication Plugin</name>
