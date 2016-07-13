@@ -15,9 +15,9 @@
   <packaging>hpi</packaging>
 
   <scm>
-    <connection>scm:git:ssh://github.com/jenkinsci/google-login-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/google-login-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/google-login-plugin</url>
+    <connection>scm:git:ssh://github.com/jenkinsci/oic-auth-plugin.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/oic-auth-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/oic-auth-plugin</url>
     <tag>HEAD</tag>
   </scm>
 
