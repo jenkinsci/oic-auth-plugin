@@ -22,7 +22,7 @@
   </scm>
 
   <name>OpenId Connect Authentication Plugin</name>
-  <url>https://wiki.jenkins-ci.org/display/JENKINS/UNLISTED</url>
+  <url>https://wiki.jenkins-ci.org/display/JENKINS/Openid+Connect+Authentication+Plugin</url>
   <developers>
     <developer>
       <id>mbischoff</id>
