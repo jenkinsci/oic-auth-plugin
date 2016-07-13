@@ -38,6 +38,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
@@ -74,11 +75,6 @@ import java.util.Arrays;
  * @author Michael Bischoff
  */
 public class OicSecurityRealm extends SecurityRealm {
-
-    /**
-     * OAuth 2 / OIC scopes, dictates the contents of the token payload
-     */
-
 
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
     private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
@@ -213,14 +209,8 @@ public class OicSecurityRealm extends SecurityRealm {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
 
-                    final Credential credential = flow.createAndStoreCredential(response, null);
+                    flow.createAndStoreCredential(response, null);
 
-                    HttpRequestFactory requestFactory = HTTP_TRANSPORT.createRequestFactory(new HttpRequestInitializer() {
-                        public void initialize(HttpRequest request) throws IOException {
-                            credential.initialize(request);
-                            request.setParser(new JsonObjectParser(JSON_FACTORY));
-                        }
-                    });
                     loginAndSetUserData(username.toString(), new GrantedAuthority[] { SecurityRealm.AUTHENTICATED_AUTHORITY }, idToken);
 
                     return new HttpRedirect(redirectOnFinish);
@@ -273,6 +263,7 @@ public class OicSecurityRealm extends SecurityRealm {
         return null;
     }
 
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private String determineRedirectTarget(@QueryParameter String from, @Header("Referer") String referer) {
         String target;
         if (from != null) {
@@ -285,7 +276,8 @@ public class OicSecurityRealm extends SecurityRealm {
         return target;
     }
 
-    private String buildOAuthRedirectUrl() {
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    private String buildOAuthRedirectUrl() throws NullPointerException {
         String rootUrl = Jenkins.getInstance().getRootUrl();
         if (rootUrl == null) {
             throw new NullPointerException("Jenkins root url should not be null");

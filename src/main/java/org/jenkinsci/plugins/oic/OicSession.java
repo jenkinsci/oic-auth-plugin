@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.oic;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Base64;
 import hudson.util.HttpResponses;
 import org.kohsuke.stapler.HttpRedirect;
@@ -34,6 +35,7 @@ import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
@@ -48,7 +50,7 @@ import java.util.UUID;
 abstract class OicSession {
 
     private final AuthorizationCodeFlow flow;
-    private final String uuid = Base64.encode(UUID.randomUUID().toString().getBytes()).substring(0,20);
+    private final String uuid = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)).substring(0,20);
     /**
      * The url the user was trying to navigate to.
      */
@@ -67,6 +69,7 @@ abstract class OicSession {
     /**
      * Starts the login session.
      */
+    @SuppressFBWarnings("J2EE_STORE_OF_NON_SERIALIZABLE_OBJECT_INTO_SESSION")
     public HttpResponse doCommenceLogin() throws IOException {
         // remember this in the session
         Stapler.getCurrentRequest().getSession().setAttribute(SESSION_NAME, this);
@@ -106,8 +109,6 @@ abstract class OicSession {
     }
 
     protected abstract HttpResponse onSuccess(String authorizationCode) throws IOException;
-
-
 
     /**
      * Gets the {@link OicSession} associated with HTTP session in the current extend.
