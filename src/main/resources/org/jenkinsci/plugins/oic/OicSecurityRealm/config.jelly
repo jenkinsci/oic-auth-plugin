@@ -12,6 +12,9 @@
   <f:entry title="${%Authorization server url}" field="authorizationServerUrl">
     <f:textbox/>
   </f:entry>
+  <f:entry title="${%UserInfo server url}" field="userInfoServerUrl">
+    <f:textbox/>
+  </f:entry>
   <f:entry title="${%User name field}" field="userNameField">
     <f:textbox/>
   </f:entry>

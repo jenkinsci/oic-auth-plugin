@@ -1,54 +1,33 @@
 /*
- * The MIT License
- *
- * Copyright (c) 2016  Michael Bischoff & GeriMedica - www.gerimedica.nl
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+* The MIT License
+*
+* Copyright (c) 2016  Michael Bischoff & GeriMedica - www.gerimedica.nl
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+* THE SOFTWARE.
+*/
 package org.jenkinsci.plugins.oic;
 
-import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
-import com.google.api.client.auth.oauth2.BearerToken;
-import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
-import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.auth.openidconnect.IdToken;
-import com.google.api.client.auth.openidconnect.IdTokenResponse;
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestFactory;
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.JsonObjectParser;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.Extension;
-import hudson.Util;
-import hudson.model.Descriptor;
-import hudson.model.User;
-import hudson.security.SecurityRealm;
-import hudson.tasks.Mailer;
-import hudson.util.FormValidation;
-import hudson.util.HttpResponses;
-import hudson.util.Secret;
-import jenkins.model.Jenkins;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Arrays;
+
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
 import org.acegisecurity.AuthenticationManager;
@@ -64,16 +43,41 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Arrays;
+import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
+import com.google.api.client.auth.oauth2.BearerToken;
+import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
+import com.google.api.client.auth.openidconnect.IdToken;
+import com.google.api.client.auth.openidconnect.IdTokenResponse;
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.HttpRequestInitializer;
+import com.google.api.client.http.HttpResponseException;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.GenericJson;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.JsonObjectParser;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.common.base.Strings;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Extension;
+import hudson.Util;
+import hudson.model.Descriptor;
+import hudson.model.User;
+import hudson.security.SecurityRealm;
+import hudson.tasks.Mailer;
+import hudson.util.FormValidation;
+import hudson.util.HttpResponses;
+import hudson.util.Secret;
+import jenkins.model.Jenkins;
 
 /**
- * Login with OpenID Connect / OAuth 2
- *
- * @author Michael Bischoff
- */
+* Login with OpenID Connect / OAuth 2
+*
+* @author Michael Bischoff
+*/
 public class OicSecurityRealm extends SecurityRealm {
 
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
@@ -83,6 +87,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private final Secret clientSecret;
     private final String tokenServerUrl;
     private final String authorizationServerUrl;
+    private final String userInfoServerUrl;
     private final String userNameField;
     private final String tokenFieldToCheckKey;
     private final String tokenFieldToCheckValue;
@@ -91,11 +96,14 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String scopes;
 
     @DataBoundConstructor
-    public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl, String usernameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue, String fullNameFieldName, String emailFieldName, String scopes) throws IOException {
+    public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
+            String userInfoServerUrl, String usernameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
+            String fullNameFieldName, String emailFieldName, String scopes) throws IOException {
         this.clientId = clientId;
         this.clientSecret = Secret.fromString(clientSecret);
         this.tokenServerUrl = tokenServerUrl;
         this.authorizationServerUrl = authorizationServerUrl;
+        this.userInfoServerUrl = userInfoServerUrl;
         this.userNameField = Util.fixEmpty(usernameField) == null ? "sub" : usernameField;
         this.tokenFieldToCheckKey = Util.fixEmpty(tokenFieldToCheckKey);
         this.tokenFieldToCheckValue = Util.fixEmpty(tokenFieldToCheckValue);
@@ -118,6 +126,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public String getAuthorizationServerUrl() {
         return authorizationServerUrl;
+    }
+
+    public String getUserInfoServerUrl() {
+        return userInfoServerUrl;
     }
 
     public String getUserNameField() {
@@ -145,20 +157,20 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     /**
-     * Login begins with our {@link #doCommenceLogin(String,String)} method.
-     */
+    * Login begins with our {@link #doCommenceLogin(String,String)} method.
+    */
     @Override
     public String getLoginUrl() {
         return "securityRealm/commenceLogin";
     }
 
-    /**
-     * Acegi has this notion that first an {@link org.acegisecurity.Authentication} object is created
-     * by collecting user information and then the act of authentication is done
-     * later (by {@link org.acegisecurity.AuthenticationManager}) to verify it. But in case of OpenID,
-     * we create an {@link org.acegisecurity.Authentication} only after we verified the user identity,
-     * so {@link org.acegisecurity.AuthenticationManager} becomes no-op.
-     */
+    /*
+    * Acegi has this notion that first an {@link org.acegisecurity.Authentication} object is created
+    * by collecting user information and then the act of authentication is done
+    * later (by {@link org.acegisecurity.AuthenticationManager}) to verify it. But in case of OpenID,
+    * we create an {@link org.acegisecurity.Authentication} only after we verified the user identity,
+    * so {@link org.acegisecurity.AuthenticationManager} becomes no-op.
+    */
     @Override
     public SecurityComponents createSecurityComponents() {
         return new SecurityComponents(
@@ -173,9 +185,9 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     /**
-     * handles the the securityRealm/commenceLogin resource
-     */
-    public HttpResponse doCommenceLogin(@QueryParameter String from,  @Header("Referer") final String referer) throws IOException {
+    * handles the the securityRealm/commenceLogin resource
+    */
+    public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) throws IOException {
         final String redirectOnFinish = determineRedirectTarget(from, referer);
 
         final AuthorizationCodeFlow flow = new AuthorizationCodeFlow.Builder(
@@ -198,12 +210,20 @@ public class OicSecurityRealm extends SecurityRealm {
             public HttpResponse onSuccess(String authorizationCode) {
                 try {
                     IdTokenResponse response = IdTokenResponse.execute(
-                            flow.newTokenRequest(authorizationCode).setRedirectUri(buildOAuthRedirectUrl())
-                    );
-                    IdToken idToken = IdToken.parse( JSON_FACTORY, response.getIdToken());
-                    Object username = idToken.getPayload().get(userNameField);
-                    if(username==null) {
-                        return HttpResponses.error(500,"no field '"+userNameField+"' was suppied in the token payload to be used as the username");
+                            flow.newTokenRequest(authorizationCode).setRedirectUri(buildOAuthRedirectUrl()));
+                    IdToken idToken = IdToken.parse(JSON_FACTORY, response.getIdToken());
+
+                    Object username = null;
+                    GenericJson userInfo = null;
+                    if (Strings.isNullOrEmpty(userInfoServerUrl)) {
+                        username = idToken.getPayload().get(userNameField);
+                    } else {
+                        userInfo = getUserInfo(flow, response.getAccessToken());
+                        username = userInfo.get(userNameField);
+                    }
+
+                    if(username == null) {
+                        return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the token payload to be used as the username");
                     }
                     if(failedCheckOfTokenField(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
@@ -211,7 +231,8 @@ public class OicSecurityRealm extends SecurityRealm {
 
                     flow.createAndStoreCredential(response, null);
 
-                    loginAndSetUserData(username.toString(), new GrantedAuthority[] { SecurityRealm.AUTHENTICATED_AUTHORITY }, idToken);
+                    loginAndSetUserData(username.toString(),
+                            new GrantedAuthority[] { SecurityRealm.AUTHENTICATED_AUTHORITY }, idToken, userInfo);
 
                     return new HttpRedirect(redirectOnFinish);
 
@@ -221,6 +242,23 @@ public class OicSecurityRealm extends SecurityRealm {
 
             }
         }.doCommenceLogin();
+    }
+
+    private GenericJson getUserInfo(final AuthorizationCodeFlow flow, final String accessToken) throws IOException {
+        HttpRequestFactory requestFactory = flow.getTransport().createRequestFactory(new HttpRequestInitializer() {
+            @Override
+            public void initialize(HttpRequest request) throws IOException {
+                request.getHeaders().setAuthorization("Bearer " + accessToken);
+            }
+        });
+        HttpRequest request = requestFactory.buildGetRequest(new GenericUrl(userInfoServerUrl));
+        request.setParser(new JsonObjectParser(flow.getJsonFactory()));
+        request.setThrowExceptionOnExecuteError(false);
+        com.google.api.client.http.HttpResponse response = request.execute();
+        if (response.isSuccessStatusCode()) {
+            return response.parseAs(GenericJson.class);
+        }
+        throw new HttpResponseException(response);
     }
 
     private boolean failedCheckOfTokenField(IdToken idToken) {
@@ -236,18 +274,20 @@ public class OicSecurityRealm extends SecurityRealm {
         return tokenFieldToCheckValue.equals(String.valueOf(value));
     }
 
-    private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, GrantedAuthority[] authorities, IdToken idToken) throws IOException {
+    private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, GrantedAuthority[] authorities,
+            IdToken idToken, GenericJson userInfo) throws IOException {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userName, "", authorities);
         SecurityContextHolder.getContext().setAuthentication(token);
 
         User u = User.get(token.getName());
 
-        String email = getField(idToken, emailFieldName);
-        if(email != null) {
+        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) userInfo.get(emailFieldName);
+        if (email != null) {
             u.addProperty(new Mailer.UserProperty(email));
         }
 
-        String fullName = getField(idToken, fullNameFieldName);
+        String fullName = userInfo == null ? getField(idToken, fullNameFieldName)
+                : (String) userInfo.get(fullNameFieldName);
         if (fullName != null) {
             u.setFullName(fullName);
         }
@@ -286,10 +326,9 @@ public class OicSecurityRealm extends SecurityRealm {
         }
     }
 
-
     /**
-     * This is where the user comes back to at the end of the OpenID redirect ping-pong.
-     */
+    * This is where the user comes back to at the end of the OpenID redirect ping-pong.
+    */
     public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
         return OicSession.getCurrent().doFinishLogin(request);
     }
