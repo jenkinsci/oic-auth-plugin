@@ -97,19 +97,19 @@ public class OicSecurityRealm extends SecurityRealm {
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
-            String userInfoServerUrl, String usernameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
+            String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
             String fullNameFieldName, String emailFieldName, String scopes) throws IOException {
         this.clientId = clientId;
         this.clientSecret = Secret.fromString(clientSecret);
         this.tokenServerUrl = tokenServerUrl;
         this.authorizationServerUrl = authorizationServerUrl;
         this.userInfoServerUrl = userInfoServerUrl;
-        this.userNameField = Util.fixEmpty(usernameField) == null ? "sub" : usernameField;
+        this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
         this.tokenFieldToCheckKey = Util.fixEmpty(tokenFieldToCheckKey);
         this.tokenFieldToCheckValue = Util.fixEmpty(tokenFieldToCheckValue);
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
-        this.scopes = Util.fixEmpty(usernameField) == null ? "openid email" : scopes;
+        this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
     }
 
     public String getClientId() {
