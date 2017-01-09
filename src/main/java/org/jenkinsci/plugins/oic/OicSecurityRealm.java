@@ -23,44 +23,18 @@
 */
 package org.jenkinsci.plugins.oic;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Arrays;
-
-import org.acegisecurity.Authentication;
-import org.acegisecurity.AuthenticationException;
-import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.BadCredentialsException;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.context.SecurityContextHolder;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.Header;
-import org.kohsuke.stapler.HttpRedirect;
-import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.auth.openidconnect.IdTokenResponse;
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestFactory;
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.http.HttpResponseException;
-import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.*;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.common.base.Strings;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
@@ -72,6 +46,18 @@ import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import org.acegisecurity.*;
+import org.acegisecurity.context.SecurityContextHolder;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
+import org.kohsuke.stapler.*;
+import org.kohsuke.stapler.HttpResponse;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.util.Arrays;
 
 /**
 * Login with OpenID Connect / OAuth 2
@@ -81,7 +67,7 @@ import jenkins.model.Jenkins;
 public class OicSecurityRealm extends SecurityRealm {
 
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
-    private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+//    private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
 
     private final String clientId;
     private final Secret clientSecret;
@@ -94,11 +80,12 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String fullNameFieldName;
     private final String emailFieldName;
     private final String scopes;
+    private final boolean disableSslVerification;
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
-            String fullNameFieldName, String emailFieldName, String scopes) throws IOException {
+            String fullNameFieldName, String emailFieldName, String scopes, boolean disableSslVerification) throws IOException {
         this.clientId = clientId;
         this.clientSecret = Secret.fromString(clientSecret);
         this.tokenServerUrl = tokenServerUrl;
@@ -110,6 +97,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
         this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
+        this.disableSslVerification = disableSslVerification;
     }
 
     public String getClientId() {
@@ -156,6 +144,10 @@ public class OicSecurityRealm extends SecurityRealm {
         return scopes;
     }
 
+    public boolean isDisableSslVerification() {
+        return disableSslVerification;
+    }
+
     /**
     * Login begins with our {@link #doCommenceLogin(String,String)} method.
     */
@@ -190,9 +182,22 @@ public class OicSecurityRealm extends SecurityRealm {
     public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) throws IOException {
         final String redirectOnFinish = determineRedirectTarget(from, referer);
 
+        HttpTransport httpTransport = new NetHttpTransport();
+
+        if (disableSslVerification) {
+            NetHttpTransport.Builder builder = new NetHttpTransport.Builder();
+
+            try {
+                builder.doNotValidateCertificate();
+            } catch (GeneralSecurityException ex) {
+                // we do not handle this exception...
+            }
+            httpTransport = builder.build();
+        }
+
         final AuthorizationCodeFlow flow = new AuthorizationCodeFlow.Builder(
                 BearerToken.queryParameterAccessMethod(),
-                HTTP_TRANSPORT,
+                httpTransport,
                 JSON_FACTORY,
                 new GenericUrl(tokenServerUrl),
                 new ClientParametersAuthentication(
