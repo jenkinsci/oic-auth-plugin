@@ -67,7 +67,7 @@ import java.util.Arrays;
 public class OicSecurityRealm extends SecurityRealm {
 
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
-//    private static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+    private final HttpTransport httpTransport;
 
     private final String clientId;
     private final Secret clientSecret;
@@ -98,6 +98,22 @@ public class OicSecurityRealm extends SecurityRealm {
         this.emailFieldName = Util.fixEmpty(emailFieldName);
         this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
         this.disableSslVerification = disableSslVerification;
+
+        this.httpTransport = constructHttpTransport(this.disableSslVerification);
+    }
+
+    private HttpTransport constructHttpTransport(boolean disableSslVerification) {
+        NetHttpTransport.Builder builder = new NetHttpTransport.Builder();
+
+        if (disableSslVerification) {
+            try {
+                builder.doNotValidateCertificate();
+            } catch (GeneralSecurityException ex) {
+                // we do not handle this exception...
+            }
+        }
+
+        return builder.build();
     }
 
     public String getClientId() {
@@ -181,19 +197,6 @@ public class OicSecurityRealm extends SecurityRealm {
     */
     public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) throws IOException {
         final String redirectOnFinish = determineRedirectTarget(from, referer);
-
-        HttpTransport httpTransport = new NetHttpTransport();
-
-        if (disableSslVerification) {
-            NetHttpTransport.Builder builder = new NetHttpTransport.Builder();
-
-            try {
-                builder.doNotValidateCertificate();
-            } catch (GeneralSecurityException ex) {
-                // we do not handle this exception...
-            }
-            httpTransport = builder.build();
-        }
 
         final AuthorizationCodeFlow flow = new AuthorizationCodeFlow.Builder(
                 BearerToken.queryParameterAccessMethod(),
