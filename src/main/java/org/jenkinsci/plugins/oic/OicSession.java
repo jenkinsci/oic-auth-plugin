@@ -51,7 +51,11 @@ import java.util.UUID;
 abstract class OicSession {
 
     private final AuthorizationCodeFlow flow;
-    private final String uuid = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)).substring(0,20);
+
+    /**
+     * An opaque value used by the client to maintain state between the request and callback.
+     */
+    private final String state = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)).substring(0,20);
     /**
      * The url the user was trying to navigate to.
      */
@@ -78,7 +82,7 @@ abstract class OicSession {
     public HttpResponse doCommenceLogin() throws IOException {
         // remember this in the session
         Stapler.getCurrentRequest().getSession().setAttribute(SESSION_NAME, this);
-        AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(uuid).setRedirectUri(redirectUrl);
+        AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
         return new HttpRedirect(authorizationCodeRequestUrl.toString());
     }
 
@@ -91,7 +95,7 @@ abstract class OicSession {
             buf.append('?').append(request.getQueryString());
         }
         AuthorizationCodeResponseUrl responseUrl = new AuthorizationCodeResponseUrl(buf.toString());
-        if (! uuid.equals(responseUrl.getState())) {
+        if (! state.equals(responseUrl.getState())) {
             return HttpResponses.error(401, "State is invalid");
         }
         String code = responseUrl.getCode();
@@ -111,6 +115,10 @@ abstract class OicSession {
      */
     protected String getFrom() {
         return from;
+    }
+
+    public String getState() {
+        return this.state;
     }
 
     protected abstract HttpResponse onSuccess(String authorizationCode) throws IOException;
