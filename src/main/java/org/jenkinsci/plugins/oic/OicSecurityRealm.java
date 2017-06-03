@@ -87,6 +87,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String postLogoutRedirectUrl;
 
     private IdTokenResponse idTokenResponse;
+    private String state;
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
@@ -337,7 +338,11 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        this.idTokenResponse = OicSession.getCurrent().getIdTokenResponse();
+        OicSession oicSession = OicSession.getCurrent();
+
+        this.idTokenResponse = oicSession.getIdTokenResponse();
+        this.state = oicSession.getState();
+
         super.doLogout(req, rsp);
     }
 
@@ -354,13 +359,19 @@ public class OicSecurityRealm extends SecurityRealm {
      * Handles the the securityRealm/logoutFromOpenidProvider resource
      */
     public HttpResponse doLogoutFromOpenidProvider(@QueryParameter String from, @Header("Referer") final String referer) {
-        String openidLogoutEndpoint = this.endSessionUrl + "/?id_token_hint=" + this.idTokenResponse.getIdToken();
+        StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionUrl);
+        openidLogoutEndpoint.append("/?id_token_hint=");
+        openidLogoutEndpoint.append(this.idTokenResponse.getIdToken());
+
+        openidLogoutEndpoint.append("&state=");
+        openidLogoutEndpoint.append(this.state);
 
         if (this.postLogoutRedirectUrl != null) {
-            openidLogoutEndpoint += "&post_logout_redirect_uri=" + this.postLogoutRedirectUrl;
+            openidLogoutEndpoint.append("&post_logout_redirect_uri=");
+            openidLogoutEndpoint.append(this.postLogoutRedirectUrl);
         }
 
-        return HttpResponses.redirectTo(openidLogoutEndpoint);
+        return HttpResponses.redirectTo(openidLogoutEndpoint.toString());
     }
 
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
