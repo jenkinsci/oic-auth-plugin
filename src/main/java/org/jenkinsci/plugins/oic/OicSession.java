@@ -28,8 +28,8 @@ import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
 import com.google.api.client.auth.openidconnect.IdTokenResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Failure;
 import hudson.remoting.Base64;
-import hudson.util.HttpResponses;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.Stapler;
@@ -95,14 +95,16 @@ abstract class OicSession {
             buf.append('?').append(request.getQueryString());
         }
         AuthorizationCodeResponseUrl responseUrl = new AuthorizationCodeResponseUrl(buf.toString());
-        if (! state.equals(responseUrl.getState())) {
-            return HttpResponses.error(401, "State is invalid");
+        if (!state.equals(responseUrl.getState())) {
+            return new Failure("State is invalid");
         }
         String code = responseUrl.getCode();
         if (responseUrl.getError() != null) {
-            return HttpResponses.error(401, "Error from provider: " + code);
+            return new Failure(
+                    "Error from provider: " + responseUrl.getError() + ". Details: " + responseUrl.getErrorDescription()
+            );
         } else if (code == null) {
-            return HttpResponses.error(404, "Missing authorization code");
+            return new Failure("Missing authorization code");
         } else {
             return onSuccess(code);
         }
