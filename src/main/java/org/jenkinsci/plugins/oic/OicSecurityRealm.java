@@ -339,8 +339,8 @@ public class OicSecurityRealm extends SecurityRealm {
     public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         OicSession oicSession = OicSession.getCurrent();
         // session will be invalidated but we still need this data for our redirect.
-        req.setAttribute("idToken", oicSession.getIdToken());
-        req.setAttribute("state", oicSession.getState());
+        req.setAttribute(ID_TOKEN_REQUEST_ATTRIBUTE, oicSession.getIdToken());
+        req.setAttribute(STATE_REQUEST_ATTRIBUTE, oicSession.getState());
 
         super.doLogout(req, rsp);
     }
