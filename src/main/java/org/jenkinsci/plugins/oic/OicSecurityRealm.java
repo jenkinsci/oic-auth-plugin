@@ -68,6 +68,8 @@ import java.util.Arrays;
 public class OicSecurityRealm extends SecurityRealm {
 
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
+    private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
+    private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
     private final HttpTransport httpTransport;
 
     private final String clientId;
@@ -85,9 +87,6 @@ public class OicSecurityRealm extends SecurityRealm {
     private final boolean logoutFromOpenidProvider;
     private final String endSessionUrl;
     private final String postLogoutRedirectUrl;
-
-    private IdTokenResponse idTokenResponse;
-    private String state;
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
@@ -243,7 +242,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     IdTokenResponse response = IdTokenResponse.execute(
                             flow.newTokenRequest(authorizationCode).setRedirectUri(buildOAuthRedirectUrl()));
 
-                    this.setIdTokenResponse(response);
+                    this.setIdToken(response.getIdToken());
 
                     IdToken idToken = IdToken.parse(JSON_FACTORY, response.getIdToken());
 
@@ -339,9 +338,9 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         OicSession oicSession = OicSession.getCurrent();
-
-        this.idTokenResponse = oicSession.getIdTokenResponse();
-        this.state = oicSession.getState();
+        // session will be invalidated but we still need this data for our redirect.
+        req.setAttribute("idToken", oicSession.getIdToken());
+        req.setAttribute("state", oicSession.getState());
 
         super.doLogout(req, rsp);
     }
@@ -349,29 +348,17 @@ public class OicSecurityRealm extends SecurityRealm {
     @Override
     public String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
         if (this.logoutFromOpenidProvider) {
-            return req.getContextPath()+ "/securityRealm/logoutFromOpenidProvider";
+            StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionUrl);
+            openidLogoutEndpoint.append("/?id_token_hint=").append(req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE));
+            openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
+
+            if (this.postLogoutRedirectUrl != null) {
+                openidLogoutEndpoint.append("&post_logout_redirect_uri=").append(this.postLogoutRedirectUrl);
+            }
+            return openidLogoutEndpoint.toString();
         }
 
         return super.getPostLogOutUrl(req, auth);
-    }
-
-    /**
-     * Handles the the securityRealm/logoutFromOpenidProvider resource
-     */
-    public HttpResponse doLogoutFromOpenidProvider(@QueryParameter String from, @Header("Referer") final String referer) {
-        StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionUrl);
-        openidLogoutEndpoint.append("/?id_token_hint=");
-        openidLogoutEndpoint.append(this.idTokenResponse.getIdToken());
-
-        openidLogoutEndpoint.append("&state=");
-        openidLogoutEndpoint.append(this.state);
-
-        if (this.postLogoutRedirectUrl != null) {
-            openidLogoutEndpoint.append("&post_logout_redirect_uri=");
-            openidLogoutEndpoint.append(this.postLogoutRedirectUrl);
-        }
-
-        return HttpResponses.redirectTo(openidLogoutEndpoint.toString());
     }
 
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")

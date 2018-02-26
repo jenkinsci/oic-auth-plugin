@@ -26,7 +26,6 @@ package org.jenkinsci.plugins.oic;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
-import com.google.api.client.auth.openidconnect.IdTokenResponse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Failure;
 import hudson.remoting.Base64;
@@ -67,7 +66,7 @@ abstract class OicSession {
     /**
      * ID Token needed to logout from OpenID Provider
      */
-    private IdTokenResponse idTokenResponse;
+    private String idToken;
 
     OicSession(AuthorizationCodeFlow flow, String from, String redirectUrl) {
         this.flow = flow;
@@ -132,13 +131,13 @@ abstract class OicSession {
         return (OicSession) Stapler.getCurrentRequest().getSession().getAttribute(SESSION_NAME);
     }
 
-    public void setIdTokenResponse(IdTokenResponse idTokenResponse) {
-        this.idTokenResponse = idTokenResponse;
+    public void setIdToken(String idToken) {
+        this.idToken = idToken;
     }
 
-    public IdTokenResponse getIdTokenResponse()
+    public String getIdToken()
     {
-        return this.idTokenResponse;
+        return this.idToken;
     }
 
     private static final String SESSION_NAME = OicSession.class.getName();
