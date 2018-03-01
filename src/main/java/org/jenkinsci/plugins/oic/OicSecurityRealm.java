@@ -58,6 +58,7 @@ import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.HttpResponse;
 import org.springframework.dao.DataAccessException;
 
+import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -76,6 +77,8 @@ public class OicSecurityRealm extends SecurityRealm {
 	private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
 	
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
+    private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
+    private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
     private final HttpTransport httpTransport;
 
     private final String clientId;
@@ -91,11 +94,15 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String groupsFieldName;
     private final String scopes;
     private final boolean disableSslVerification;
+    private final boolean logoutFromOpenidProvider;
+    private final String endSessionUrl;
+    private final String postLogoutRedirectUrl;
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
-            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification) throws IOException {
+            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
+            boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl) throws IOException {
         this.clientId = clientId;
         this.clientSecret = Secret.fromString(clientSecret);
         this.tokenServerUrl = tokenServerUrl;
@@ -109,6 +116,9 @@ public class OicSecurityRealm extends SecurityRealm {
         this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
         this.disableSslVerification = disableSslVerification;
+        this.logoutFromOpenidProvider = logoutFromOpenidProvider;
+        this.endSessionUrl = endSessionUrl;
+        this.postLogoutRedirectUrl = postLogoutRedirectUrl;
 
         this.httpTransport = constructHttpTransport(this.disableSslVerification);
     }
@@ -177,6 +187,18 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public boolean isDisableSslVerification() {
         return disableSslVerification;
+    }
+
+    public boolean isLogoutFromOpenidProvider() {
+        return logoutFromOpenidProvider;
+    }
+
+    public String getEndSessionUrl() {
+        return endSessionUrl;
+    }
+
+    public String getPostLogoutRedirectUrl() {
+        return postLogoutRedirectUrl;
     }
 
     /**
@@ -305,6 +327,9 @@ public class OicSecurityRealm extends SecurityRealm {
                 try {
                     IdTokenResponse response = IdTokenResponse.execute(
                             flow.newTokenRequest(authorizationCode).setRedirectUri(buildOAuthRedirectUrl()));
+
+                    this.setIdToken(response.getIdToken());
+
                     IdToken idToken = IdToken.parse(JSON_FACTORY, response.getIdToken());
 
                     Object username = null;
@@ -420,6 +445,31 @@ public class OicSecurityRealm extends SecurityRealm {
         return null;
     }
 
+    public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+        OicSession oicSession = OicSession.getCurrent();
+        // session will be invalidated but we still need this data for our redirect.
+        req.setAttribute(ID_TOKEN_REQUEST_ATTRIBUTE, oicSession.getIdToken());
+        req.setAttribute(STATE_REQUEST_ATTRIBUTE, oicSession.getState());
+
+        super.doLogout(req, rsp);
+    }
+
+    @Override
+    public String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
+        if (this.logoutFromOpenidProvider) {
+            StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionUrl);
+            openidLogoutEndpoint.append("/?id_token_hint=").append(req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE));
+            openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
+
+            if (this.postLogoutRedirectUrl != null) {
+                openidLogoutEndpoint.append("&post_logout_redirect_uri=").append(this.postLogoutRedirectUrl);
+            }
+            return openidLogoutEndpoint.toString();
+        }
+
+        return super.getPostLogOutUrl(req, auth);
+    }
+
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private String determineRedirectTarget(@QueryParameter String from, @Header("Referer") String referer) {
         String target;
@@ -511,5 +561,29 @@ public class OicSecurityRealm extends SecurityRealm {
             return FormValidation.ok();
         }
 
+        public FormValidation doCheckEndSessionUrl(@QueryParameter String endSessionUrl) {
+            if (endSessionUrl == null || endSessionUrl.equals("")) {
+                return FormValidation.error("End Session URL Key is required.");
+            }
+            try {
+                new URL(endSessionUrl);
+                return FormValidation.ok();
+            } catch (MalformedURLException e) {
+                return FormValidation.error(e,"Not a valid url.");
+            }
+        }
+
+        public FormValidation doCheckPostLogoutRedirectUrl(@QueryParameter String postLogoutRedirectUrl) {
+            if (postLogoutRedirectUrl != null && !postLogoutRedirectUrl.equals("")) {
+                try {
+                    new URL(postLogoutRedirectUrl);
+                    return FormValidation.ok();
+                } catch (MalformedURLException e) {
+                    return FormValidation.error(e,"Not a valid url.");
+                }
+            }
+
+            return FormValidation.ok();
+        }
     }
 }

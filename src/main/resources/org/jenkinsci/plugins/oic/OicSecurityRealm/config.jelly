@@ -39,4 +39,13 @@
   <f:entry title="${%Disable ssl verification}" field="disableSslVerification">
     <f:checkbox/>
   </f:entry>
+
+  <f:optionalBlock inline="true" title="${%Logout from OpenID Provider}" field="logoutFromOpenidProvider">
+      <f:entry title="${%End session URL for OpenID Provider}" field="endSessionUrl">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%Post logout redirect URL}" field="postLogoutRedirectUrl">
+        <f:textbox/>
+      </f:entry>
+  </f:optionalBlock>
 </j:jelly>

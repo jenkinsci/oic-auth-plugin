@@ -27,8 +27,8 @@ import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Failure;
 import hudson.remoting.Base64;
-import hudson.util.HttpResponses;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.Stapler;
@@ -50,7 +50,11 @@ import java.util.UUID;
 abstract class OicSession {
 
     private final AuthorizationCodeFlow flow;
-    private final String uuid = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)).substring(0,20);
+
+    /**
+     * An opaque value used by the client to maintain state between the request and callback.
+     */
+    private final String state = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)).substring(0,20);
     /**
      * The url the user was trying to navigate to.
      */
@@ -59,6 +63,10 @@ abstract class OicSession {
      * Where it will redirect to once the scopes are approved by the user.
      */
     private final String redirectUrl;
+    /**
+     * ID Token needed to logout from OpenID Provider
+     */
+    private String idToken;
 
     OicSession(AuthorizationCodeFlow flow, String from, String redirectUrl) {
         this.flow = flow;
@@ -73,7 +81,7 @@ abstract class OicSession {
     public HttpResponse doCommenceLogin() throws IOException {
         // remember this in the session
         Stapler.getCurrentRequest().getSession().setAttribute(SESSION_NAME, this);
-        AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(uuid).setRedirectUri(redirectUrl);
+        AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
         return new HttpRedirect(authorizationCodeRequestUrl.toString());
     }
 
@@ -86,14 +94,16 @@ abstract class OicSession {
             buf.append('?').append(request.getQueryString());
         }
         AuthorizationCodeResponseUrl responseUrl = new AuthorizationCodeResponseUrl(buf.toString());
-        if (! uuid.equals(responseUrl.getState())) {
-            return HttpResponses.error(401, "State is invalid");
+        if (!state.equals(responseUrl.getState())) {
+            return new Failure("State is invalid");
         }
         String code = responseUrl.getCode();
         if (responseUrl.getError() != null) {
-            return HttpResponses.error(401, "Error from provider: " + code);
+            return new Failure(
+                    "Error from provider: " + responseUrl.getError() + ". Details: " + responseUrl.getErrorDescription()
+            );
         } else if (code == null) {
-            return HttpResponses.error(404, "Missing authorization code");
+            return new Failure("Missing authorization code");
         } else {
             return onSuccess(code);
         }
@@ -108,6 +118,10 @@ abstract class OicSession {
         return from;
     }
 
+    public String getState() {
+        return this.state;
+    }
+
     protected abstract HttpResponse onSuccess(String authorizationCode) throws IOException;
 
     /**
@@ -115,6 +129,15 @@ abstract class OicSession {
      */
     public static OicSession getCurrent() {
         return (OicSession) Stapler.getCurrentRequest().getSession().getAttribute(SESSION_NAME);
+    }
+
+    public void setIdToken(String idToken) {
+        this.idToken = idToken;
+    }
+
+    public String getIdToken()
+    {
+        return this.idToken;
     }
 
     private static final String SESSION_NAME = OicSession.class.getName();
