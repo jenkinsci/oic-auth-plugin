@@ -38,15 +38,16 @@
     </license>
   </licenses>
   <dependencies>
-    <dependency>
-      <groupId>com.google.oauth-client</groupId>
-      <artifactId>google-oauth-client</artifactId>
-      <version>1.22.0</version>
-    </dependency>
+    <!-- see build plugin unpack -->
+    <!--<dependency>-->
+      <!--<groupId>com.google.oauth-client</groupId>-->
+      <!--<artifactId>google-oauth-client</artifactId>-->
+      <!--<version>1.23.0</version>-->
+    <!--</dependency>-->
     <dependency>
       <groupId>com.google.http-client</groupId>
       <artifactId>google-http-client-jackson2</artifactId>
-      <version>1.22.0</version>
+      <version>1.23.0</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -66,6 +67,34 @@
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
         <version>2.5.2</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>unpack</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>com.google.oauth-client</groupId>
+                  <artifactId>google-oauth-client</artifactId>
+                  <version>1.23.0</version>
+                  <type>jar</type>
+                  <overWrite>true</overWrite>
+                  <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                  <excludes>
+                    **/TokenResponse.class
+                  </excludes>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
