@@ -40,6 +40,7 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.User;
+import hudson.model.UserProperty;
 import hudson.security.SecurityRealm;
 import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
@@ -50,15 +51,22 @@ import org.acegisecurity.*;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
+import org.acegisecurity.userdetails.UserDetails;
+import org.acegisecurity.userdetails.UserDetailsService;
+import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.HttpResponse;
+import org.springframework.dao.DataAccessException;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
 * Login with OpenID Connect / OAuth 2
@@ -66,7 +74,8 @@ import java.util.Arrays;
 * @author Michael Bischoff
 */
 public class OicSecurityRealm extends SecurityRealm {
-
+	private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
+	
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
@@ -82,6 +91,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String tokenFieldToCheckValue;
     private final String fullNameFieldName;
     private final String emailFieldName;
+    private final String groupsFieldName;
     private final String scopes;
     private final boolean disableSslVerification;
     private final boolean logoutFromOpenidProvider;
@@ -91,7 +101,7 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
-            String fullNameFieldName, String emailFieldName, String scopes, boolean disableSslVerification,
+            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
             boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl) throws IOException {
         this.clientId = clientId;
         this.clientSecret = Secret.fromString(clientSecret);
@@ -104,6 +114,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
         this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
+        this.groupsFieldName = Util.fixEmpty(groupsFieldName);
         this.disableSslVerification = disableSslVerification;
         this.logoutFromOpenidProvider = logoutFromOpenidProvider;
         this.endSessionUrl = endSessionUrl;
@@ -165,6 +176,10 @@ public class OicSecurityRealm extends SecurityRealm {
     public String getEmailFieldName() {
         return emailFieldName;
     }
+    
+    public String getGroupsFieldName() {
+    	return groupsFieldName;
+    }
 
     public String getScopes() {
         return scopes;
@@ -194,6 +209,54 @@ public class OicSecurityRealm extends SecurityRealm {
         return "securityRealm/commenceLogin";
     }
 
+    static class OicUserDetails implements UserDetails {
+		private static final long serialVersionUID = 1L;
+		private String userName;
+		private GrantedAuthority[] grantedAuthorities;
+
+		OicUserDetails(String userName, GrantedAuthority[] grantedAuthorities) {
+			this.userName = userName;
+			this.grantedAuthorities = grantedAuthorities;
+		}
+		
+		@Override
+		public GrantedAuthority[] getAuthorities() {
+			LOGGER.info("OicUserDetails.getAuthorities called, returning " + grantedAuthorities.length);
+			return this.grantedAuthorities;
+		}
+		
+		@Override
+		public String getPassword() {
+			// OpenID Connect => no passwords...
+			return null;
+		}
+
+		@Override
+		public String getUsername() {
+			return this.userName;
+		}
+
+		@Override
+		public boolean isAccountNonExpired() {
+			return true;
+		}
+
+		@Override
+		public boolean isAccountNonLocked() {
+			return true;
+		}
+
+		@Override
+		public boolean isCredentialsNonExpired() {
+			return true;
+		}
+
+		@Override
+		public boolean isEnabled() {
+			return true;
+		}
+    	
+    };
     /*
     * Acegi has this notion that first an {@link org.acegisecurity.Authentication} object is created
     * by collecting user information and then the act of authentication is done
@@ -210,7 +273,30 @@ public class OicSecurityRealm extends SecurityRealm {
                             return authentication;
                         throw new BadCredentialsException("Unexpected authentication type: " + authentication);
                     }
-                }
+                },
+                new UserDetailsService() {
+					
+					@Override
+					public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
+						// Retrieve the OicUserProperty to get the list of groups that has to be set in the OicUserDetails object.
+						LOGGER.fine("loadUserByUsername in createSecurityComponents called, username: " + username);
+						User u = User.get(username);
+						LOGGER.fine("loadUserByUsername in createSecurityComponents called, user: " + u);
+						List<UserProperty> props = u.getAllProperties();
+						LOGGER.fine("loadUserByUsername in createSecurityComponents called, number of props: " + props.size());
+						GrantedAuthority[] auths = new GrantedAuthority[0];
+						for (UserProperty prop: props) {
+							LOGGER.fine("loadUserByUsername in createSecurityComponents called, prop of type: " + prop.getClass().toString());
+							if (prop instanceof OicUserProperty) {
+								OicUserProperty oicProp = (OicUserProperty) prop;
+								LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username: " + oicProp.getUserName());
+								auths = oicProp.getAuthorities();
+								LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop with auths size: " + auths.length);
+							}
+						}
+						return new OicUserDetails(username, auths);
+					}
+				}
         );
     }
 
@@ -264,8 +350,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
                     flow.createAndStoreCredential(response, null);
 
-                    loginAndSetUserData(username.toString(),
-                            new GrantedAuthority[] { SecurityRealm.AUTHENTICATED_AUTHORITY }, idToken, userInfo);
+                    loginAndSetUserData(username.toString(), idToken, userInfo);
 
                     return new HttpRedirect(redirectOnFinish);
 
@@ -307,12 +392,36 @@ public class OicSecurityRealm extends SecurityRealm {
         return tokenFieldToCheckValue.equals(String.valueOf(value));
     }
 
-    private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, GrantedAuthority[] authorities,
+    private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, 
             IdToken idToken, GenericJson userInfo) throws IOException {
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userName, "", authorities);
+    	
+    	List<GrantedAuthority> grantedAuthorities = new ArrayList<GrantedAuthority>();
+    	grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
+		if (groupsFieldName != null && groupsFieldName.length() > 0) {
+    		if (idToken.getPayload().containsKey(groupsFieldName)) {
+    			LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + idToken.getPayload().get(groupsFieldName).getClass());
+    			@SuppressWarnings("unchecked")
+    			List<String> groupNames = (List<String>) idToken.getPayload().get(groupsFieldName);
+    			LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+       			for (String groupName: groupNames) {
+       				LOGGER.fine("Adding group from idToken: " + groupName);
+       				grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
+       			}
+       		} else {
+       		LOGGER.warning("idToken did not contain group field name: " + groupsFieldName);
+       		}
+    	} else {
+    		LOGGER.info("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
+    	}
+    	GrantedAuthority[] grantedAuthoritiesAsArray = grantedAuthorities.toArray(new GrantedAuthority[0]);
+    	LOGGER.fine("grantedAuthoritiesAsArray size: " + grantedAuthoritiesAsArray.length);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userName, "", grantedAuthoritiesAsArray);
+
         SecurityContextHolder.getContext().setAuthentication(token);
 
         User u = User.get(token.getName());
+        // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
+        u.addProperty(new OicUserProperty(userName, grantedAuthoritiesAsArray));
 
         String email = userInfo == null ? getField(idToken, emailFieldName) : (String) userInfo.get(emailFieldName);
         if (email != null) {
