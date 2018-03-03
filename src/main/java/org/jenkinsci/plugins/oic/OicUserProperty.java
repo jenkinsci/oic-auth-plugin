@@ -9,13 +9,14 @@ import hudson.model.User;
 import hudson.model.UserProperty;
 import hudson.model.UserPropertyDescriptor;
 
-class OicUserProperty extends UserProperty {
+public class OicUserProperty extends UserProperty {
 	private static final Logger LOGGER = Logger.getLogger(OicUserProperty.class.getName());
-    static class OicUserPropertyDescriptor extends UserPropertyDescriptor {
+
+    public static class Descriptor extends UserPropertyDescriptor {
 
 		@Override
 		public UserProperty newInstance(User user) {
-			LOGGER.info("OicUserPropertyDescriptor.newInstance called, user:" + user);
+			LOGGER.fine("OicUserPropertyDescriptor.newInstance called, user:" + user);
 			return new OicUserProperty(user.getId(), new GrantedAuthority[0]);
 		}
 
@@ -27,7 +28,7 @@ class OicUserProperty extends UserProperty {
     }
 	@Override
 	public UserPropertyDescriptor getDescriptor() {
-		return new OicUserPropertyDescriptor();
+		return new Descriptor();
 	}
 	private GrantedAuthority[] authorities;
 	private String userName;
