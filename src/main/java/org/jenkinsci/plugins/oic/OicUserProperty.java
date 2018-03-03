@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.oic;
 
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 import org.acegisecurity.GrantedAuthority;
@@ -10,7 +11,6 @@ import hudson.model.UserProperty;
 import hudson.model.UserPropertyDescriptor;
 
 public class OicUserProperty extends UserProperty {
-	private static final Logger LOGGER = Logger.getLogger(OicUserProperty.class.getName());
 
     public static class Descriptor extends UserPropertyDescriptor {
 
@@ -26,19 +26,18 @@ public class OicUserProperty extends UserProperty {
 		}
     	
     }
-	@Override
-	public UserPropertyDescriptor getDescriptor() {
-		return new Descriptor();
-	}
-	private GrantedAuthority[] authorities;
-	private String userName;
+
+	private static final Logger LOGGER = Logger.getLogger(OicUserProperty.class.getName());
+
+	private final GrantedAuthority[] authorities;
+	private final String userName;
 
 	public OicUserProperty(String userName, GrantedAuthority[] authorities) {
 		this.userName = userName;
-		this.authorities = authorities;
+		this.authorities = Arrays.copyOf(authorities, authorities.length);
 	}
 	public GrantedAuthority[] getAuthorities() {
-		return authorities;
+		return Arrays.copyOf(authorities, authorities.length);
 	}
 	
 	public String getAllGrantedAuthorities() {
@@ -54,5 +53,10 @@ public class OicUserProperty extends UserProperty {
 	
 	public String getUserName() {
 		return userName;
+	}
+
+	@Override
+	public UserPropertyDescriptor getDescriptor() {
+		return new Descriptor();
 	}
 }

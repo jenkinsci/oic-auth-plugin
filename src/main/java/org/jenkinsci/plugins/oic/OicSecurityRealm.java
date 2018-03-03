@@ -212,55 +212,6 @@ public class OicSecurityRealm extends SecurityRealm {
         return "securityRealm/commenceLogin";
     }
 
-    public static class OicUserDetails implements UserDetails {
-		private static final long serialVersionUID = 1L;
-
-		private final String userName;
-		private final GrantedAuthority[] grantedAuthorities;
-
-		protected OicUserDetails(String userName, GrantedAuthority[] grantedAuthorities) {
-			this.userName = userName;
-			this.grantedAuthorities = grantedAuthorities;
-		}
-		
-		@Override
-		public GrantedAuthority[] getAuthorities() {
-			LOGGER.fine("OicUserDetails.getAuthorities called, returning " + grantedAuthorities.length);
-			return this.grantedAuthorities;
-		}
-		
-		@Override
-		public String getPassword() {
-			// OpenID Connect => no passwords...
-			return null;
-		}
-
-		@Override
-		public String getUsername() {
-			return this.userName;
-		}
-
-		@Override
-		public boolean isAccountNonExpired() {
-			return true;
-		}
-
-		@Override
-		public boolean isAccountNonLocked() {
-			return true;
-		}
-
-		@Override
-		public boolean isCredentialsNonExpired() {
-			return true;
-		}
-
-		@Override
-		public boolean isEnabled() {
-			return true;
-		}
-    	
-    };
     /*
     * Acegi has this notion that first an {@link org.acegisecurity.Authentication} object is created
     * by collecting user information and then the act of authentication is done
