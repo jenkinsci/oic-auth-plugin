@@ -35,6 +35,8 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
@@ -82,7 +84,6 @@ public class OicSecurityRealm extends SecurityRealm {
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
-    private final HttpTransport httpTransport;
 
     private final String clientId;
     private final Secret clientSecret;
@@ -100,6 +101,8 @@ public class OicSecurityRealm extends SecurityRealm {
     private final boolean logoutFromOpenidProvider;
     private final String endSessionUrl;
     private final String postLogoutRedirectUrl;
+
+    private transient HttpTransport httpTransport;
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
@@ -123,7 +126,14 @@ public class OicSecurityRealm extends SecurityRealm {
         this.endSessionUrl = endSessionUrl;
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
 
-        this.httpTransport = constructHttpTransport(this.disableSslVerification);
+        this.httpTransport = constructHttpTransport(isDisableSslVerification());
+    }
+
+    private Object readResolve() {
+        if(httpTransport==null) {
+            httpTransport = constructHttpTransport(isDisableSslVerification());
+        }
+        return this;
     }
 
     private HttpTransport constructHttpTransport(boolean disableSslVerification) {
