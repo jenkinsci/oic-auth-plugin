@@ -33,6 +33,9 @@
   <f:entry title="${%Scopes}" field="scopes">
     <f:textbox/>
   </f:entry>
+  <f:entry title="${%Groups field name}" field="groupsFieldName">
+    <f:textbox/>
+  </f:entry>
   <f:entry title="${%Disable ssl verification}" field="disableSslVerification">
     <f:checkbox/>
   </f:entry>
