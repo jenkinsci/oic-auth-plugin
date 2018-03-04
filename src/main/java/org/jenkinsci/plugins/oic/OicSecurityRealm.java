@@ -253,7 +253,7 @@ public class OicSecurityRealm extends SecurityRealm {
 							if (prop instanceof OicUserProperty) {
 								OicUserProperty oicProp = (OicUserProperty) prop;
 								LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username: " + oicProp.getUserName());
-								auths = oicProp.getAuthorities();
+								auths = oicProp.getAuthoritiesAsGrantedAuthorities();
 								LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop with auths size: " + auths.length);
 							}
 						}
