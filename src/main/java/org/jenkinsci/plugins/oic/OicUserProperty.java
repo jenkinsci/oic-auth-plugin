@@ -1,7 +1,10 @@
 package org.jenkinsci.plugins.oic;
 
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.acegisecurity.GrantedAuthority;
@@ -9,6 +12,7 @@ import org.acegisecurity.GrantedAuthority;
 import hudson.model.User;
 import hudson.model.UserProperty;
 import hudson.model.UserPropertyDescriptor;
+import org.acegisecurity.GrantedAuthorityImpl;
 
 public class OicUserProperty extends UserProperty {
 
@@ -29,24 +33,33 @@ public class OicUserProperty extends UserProperty {
 
 	private static final Logger LOGGER = Logger.getLogger(OicUserProperty.class.getName());
 
-	private final GrantedAuthority[] authorities;
+	private final List<String> authorities = new ArrayList<String>();
 	private final String userName;
 
 	public OicUserProperty(String userName, GrantedAuthority[] authorities) {
 		this.userName = userName;
-		this.authorities = Arrays.copyOf(authorities, authorities.length);
+		for(GrantedAuthority authority : authorities) {
+			this.authorities.add(authority.getAuthority());
+		}
 	}
-	public GrantedAuthority[] getAuthorities() {
-		return Arrays.copyOf(authorities, authorities.length);
+
+	public List<String> getAuthorities() {
+		return Collections.unmodifiableList(authorities);
+	}
+
+	public GrantedAuthority[] getAuthoritiesAsGrantedAuthorities() {
+		GrantedAuthority[] authorities = new GrantedAuthority[this.authorities.size()];
+		for(int i=0; i<authorities.length; i++) {
+			authorities[i] = new GrantedAuthorityImpl(this.authorities.get(i));
+		}
+		return authorities;
 	}
 	
 	public String getAllGrantedAuthorities() {
-		StringWriter result = new StringWriter();
-		result.append("Number of GrantedAuthorities in OicUserProperty for " + userName + ": " + (authorities == null ? "null" : authorities.length));
-		if (authorities != null) {
-			for (GrantedAuthority a: authorities) {
-				result.append("<br>\nAuthority: " + a.getAuthority());
-			}
+		StringBuilder result = new StringBuilder();
+		result.append("Number of GrantedAuthorities in OicUserProperty for ").append(userName).append(": ").append(authorities.size());
+		for (String authority: authorities) {
+			result.append("<br>\nAuthority: ").append(authority);
 		}
 		return result.toString();
 	}
