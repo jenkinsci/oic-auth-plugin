@@ -162,6 +162,10 @@ public class PluginTest {
                 false,
                 false,
                 null,
+                null,
+                false,
+                null,
+                null,
                 null
             );
         }
