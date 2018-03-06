@@ -66,6 +66,7 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -99,14 +100,19 @@ public class OicSecurityRealm extends SecurityRealm {
     private final boolean logoutFromOpenidProvider;
     private final String endSessionUrl;
     private final String postLogoutRedirectUrl;
+    private final boolean escapeHatchEnabled;
+    private final String escapeHatchUsername;
+    private final Secret escapeHatchSecret;
+    private final String escapeHatchGroup;
 
     private transient HttpTransport httpTransport;
+    private transient Random random;
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
-            String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
-            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
-            boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl) throws IOException {
+                            String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
+                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
+                            boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl, boolean escapeHatchEnabled, String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup) throws IOException {
         this.clientId = clientId;
         this.clientSecret = Secret.fromString(clientSecret);
         this.tokenServerUrl = tokenServerUrl;
@@ -123,13 +129,21 @@ public class OicSecurityRealm extends SecurityRealm {
         this.logoutFromOpenidProvider = logoutFromOpenidProvider;
         this.endSessionUrl = endSessionUrl;
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
+        this.escapeHatchEnabled = escapeHatchEnabled;
+        this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
+        this.escapeHatchSecret = Secret.fromString(escapeHatchSecret);
+        this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
 
         this.httpTransport = constructHttpTransport(isDisableSslVerification());
+        this.random = new Random();
     }
 
     private Object readResolve() {
         if(httpTransport==null) {
             httpTransport = constructHttpTransport(isDisableSslVerification());
+        }
+        if(random==null) {
+            random = new Random();
         }
         return this;
     }
@@ -212,12 +226,33 @@ public class OicSecurityRealm extends SecurityRealm {
         return postLogoutRedirectUrl;
     }
 
+    public boolean isEscapeHatchEnabled() {
+        return escapeHatchEnabled;
+    }
+
+    public String getEscapeHatchUsername() {
+        return escapeHatchUsername;
+    }
+
+    public Secret getEscapeHatchSecret() {
+        return escapeHatchSecret;
+    }
+
+    public String getEscapeHatchGroup() {
+        return escapeHatchGroup;
+    }
+
     /**
     * Login begins with our {@link #doCommenceLogin(String,String)} method.
     */
     @Override
     public String getLoginUrl() {
         return "securityRealm/commenceLogin";
+    }
+
+    @Override
+    public String getAuthenticationGatewayUrl() {
+        return "securityRealm/escapeHatch";
     }
 
     /*
@@ -325,6 +360,39 @@ public class OicSecurityRealm extends SecurityRealm {
         }.doCommenceLogin();
     }
 
+    public HttpResponse doEscapeHatch(@QueryParameter("j_username") String username, @QueryParameter("j_password") String password) {
+        randomWait(); // to slowdown brute forcing
+        if(!isEscapeHatchEnabled()) {
+            return HttpResponses.redirectViaContextPath("loginError");
+        }
+        if(this.escapeHatchUsername == null || this.escapeHatchSecret == null) {
+            return HttpResponses.redirectViaContextPath("loginError");
+        }
+        if(escapeHatchUsername.equalsIgnoreCase(username) && escapeHatchSecret.getPlainText().equals(password)) {
+            List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+            authorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
+            if(isNotBlank(escapeHatchGroup)) {
+                authorities.add(new GrantedAuthorityImpl(escapeHatchGroup));
+            }
+            UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+                    "escape-hatch-admin",
+                    "",
+                    authorities.toArray(new GrantedAuthority[authorities.size()])
+            );
+            SecurityContextHolder.getContext().setAuthentication(token);
+            return HttpRedirect.CONTEXT_ROOT;
+        }
+        return HttpResponses.redirectViaContextPath("loginError");
+    }
+
+    private void randomWait() {
+        try {
+            Thread.sleep(1000 + random.nextInt(1000));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     private GenericJson getUserInfo(final AuthorizationCodeFlow flow, final String accessToken) throws IOException {
         HttpRequestFactory requestFactory = flow.getTransport().createRequestFactory(new HttpRequestInitializer() {
             @Override
@@ -422,10 +490,11 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         OicSession oicSession = OicSession.getCurrent();
-        // session will be invalidated but we still need this data for our redirect.
-        req.setAttribute(ID_TOKEN_REQUEST_ATTRIBUTE, oicSession.getIdToken());
-        req.setAttribute(STATE_REQUEST_ATTRIBUTE, oicSession.getState());
-
+        if(oicSession!=null) {
+            // session will be invalidated but we still need this data for our redirect.
+            req.setAttribute(ID_TOKEN_REQUEST_ATTRIBUTE, oicSession.getIdToken());
+            req.setAttribute(STATE_REQUEST_ATTRIBUTE, oicSession.getState());
+        }
         super.doLogout(req, rsp);
     }
 
