@@ -52,4 +52,20 @@
       </f:optionalBlock>
     </table>
   </f:block>
+
+  <f:block>
+    <table>
+      <f:optionalBlock inline="true" title="${%Configure 'escape hatch' for when the OpenID Provider is unavailable}" field="escapeHatchEnabled">
+        <f:entry title="${%Username}" field="escapeHatchUsername">
+          <f:textbox/>
+        </f:entry>
+        <f:entry title="${%Secret}" field="escapeHatchSecret">
+          <f:password/>
+        </f:entry>
+        <f:entry title="${%Group}" field="escapeHatchGroup">
+          <f:textbox/>
+        </f:entry>
+      </f:optionalBlock>
+    </table>
+  </f:block>
 </j:jelly>
