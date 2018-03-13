@@ -32,6 +32,11 @@ public class TokenResponseTest {
             + "\"refresh_token\":\"tGzv3JOkF0XG5Qx2TlKWIA\","
             + "\"example_parameter\":\"example_value\"}";
 
+    private static final String JSON_WITH_ABSENT = "{\"access_token\":\"2YotnFZFEjr1zCsicMWpAA\","
+            + "\"token_type\":\"example\","
+            + "\"refresh_token\":\"tGzv3JOkF0XG5Qx2TlKWIA\","
+            + "\"example_parameter\":\"example_value\"}";
+
     @Test
     public void parseLongLiteral() throws IOException {
         JsonFactory jsonFactory = new JacksonFactory();
@@ -50,6 +55,17 @@ public class TokenResponseTest {
         assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
         assertEquals("example", response.getTokenType());
         assertEquals(3600L, response.getExpiresInSeconds().longValue());
+        assertEquals("tGzv3JOkF0XG5Qx2TlKWIA", response.getRefreshToken());
+        assertEquals("example_value", response.get("example_parameter"));
+    }
+
+    @Test
+    public void parseAbsent() throws IOException {
+        JsonFactory jsonFactory = new JacksonFactory();
+        TokenResponse response = jsonFactory.fromString(JSON_WITH_ABSENT, TokenResponse.class);
+        assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
+        assertEquals("example", response.getTokenType());
+        assertEquals(null, response.getExpiresInSeconds());
         assertEquals("tGzv3JOkF0XG5Qx2TlKWIA", response.getRefreshToken());
         assertEquals("example_value", response.get("example_parameter"));
     }
