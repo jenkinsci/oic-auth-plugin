@@ -110,6 +110,9 @@ public class TokenResponse extends GenericJson {
      * {@code null} for none.
      */
     public final Long getExpiresInSeconds() {
+        if(expiresInSeconds == null) {
+            return null;
+        }
         return Long.class.isInstance(expiresInSeconds) ? (Long) expiresInSeconds : Long.valueOf(String.valueOf(expiresInSeconds));
     }
 
