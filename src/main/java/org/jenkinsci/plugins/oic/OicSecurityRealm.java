@@ -330,18 +330,21 @@ public class OicSecurityRealm extends SecurityRealm {
 
                     IdToken idToken = IdToken.parse(JSON_FACTORY, response.getIdToken());
 
-                    Object username = null;
+                    Object username;
                     GenericJson userInfo = null;
                     if (Strings.isNullOrEmpty(userInfoServerUrl)) {
                         username = idToken.getPayload().get(userNameField);
+                        if(username == null) {
+                            return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the token payload to be used as the username");
+                        }
                     } else {
                         userInfo = getUserInfo(flow, response.getAccessToken());
                         username = userInfo.get(userNameField);
+                        if(username == null) {
+                            return HttpResponses.error(500,"no field '" + userNameField + "' was supplied by the UserInfo payload to be used as the username");
+                        }
                     }
 
-                    if(username == null) {
-                        return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the token payload to be used as the username");
-                    }
                     if(failedCheckOfTokenField(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
@@ -425,7 +428,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, IdToken idToken, GenericJson userInfo) throws IOException {
 
-        GrantedAuthority[] grantedAuthorities = determineAuthorities(idToken);
+        GrantedAuthority[] grantedAuthorities = determineAuthorities(idToken, userInfo);
         if(LOGGER.isLoggable(Level.FINEST)) {
 		    StringBuilder grantedAuthoritiesAsString = new StringBuilder("(");
 		    for(GrantedAuthority grantedAuthority : grantedAuthorities) {
@@ -456,22 +459,37 @@ public class OicSecurityRealm extends SecurityRealm {
         return token;
     }
 
-    private GrantedAuthority[] determineAuthorities(IdToken idToken) {
+    private GrantedAuthority[] determineAuthorities(IdToken idToken, GenericJson userInfo) {
         List<GrantedAuthority> grantedAuthorities = new ArrayList<GrantedAuthority>();
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
 
         if (isNotBlank(groupsFieldName)) {
-            if (idToken.getPayload().containsKey(groupsFieldName)) {
-                LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + idToken.getPayload().get(groupsFieldName).getClass());
-                @SuppressWarnings("unchecked")
-                List<String> groupNames = (List<String>) idToken.getPayload().get(groupsFieldName);
-                LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
-                for (String groupName: groupNames) {
-                    LOGGER.fine("Adding group from idToken: " + groupName);
-                    grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
+            if(Strings.isNullOrEmpty(userInfoServerUrl)) {
+                if (idToken.getPayload().containsKey(groupsFieldName)) {
+                    LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + idToken.getPayload().get(groupsFieldName).getClass());
+                    @SuppressWarnings("unchecked")
+                    List<String> groupNames = (List<String>) idToken.getPayload().get(groupsFieldName);
+                    LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+                    for (String groupName : groupNames) {
+                        LOGGER.fine("Adding group from idToken: " + groupName);
+                        grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
+                    }
+                } else {
+                    LOGGER.warning("idToken did not contain group field name: " + groupsFieldName);
                 }
             } else {
-                LOGGER.warning("idToken did not contain group field name: " + groupsFieldName);
+                if (userInfo.containsKey(groupsFieldName)) {
+                    LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + userInfo.get(groupsFieldName).getClass());
+                    @SuppressWarnings("unchecked")
+                    List<String> groupNames = (List<String>) userInfo.get(groupsFieldName);
+                    LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+                    for (String groupName : groupNames) {
+                        LOGGER.fine("Adding group from UserInfo: " + groupName);
+                        grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
+                    }
+                } else {
+                    LOGGER.warning("UserInfo did not contain group field name: " + groupsFieldName);
+                }
             }
         } else {
             LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
