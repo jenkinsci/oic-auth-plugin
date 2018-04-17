@@ -22,9 +22,12 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -68,9 +71,7 @@ public class PluginTest {
     }
 
     @Test public void testLogin() throws Exception {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-        keyGen.initialize(2048);
-        KeyPair keyPair = keyGen.generateKeyPair();
+        KeyPair keyPair = createKeyPair();
 
         stubFor(get(urlPathEqualTo("/authorization")).willReturn(
             aResponse()
@@ -79,11 +80,16 @@ public class PluginTest {
                     .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
                     .withBody("")
         ));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
         stubFor(post(urlPathEqualTo("/token")).willReturn(
             aResponse()
                 .withHeader("Content-Type", "text/html; charset=utf-8")
                 .withBody("{" +
-                            "\"id_token\": \""+createIdToken(keyPair.getPrivate())+"\"," +
+                            "\"id_token\": \""+createIdToken(keyPair.getPrivate(), keyValues)+"\"," +
                             "\"access_token\":\"AcCeSs_ToKeN\"," +
                             "\"token_type\":\"example\"," +
                             "\"expires_in\":3600," +
@@ -108,7 +114,77 @@ public class PluginTest {
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
 
-    private String createIdToken(PrivateKey privateKey) throws Exception {
+    @Test public void testLoginUsingUserInfoEndpoint() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+                aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")
+        ));
+        stubFor(post(urlPathEqualTo("/token")).willReturn(
+                aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{" +
+                                "\"id_token\": \""+createIdToken(keyPair.getPrivate(),Collections.<String,Object>emptyMap())+"\"," +
+                                "\"access_token\":\"AcCeSs_ToKeN\"," +
+                                "\"token_type\":\"example\"," +
+                                "\"expires_in\":3600," +
+                                "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                                "\"example_parameter\":\"example_value\"" +
+                                "}")
+        ));
+        stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
+                            "   \""+GROUPS_FIELD+"\": "+toJsonArray(TEST_USER_GROUPS)+"\n" +
+                            "  }")
+        ));
+
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo"));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Full name should be "+TEST_USER_FULL_NAME, user.getFullName(), TEST_USER_FULL_NAME);
+        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress(), TEST_USER_EMAIL_ADDRESS);
+        assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
+        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+    }
+
+    private String toJsonArray(String[] array) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("[");
+        for(String entry : array) {
+            builder.append("\"").append(entry).append("\",");
+        }
+        if(builder.lastIndexOf(",") != -1) {
+            builder.deleteCharAt(builder.length()-1);
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    private KeyPair createKeyPair() throws NoSuchAlgorithmException {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        return keyGen.generateKeyPair();
+    }
+
+    private String createIdToken(PrivateKey privateKey, Map<String, Object> keyValues) throws Exception {
         JsonWebSignature.Header header = new JsonWebSignature.Header()
             .setAlgorithm("RS256");
         IdToken.Payload payload = new IdToken.Payload()
@@ -116,10 +192,10 @@ public class PluginTest {
             .setSubject(TEST_USER_USERNAME)
             .setAudience(Collections.singletonList("clientId"))
             .setAudience(System.currentTimeMillis() / 60 + 5)
-            .setIssuedAtTimeSeconds(System.currentTimeMillis() / 60)
-            .set(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS)
-            .set(FULL_NAME_FIELD, TEST_USER_FULL_NAME)
-            .set(GROUPS_FIELD, TEST_USER_GROUPS);
+            .setIssuedAtTimeSeconds(System.currentTimeMillis() / 60);
+        for(Map.Entry<String, Object> keyValue : keyValues.entrySet()) {
+            payload.set(keyValue.getKey(), keyValue.getValue());
+        }
 
         return JsonWebSignature.signUsingRsaSha256(privateKey, JSON_FACORY, header, payload);
     }
@@ -146,12 +222,16 @@ public class PluginTest {
     public static class TestRealm extends OicSecurityRealm {
 
         public TestRealm(WireMockRule wireMockRule) throws IOException {
+            this(wireMockRule, null);
+        }
+
+        public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl) throws IOException {
             super(
                  CLIENT_ID,
                 "secret",
                 "http://localhost:" + wireMockRule.port() + "/token",
                 "http://localhost:" + wireMockRule.port() + "/authorization",
-                null,
+                 userInfoServerUrl,
                 null,
                 null,
                 null,
