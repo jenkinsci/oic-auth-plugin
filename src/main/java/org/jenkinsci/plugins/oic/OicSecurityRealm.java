@@ -37,6 +37,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import hudson.ProxyConfiguration;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.User;
@@ -150,6 +151,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private HttpTransport constructHttpTransport(boolean disableSslVerification) {
         NetHttpTransport.Builder builder = new NetHttpTransport.Builder();
+        builder.setConnectionFactory(new JenkinsAwareConnectionFactory());
 
         if (disableSslVerification) {
             try {
