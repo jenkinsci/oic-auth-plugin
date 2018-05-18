@@ -23,9 +23,11 @@
 */
 package org.jenkinsci.plugins.oic;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
+import com.google.api.client.auth.oauth2.WellKnownOpenIDConfigurationResponse;
 import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.auth.openidconnect.IdTokenResponse;
 import com.google.api.client.http.*;
@@ -55,6 +57,9 @@ import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.HttpResponse;
 import org.springframework.dao.DataAccessException;
@@ -63,6 +68,7 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,6 +83,7 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 * Login with OpenID Connect / OAuth 2
 *
 * @author Michael Bischoff
+* @author Steve Arch
 */
 public class OicSecurityRealm extends SecurityRealm {
 	private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
@@ -87,6 +94,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private final String clientId;
     private final Secret clientSecret;
+    private final String wellKnownOpenIDConfigurationUrl;
     private final String tokenServerUrl;
     private final String authorizationServerUrl;
     private final String userInfoServerUrl;
@@ -110,21 +118,43 @@ public class OicSecurityRealm extends SecurityRealm {
     private transient Random random;
 
     @DataBoundConstructor
-    public OicSecurityRealm(String clientId, String clientSecret, String tokenServerUrl, String authorizationServerUrl,
+    public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
                             String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
-                            boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl, boolean escapeHatchEnabled, String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup) throws IOException {
+                            boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl, boolean escapeHatchEnabled,
+                            String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
+        this.httpTransport = constructHttpTransport(disableSslVerification);
+
         this.clientId = clientId;
         this.clientSecret = Secret.fromString(clientSecret);
-        this.tokenServerUrl = tokenServerUrl;
-        this.authorizationServerUrl = authorizationServerUrl;
-        this.userInfoServerUrl = userInfoServerUrl;
+        if("auto".equals(automanualconfigure)) {
+            // Get the well-known configuration from the specified URL
+            this.wellKnownOpenIDConfigurationUrl = Util.fixEmpty(wellKnownOpenIDConfigurationUrl);
+            URL url = new URL(wellKnownOpenIDConfigurationUrl);
+            HttpRequest request = httpTransport.createRequestFactory().buildGetRequest(new GenericUrl(url));
+            com.google.api.client.http.HttpResponse response = request.execute();
+
+            WellKnownOpenIDConfigurationResponse config = OicSecurityRealm.JSON_FACTORY
+                    .fromInputStream(response.getContent(), Charset.defaultCharset(),
+                            WellKnownOpenIDConfigurationResponse.class);
+
+            this.authorizationServerUrl = config.getAuthorizationEndpoint();
+            this.tokenServerUrl = config.getTokenEndpoint();
+            this.userInfoServerUrl = config.getUserinfoEndpoint();
+            this.scopes = StringUtils.join(config.getScopesSupported(), " ");
+        } else {
+            this.authorizationServerUrl = authorizationServerUrl;
+            this.tokenServerUrl = tokenServerUrl;
+            this.userInfoServerUrl = userInfoServerUrl;
+            this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
+            this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
+        }
+
         this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
         this.tokenFieldToCheckKey = Util.fixEmpty(tokenFieldToCheckKey);
         this.tokenFieldToCheckValue = Util.fixEmpty(tokenFieldToCheckValue);
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
-        this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
         this.disableSslVerification = disableSslVerification;
         this.logoutFromOpenidProvider = logoutFromOpenidProvider;
@@ -135,7 +165,6 @@ public class OicSecurityRealm extends SecurityRealm {
         this.escapeHatchSecret = Secret.fromString(escapeHatchSecret);
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
 
-        this.httpTransport = constructHttpTransport(isDisableSslVerification());
         this.random = new Random();
     }
 
@@ -170,6 +199,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public Secret getClientSecret() {
         return clientSecret;
+    }
+
+    public String getWellKnownOpenIDConfigurationUrl() {
+        return wellKnownOpenIDConfigurationUrl;
     }
 
     public String getTokenServerUrl() {
@@ -566,6 +599,18 @@ public class OicSecurityRealm extends SecurityRealm {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
+        @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+        public boolean isAuto() {
+            SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
+            return realm instanceof OicSecurityRealm &&
+                   StringUtils.isNotBlank(((OicSecurityRealm)realm).getWellKnownOpenIDConfigurationUrl());
+        }
+
+        @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+        public boolean isManual() {
+            return Jenkins.getInstance().getSecurityRealm() instanceof OicSecurityRealm && !isAuto();
+        }
+
         public String getDisplayName() {
             return "Login with Openid Connect";
         }
@@ -582,6 +627,35 @@ public class OicSecurityRealm extends SecurityRealm {
                 return FormValidation.error("Client secret is required.");
             }
             return FormValidation.ok();
+        }
+
+        public FormValidation doCheckWellKnownOpenIDConfigurationUrl(@QueryParameter String wellKnownOpenIDConfigurationUrl) {
+            try {
+                URL url = new URL(wellKnownOpenIDConfigurationUrl);
+                HttpRequest request = new NetHttpTransport.Builder().build().createRequestFactory()
+                                                                    .buildGetRequest(new GenericUrl(url));
+                com.google.api.client.http.HttpResponse response = request.execute();
+
+                // Try to parse the response. If it's not valid, a JsonParseExceptino will be thrown indicating
+                // that it's not a valid JSON describing an OpenID Connect endpoint
+                WellKnownOpenIDConfigurationResponse config = OicSecurityRealm.JSON_FACTORY
+                        .fromInputStream(response.getContent(), Charset.defaultCharset(),
+                                WellKnownOpenIDConfigurationResponse.class);
+                if(config.getAuthorizationEndpoint() == null || config.getTokenEndpoint() == null) {
+                    return FormValidation.warning("URL does seem to describe OpenID Connect endpoints");
+                }
+
+                return FormValidation.ok();
+            } catch (MalformedURLException e) {
+                return FormValidation.error(e, "Not a valid url.");
+            } catch (HttpResponseException e) {
+                return FormValidation.error(e, "Could not retrieve well-known config %d %s",
+                        e.getStatusCode(), e.getStatusMessage());
+            } catch (JsonParseException e) {
+                return FormValidation.error(e, "Could not parse response");
+            } catch (IOException e) {
+                return FormValidation.error(e, "Error when retrieving well-known config");
+            }
         }
 
         public FormValidation doCheckTokenServerUrl(@QueryParameter String tokenServerUrl) {
