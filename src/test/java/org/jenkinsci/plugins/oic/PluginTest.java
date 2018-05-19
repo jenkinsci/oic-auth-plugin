@@ -229,6 +229,7 @@ public class PluginTest {
             super(
                  CLIENT_ID,
                 "secret",
+                null,
                 "http://localhost:" + wireMockRule.port() + "/token",
                 "http://localhost:" + wireMockRule.port() + "/authorization",
                  userInfoServerUrl,
@@ -246,7 +247,8 @@ public class PluginTest {
                 false,
                 null,
                 null,
-                null
+                null,
+                "manual"
             );
         }
 

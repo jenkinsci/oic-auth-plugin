@@ -6,66 +6,84 @@
   <f:entry title="${%Client secret}" field="clientSecret">
     <f:textbox/>
   </f:entry>
-  <f:entry title="${%Token server url}" field="tokenServerUrl">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%Authorization server url}" field="authorizationServerUrl">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%UserInfo server url}" field="userInfoServerUrl">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%User name field}" field="userNameField">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%Token Field Key To Check}" field="tokenFieldToCheckKey">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%Token Field Value To Check}" field="tokenFieldToCheckValue">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%FullName field name}" field="fullNameFieldName">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%Email field name}" field="emailFieldName">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%Scopes}" field="scopes">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%Groups field name}" field="groupsFieldName">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%Disable ssl verification}" field="disableSslVerification">
-    <f:checkbox/>
-  </f:entry>
 
-  <f:block>
-    <table>
-      <f:optionalBlock inline="true" title="${%Logout from OpenID Provider}" field="logoutFromOpenidProvider" checked="${logoutFromOpenidProvider}">
-          <f:entry title="${%End session URL for OpenID Provider}" field="endSessionUrl">
-            <f:textbox/>
-          </f:entry>
-          <f:entry title="${%Post logout redirect URL}" field="postLogoutRedirectUrl">
-            <f:textbox/>
-          </f:entry>
-      </f:optionalBlock>
-    </table>
-  </f:block>
-
-  <f:block>
-    <table>
-      <f:optionalBlock inline="true" title="${%Configure 'escape hatch' for when the OpenID Provider is unavailable}" field="escapeHatchEnabled">
-        <f:entry title="${%Username}" field="escapeHatchUsername">
+  <f:section title="Configuration mode">
+    <f:block>
+      <f:radioBlock title="${%Automatic configuration}" checked="${descriptor.auto}" name="automanualconfigure" value="auto" inline="true">
+        <f:entry title="${%Well-known configuration endpoint}" field="wellKnownOpenIDConfigurationUrl">
           <f:textbox/>
         </f:entry>
-        <f:entry title="${%Secret}" field="escapeHatchSecret">
-          <f:password/>
-        </f:entry>
-        <f:entry title="${%Group}" field="escapeHatchGroup">
-          <f:textbox/>
-        </f:entry>
-      </f:optionalBlock>
-    </table>
-  </f:block>
+      </f:radioBlock>
+    </f:block>
+
+    <f:block>
+    <f:radioBlock title="${%Manual configuration}" checked="${descriptor.manual}" name="automanualconfigure" value="manual" inline="true">
+      <f:entry title="${%Token server url}" field="tokenServerUrl">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%Authorization server url}" field="authorizationServerUrl">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%UserInfo server url}" field="userInfoServerUrl">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%Scopes}" field="scopes">
+        <f:textbox/>
+      </f:entry>
+    </f:radioBlock>
+    </f:block>
+  </f:section>
+
+  <f:advanced>
+    <f:entry title="${%User name field}" field="userNameField">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="${%Token Field Key To Check}" field="tokenFieldToCheckKey">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="${%Token Field Value To Check}" field="tokenFieldToCheckValue">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="${%FullName field name}" field="fullNameFieldName">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="${%Email field name}" field="emailFieldName">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="${%Groups field name}" field="groupsFieldName">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="${%Disable ssl verification}" field="disableSslVerification">
+      <f:checkbox/>
+    </f:entry>
+
+    <f:block>
+      <table>
+        <f:optionalBlock inline="true" title="${%Logout from OpenID Provider}" field="logoutFromOpenidProvider" checked="${logoutFromOpenidProvider}">
+            <f:entry title="${%End session URL for OpenID Provider}" field="endSessionUrl">
+              <f:textbox/>
+            </f:entry>
+            <f:entry title="${%Post logout redirect URL}" field="postLogoutRedirectUrl">
+              <f:textbox/>
+            </f:entry>
+        </f:optionalBlock>
+      </table>
+    </f:block>
+
+    <f:block>
+      <table>
+        <f:optionalBlock inline="true" title="${%Configure 'escape hatch' for when the OpenID Provider is unavailable}" field="escapeHatchEnabled">
+          <f:entry title="${%Username}" field="escapeHatchUsername">
+            <f:textbox/>
+          </f:entry>
+          <f:entry title="${%Secret}" field="escapeHatchSecret">
+            <f:password/>
+          </f:entry>
+          <f:entry title="${%Group}" field="escapeHatchGroup">
+            <f:textbox/>
+          </f:entry>
+        </f:optionalBlock>
+      </table>
+    </f:block>
+  </f:advanced>
 </j:jelly>
