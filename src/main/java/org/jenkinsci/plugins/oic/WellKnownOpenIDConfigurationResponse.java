@@ -1,4 +1,4 @@
-package com.google.api.client.auth.oauth2;
+package org.jenkinsci.plugins.oic;
 
 import java.util.Map;
 import java.util.Set;
@@ -8,6 +8,10 @@ import com.google.api.client.util.Key;
 /**
  * OpenID Connect Discovery JSON.
  * https://openid.net/specs/openid-connect-discovery-1_0.html
+ *
+ * https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata:
+ * "Additional OpenID Provider Metadata parameters MAY also be used. Some are defined by other specifications, such as OpenID Connect Session Management 1.0"
+ * http://openid.net/specs/openid-connect-session-1_0.html#OPMetadata
  *
  * @author Steve Arch
  */
@@ -27,6 +31,9 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
     @Key("scopes_supported")
     private Set<String> scopesSupported;
 
+    @Key("end_session_endpoint")
+    private String endSessionEndpoint;
+
     public String getAuthorizationEndpoint() {
         return authorizationEndpoint;
     }
@@ -45,6 +52,10 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
 
     public Set<String> getScopesSupported() {
         return scopesSupported;
+    }
+
+    public String getEndSessionEndpoint() {
+        return endSessionEndpoint;
     }
 
     /**

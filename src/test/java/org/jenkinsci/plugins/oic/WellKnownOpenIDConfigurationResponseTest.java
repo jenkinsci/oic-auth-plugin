@@ -1,7 +1,7 @@
 package org.jenkinsci.plugins.oic;
 
 import java.io.IOException;
-import com.google.api.client.auth.oauth2.WellKnownOpenIDConfigurationResponse;
+
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import org.junit.Test;

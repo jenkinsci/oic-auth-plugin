@@ -30,21 +30,27 @@
       <f:entry title="${%Scopes}" field="scopes">
         <f:textbox/>
       </f:entry>
+      <f:block>
+        <table>
+          <f:optionalBlock inline="true" title="${%Logout from OpenID Provider}" field="logoutFromOpenidProvider" checked="${logoutFromOpenidProvider}">
+            <f:entry title="${%End session URL for OpenID Provider}" field="endSessionUrl">
+              <f:textbox/>
+            </f:entry>
+            <f:entry title="${%Post logout redirect URL}" field="postLogoutRedirectUrl">
+              <f:textbox/>
+            </f:entry>
+          </f:optionalBlock>
+        </table>
+      </f:block>
     </f:radioBlock>
     </f:block>
   </f:section>
 
   <f:advanced>
-    <f:entry title="${%User name field}" field="userNameField">
+    <f:entry title="${%User name field name}" field="userNameField">
       <f:textbox/>
     </f:entry>
-    <f:entry title="${%Token Field Key To Check}" field="tokenFieldToCheckKey">
-      <f:textbox/>
-    </f:entry>
-    <f:entry title="${%Token Field Value To Check}" field="tokenFieldToCheckValue">
-      <f:textbox/>
-    </f:entry>
-    <f:entry title="${%FullName field name}" field="fullNameFieldName">
+    <f:entry title="${%Full name field name}" field="fullNameFieldName">
       <f:textbox/>
     </f:entry>
     <f:entry title="${%Email field name}" field="emailFieldName">
@@ -53,22 +59,15 @@
     <f:entry title="${%Groups field name}" field="groupsFieldName">
       <f:textbox/>
     </f:entry>
+    <f:entry title="${%Token Field Key To Check}" field="tokenFieldToCheckKey">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="${%Token Field Value To Check}" field="tokenFieldToCheckValue">
+      <f:textbox/>
+    </f:entry>
     <f:entry title="${%Disable ssl verification}" field="disableSslVerification">
       <f:checkbox/>
     </f:entry>
-
-    <f:block>
-      <table>
-        <f:optionalBlock inline="true" title="${%Logout from OpenID Provider}" field="logoutFromOpenidProvider" checked="${logoutFromOpenidProvider}">
-            <f:entry title="${%End session URL for OpenID Provider}" field="endSessionUrl">
-              <f:textbox/>
-            </f:entry>
-            <f:entry title="${%Post logout redirect URL}" field="postLogoutRedirectUrl">
-              <f:textbox/>
-            </f:entry>
-        </f:optionalBlock>
-      </table>
-    </f:block>
 
     <f:block>
       <table>
