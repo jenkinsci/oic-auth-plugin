@@ -27,7 +27,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
-import com.google.api.client.auth.oauth2.WellKnownOpenIDConfigurationResponse;
 import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.auth.openidconnect.IdTokenResponse;
 import com.google.api.client.http.*;
@@ -39,7 +38,6 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
-import hudson.ProxyConfiguration;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.User;
@@ -58,8 +56,6 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.lang.StringUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.HttpResponse;
 import org.springframework.dao.DataAccessException;
@@ -121,7 +117,7 @@ public class OicSecurityRealm extends SecurityRealm {
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
                             String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
-                            boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl, boolean escapeHatchEnabled,
+                            Boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl, boolean escapeHatchEnabled,
                             String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
         this.httpTransport = constructHttpTransport(disableSslVerification);
 
@@ -142,12 +138,16 @@ public class OicSecurityRealm extends SecurityRealm {
             this.tokenServerUrl = config.getTokenEndpoint();
             this.userInfoServerUrl = config.getUserinfoEndpoint();
             this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
+            this.logoutFromOpenidProvider = logoutFromOpenidProvider != null;
+            this.endSessionUrl = config.getEndSessionEndpoint();
         } else {
             this.authorizationServerUrl = authorizationServerUrl;
             this.tokenServerUrl = tokenServerUrl;
             this.userInfoServerUrl = userInfoServerUrl;
             this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
+            this.logoutFromOpenidProvider = logoutFromOpenidProvider;
+            this.endSessionUrl = endSessionUrl;
         }
 
         this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
@@ -157,8 +157,6 @@ public class OicSecurityRealm extends SecurityRealm {
         this.emailFieldName = Util.fixEmpty(emailFieldName);
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
         this.disableSslVerification = disableSslVerification;
-        this.logoutFromOpenidProvider = logoutFromOpenidProvider;
-        this.endSessionUrl = endSessionUrl;
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
         this.escapeHatchEnabled = escapeHatchEnabled;
         this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
