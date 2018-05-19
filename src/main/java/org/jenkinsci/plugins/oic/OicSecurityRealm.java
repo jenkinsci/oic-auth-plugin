@@ -178,7 +178,7 @@ public class OicSecurityRealm extends SecurityRealm {
         return this;
     }
 
-    private HttpTransport constructHttpTransport(boolean disableSslVerification) {
+    private static HttpTransport constructHttpTransport(boolean disableSslVerification) {
         NetHttpTransport.Builder builder = new NetHttpTransport.Builder();
         builder.setConnectionFactory(new JenkinsAwareConnectionFactory());
 
@@ -629,14 +629,14 @@ public class OicSecurityRealm extends SecurityRealm {
             return FormValidation.ok();
         }
 
-        public FormValidation doCheckWellKnownOpenIDConfigurationUrl(@QueryParameter String wellKnownOpenIDConfigurationUrl) {
+        public FormValidation doCheckWellKnownOpenIDConfigurationUrl(@QueryParameter String wellKnownOpenIDConfigurationUrl, @QueryParameter boolean disableSslVerification) {
             try {
                 URL url = new URL(wellKnownOpenIDConfigurationUrl);
-                HttpRequest request = new NetHttpTransport.Builder().build().createRequestFactory()
+                HttpRequest request = constructHttpTransport(disableSslVerification).createRequestFactory()
                                                                     .buildGetRequest(new GenericUrl(url));
                 com.google.api.client.http.HttpResponse response = request.execute();
 
-                // Try to parse the response. If it's not valid, a JsonParseExceptino will be thrown indicating
+                // Try to parse the response. If it's not valid, a JsonParseException will be thrown indicating
                 // that it's not a valid JSON describing an OpenID Connect endpoint
                 WellKnownOpenIDConfigurationResponse config = OicSecurityRealm.JSON_FACTORY
                         .fromInputStream(response.getContent(), Charset.defaultCharset(),
