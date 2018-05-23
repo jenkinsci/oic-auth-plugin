@@ -69,6 +69,7 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -366,13 +367,13 @@ public class OicSecurityRealm extends SecurityRealm {
                     Object username;
                     GenericJson userInfo = null;
                     if (Strings.isNullOrEmpty(userInfoServerUrl)) {
-                        username = idToken.getPayload().get(userNameField);
+                        username = getFieldValue(idToken.getPayload(), userNameField);
                         if(username == null) {
                             return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the token payload to be used as the username");
                         }
                     } else {
                         userInfo = getUserInfo(flow, response.getAccessToken());
-                        username = userInfo.get(userNameField);
+                        username = getFieldValue(userInfo, userNameField);
                         if(username == null) {
                             return HttpResponses.error(500,"no field '" + userNameField + "' was supplied by the UserInfo payload to be used as the username");
                         }
@@ -451,7 +452,7 @@ public class OicSecurityRealm extends SecurityRealm {
             return false;
         }
 
-        Object value = idToken.getPayload().get(tokenFieldToCheckKey);
+        Object value = getFieldValue(idToken.getPayload(), tokenFieldToCheckKey);
         if(value == null) {
             return true;
         }
@@ -479,12 +480,12 @@ public class OicSecurityRealm extends SecurityRealm {
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
 
-        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) userInfo.get(emailFieldName);
+        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getFieldValue(userInfo, emailFieldName);
         if (email != null) {
             user.addProperty(new Mailer.UserProperty(email));
         }
 
-        String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) userInfo.get(fullNameFieldName);
+        String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getFieldValue(userInfo, fullNameFieldName);
         if (fullName != null) {
             user.setFullName(fullName);
         }
@@ -498,10 +499,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
         if (isNotBlank(groupsFieldName)) {
             if(Strings.isNullOrEmpty(userInfoServerUrl)) {
-                if (idToken.getPayload().containsKey(groupsFieldName)) {
-                    LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + idToken.getPayload().get(groupsFieldName).getClass());
+                if (containsField(idToken.getPayload(), groupsFieldName)) {
+                    LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getFieldValue(idToken.getPayload(), groupsFieldName).getClass());
                     @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) idToken.getPayload().get(groupsFieldName);
+                    List<String> groupNames = (List<String>) getFieldValue(idToken.getPayload(), groupsFieldName);
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                     for (String groupName : groupNames) {
                         LOGGER.fine("Adding group from idToken: " + groupName);
@@ -511,10 +512,10 @@ public class OicSecurityRealm extends SecurityRealm {
                     LOGGER.warning("idToken did not contain group field name: " + groupsFieldName);
                 }
             } else {
-                if (userInfo.containsKey(groupsFieldName)) {
-                    LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + userInfo.get(groupsFieldName).getClass());
+                if (containsField(userInfo, groupsFieldName)) {
+                    LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getFieldValue(userInfo, groupsFieldName).getClass());
                     @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) userInfo.get(groupsFieldName);
+                    List<String> groupNames = (List<String>) getFieldValue(userInfo, groupsFieldName);
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                     for (String groupName : groupNames) {
                         LOGGER.fine("Adding group from UserInfo: " + groupName);
@@ -532,7 +533,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     private String getField(IdToken idToken, String fullNameFieldName) {
-        Object value = idToken.getPayload().get(fullNameFieldName);
+        Object value = getFieldValue(idToken.getPayload(), fullNameFieldName);
         if(value != null) {
             return String.valueOf(value);
         }
@@ -593,6 +594,32 @@ public class OicSecurityRealm extends SecurityRealm {
     */
     public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
         return OicSession.getCurrent().doFinishLogin(request);
+    }
+
+    private Object getFieldValue(GenericJson payload, String field) {
+        Object map = payload;
+        String[] fields = field.split("\\.");
+        for (String key : fields) {
+            if (map == null || !(map instanceof Map))
+                return null;
+            map = ((Map<?, ?>) map).get(key);
+        }
+        return map;
+    }
+
+    private boolean containsField(GenericJson payload, String field) {
+        Object map = payload;
+        String[] fields = field.split("\\.");
+        boolean result = false;
+        for (String key : fields) {
+            if (map == null || !(map instanceof Map))
+                return false;
+            result = ((Map<?, ?>) map).containsKey(key);
+            if (!result)
+                return false;
+            map = ((Map<?, ?>) map).get(key);
+        }
+        return result;
     }
 
     @Extension
