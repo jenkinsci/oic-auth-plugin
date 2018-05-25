@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.oic;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.api.client.auth.openidconnect.IdToken;
+import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
@@ -26,7 +27,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -36,6 +36,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -262,6 +264,61 @@ public class PluginTest {
         assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress(), TEST_USER_EMAIL_ADDRESS);
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+    }
+
+    @Test public void testNestedLookup() throws Exception {
+        HashMap<String, Object> user = new HashMap<>();
+        user.put("id", "100");
+
+        GenericJson payload = new GenericJson();
+        payload.put("email", "myemail@example.com");
+        payload.put("user", user);
+        payload.put("none", null);
+
+        TestRealm realm = new TestRealm(wireMockRule);
+
+        assertEquals("myemail@example.com", realm.getNestedField(payload, "email"));
+        assertEquals("100", realm.getNestedField(payload, "user.id"));
+        assertNull(realm.getNestedField(payload, "unknown"));
+        assertNull(realm.getNestedField(payload, "user"));
+        assertNull(realm.getNestedField(payload, "user.invalid"));
+        assertNull(realm.getNestedField(payload, "none"));
+
+        assertTrue(realm.containsNestedField(payload, "email"));
+        assertTrue(realm.containsNestedField(payload, "user.id"));
+        assertFalse(realm.containsNestedField(payload, "unknown"));
+        assertFalse(realm.containsNestedField(payload, "user"));
+        assertFalse(realm.containsNestedField(payload, "user.invalid"));
+        assertTrue(realm.containsNestedField(payload, "none"));
+    }
+
+    @Test public void testNormalLookupDueToDot() throws Exception {
+        HashMap<String, Object> user = new HashMap<>();
+        user.put("id", "100");
+
+        GenericJson payload = new GenericJson();
+        payload.put("email", "myemail@example.com");
+        payload.put("user", user);
+        payload.put("none", null);
+        payload.put("user.name", "myusername");
+
+        TestRealm realm = new TestRealm(wireMockRule);
+
+        assertEquals("myemail@example.com", realm.getNestedField(payload, "email"));
+        assertNull(realm.getNestedField(payload, "user.id"));
+        assertNull(realm.getNestedField(payload, "unknown"));
+        assertNull(realm.getNestedField(payload, "user"));
+        assertNull(realm.getNestedField(payload, "user.invalid"));
+        assertEquals("myusername", realm.getNestedField(payload, "user.name"));
+        assertNull(realm.getNestedField(payload, "none"));
+
+        assertTrue(realm.containsNestedField(payload, "email"));
+        assertFalse(realm.containsNestedField(payload, "user.id"));
+        assertFalse(realm.containsNestedField(payload, "unknown"));
+        assertFalse(realm.containsNestedField(payload, "user"));
+        assertFalse(realm.containsNestedField(payload, "user.invalid"));
+        assertTrue(realm.containsNestedField(payload, "none"));
+        assertTrue(realm.containsNestedField(payload, "user.name"));
     }
 
     private String toJsonArray(String[] array) {

@@ -35,6 +35,7 @@ import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
@@ -367,13 +368,13 @@ public class OicSecurityRealm extends SecurityRealm {
                     Object username;
                     GenericJson userInfo = null;
                     if (Strings.isNullOrEmpty(userInfoServerUrl)) {
-                        username = getFieldValue(idToken.getPayload(), userNameField);
+                        username = getNestedField(idToken.getPayload(), userNameField);
                         if(username == null) {
                             return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the token payload to be used as the username");
                         }
                     } else {
                         userInfo = getUserInfo(flow, response.getAccessToken());
-                        username = getFieldValue(userInfo, userNameField);
+                        username = getNestedField(userInfo, userNameField);
                         if(username == null) {
                             return HttpResponses.error(500,"no field '" + userNameField + "' was supplied by the UserInfo payload to be used as the username");
                         }
@@ -452,7 +453,7 @@ public class OicSecurityRealm extends SecurityRealm {
             return false;
         }
 
-        Object value = getFieldValue(idToken.getPayload(), tokenFieldToCheckKey);
+        Object value = getNestedField(idToken.getPayload(), tokenFieldToCheckKey);
         if(value == null) {
             return true;
         }
@@ -480,12 +481,12 @@ public class OicSecurityRealm extends SecurityRealm {
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
 
-        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getFieldValue(userInfo, emailFieldName);
+        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getNestedField(userInfo, emailFieldName);
         if (email != null) {
             user.addProperty(new Mailer.UserProperty(email));
         }
 
-        String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getFieldValue(userInfo, fullNameFieldName);
+        String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getNestedField(userInfo, fullNameFieldName);
         if (fullName != null) {
             user.setFullName(fullName);
         }
@@ -499,10 +500,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
         if (isNotBlank(groupsFieldName)) {
             if(Strings.isNullOrEmpty(userInfoServerUrl)) {
-                if (containsField(idToken.getPayload(), groupsFieldName)) {
-                    LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getFieldValue(idToken.getPayload(), groupsFieldName).getClass());
+                if (containsNestedField(idToken.getPayload(), groupsFieldName)) {
+                    LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getNestedField(idToken.getPayload(), groupsFieldName).getClass());
                     @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) getFieldValue(idToken.getPayload(), groupsFieldName);
+                    List<String> groupNames = (List<String>) getNestedField(idToken.getPayload(), groupsFieldName);
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                     for (String groupName : groupNames) {
                         LOGGER.fine("Adding group from idToken: " + groupName);
@@ -512,10 +513,10 @@ public class OicSecurityRealm extends SecurityRealm {
                     LOGGER.warning("idToken did not contain group field name: " + groupsFieldName);
                 }
             } else {
-                if (containsField(userInfo, groupsFieldName)) {
-                    LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getFieldValue(userInfo, groupsFieldName).getClass());
+                if (containsNestedField(userInfo, groupsFieldName)) {
+                    LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getNestedField(userInfo, groupsFieldName).getClass());
                     @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) getFieldValue(userInfo, groupsFieldName);
+                    List<String> groupNames = (List<String>) getNestedField(userInfo, groupsFieldName);
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                     for (String groupName : groupNames) {
                         LOGGER.fine("Adding group from UserInfo: " + groupName);
@@ -533,7 +534,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     private String getField(IdToken idToken, String fullNameFieldName) {
-        Object value = getFieldValue(idToken.getPayload(), fullNameFieldName);
+        Object value = getNestedField(idToken.getPayload(), fullNameFieldName);
         if(value != null) {
             return String.valueOf(value);
         }
@@ -596,7 +597,17 @@ public class OicSecurityRealm extends SecurityRealm {
         return OicSession.getCurrent().doFinishLogin(request);
     }
 
-    private Object getFieldValue(GenericJson payload, String field) {
+    @VisibleForTesting
+    Object getNestedField(GenericJson payload, String field) {
+        for (String key : payload.keySet()) {
+            if (key.contains(".")) {
+                Object value = payload.get(field);
+                if (value instanceof Map)
+                    return null;
+                return value;
+            }
+        }
+
         Object map = payload;
         String[] fields = field.split("\\.");
         for (String key : fields) {
@@ -604,10 +615,17 @@ public class OicSecurityRealm extends SecurityRealm {
                 return null;
             map = ((Map<?, ?>) map).get(key);
         }
+        if (map instanceof Map)
+            return null;
         return map;
     }
 
-    private boolean containsField(GenericJson payload, String field) {
+    @VisibleForTesting
+    boolean containsNestedField(GenericJson payload, String field) {
+        for (String key : payload.keySet())
+            if (key.contains("."))
+                return payload.containsKey(field) && !(payload.get(field) instanceof Map);
+
         Object map = payload;
         String[] fields = field.split("\\.");
         boolean result = false;
@@ -619,6 +637,8 @@ public class OicSecurityRealm extends SecurityRealm {
                 return false;
             map = ((Map<?, ?>) map).get(key);
         }
+        if (map instanceof Map)
+            return false;
         return result;
     }
 
