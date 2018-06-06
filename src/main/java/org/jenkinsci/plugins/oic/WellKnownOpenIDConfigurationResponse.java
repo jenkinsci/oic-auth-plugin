@@ -60,7 +60,7 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
 
     /**
      * Mimicks {@link GenericJson#getUnknownKeys()}, but returning the map of known keys
-     * @return
+     * @return a map key-values pairs defined in this class
      */
     public Map<String, Object> getKnownKeys() {
         Map<String, Object> clone = this.clone();
