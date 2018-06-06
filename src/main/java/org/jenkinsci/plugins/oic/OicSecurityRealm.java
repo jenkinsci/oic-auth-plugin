@@ -562,7 +562,17 @@ public class OicSecurityRealm extends SecurityRealm {
             return openidLogoutEndpoint.toString();
         }
 
-        return super.getPostLogOutUrl(req, auth);
+        return getFinalLogoutUrl(req, auth);
+    }
+
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    private String getFinalLogoutUrl(StaplerRequest req, Authentication auth) {
+        // if we just redirect to the root and anonymous does not have Overall read then we will start a login all over again.
+        // we are actually anonymous here as the security context has been cleared
+        if (Jenkins.getInstance().hasPermission(Jenkins.READ)) {
+            return super.getPostLogOutUrl(req, auth);
+        }
+        return req.getContextPath() + "/" + OicLogoutAction.POST_LOGOUT_URL;
     }
 
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")

@@ -29,6 +29,11 @@
       <name>michael bischoff</name>
       <email>m.bischoff@controplex.com</email>
     </developer>
+    <developer>
+      <id>agentgonzo</id>
+      <name>Steve Arch</name>
+      <email>sarch@cloudbees.com</email>
+    </developer>
   </developers>
 
   <licenses>
