@@ -76,9 +76,10 @@ abstract class OicSession {
 
     /**
      * Starts the login session.
+     * @return an {@link HttpResponse}
      */
     @SuppressFBWarnings("J2EE_STORE_OF_NON_SERIALIZABLE_OBJECT_INTO_SESSION")
-    public HttpResponse doCommenceLogin() throws IOException {
+    public HttpResponse doCommenceLogin() {
         // remember this in the session
         Stapler.getCurrentRequest().getSession().setAttribute(SESSION_NAME, this);
         AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
@@ -87,8 +88,9 @@ abstract class OicSession {
 
     /**
      * When the identity provider is done with its thing, the user comes back here.
+     * @return an {@link HttpResponse}
      */
-    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
+    public HttpResponse doFinishLogin(StaplerRequest request)  {
         StringBuffer buf = request.getRequestURL();
         if (request.getQueryString() != null) {
             buf.append('?').append(request.getQueryString());
@@ -122,7 +124,7 @@ abstract class OicSession {
         return this.state;
     }
 
-    protected abstract HttpResponse onSuccess(String authorizationCode) throws IOException;
+    protected abstract HttpResponse onSuccess(String authorizationCode);
 
     /**
      * Gets the {@link OicSession} associated with HTTP session in the current extend.

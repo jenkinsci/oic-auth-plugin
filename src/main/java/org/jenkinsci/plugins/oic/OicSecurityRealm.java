@@ -277,11 +277,9 @@ public class OicSecurityRealm extends SecurityRealm {
         return escapeHatchGroup;
     }
 
-    /**
-    * Login begins with our {@link #doCommenceLogin(String,String)} method.
-    */
     @Override
     public String getLoginUrl() {
+        //Login begins with our doCommenceLogin(String,String) method
         return "securityRealm/commenceLogin";
     }
 
@@ -334,9 +332,12 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     /**
-    * handles the the securityRealm/commenceLogin resource
+     * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
+     * @param from the relative URL to the page that the user has just come from
+     * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
+     * @return an {@link HttpResponse} object
     */
-    public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) throws IOException {
+    public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) {
         final String redirectOnFinish = determineRedirectTarget(from, referer);
 
         final AuthorizationCodeFlow flow = new AuthorizationCodeFlow.Builder(
@@ -564,7 +565,17 @@ public class OicSecurityRealm extends SecurityRealm {
             return openidLogoutEndpoint.toString();
         }
 
-        return super.getPostLogOutUrl(req, auth);
+        return getFinalLogoutUrl(req, auth);
+    }
+
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    private String getFinalLogoutUrl(StaplerRequest req, Authentication auth) {
+        // if we just redirect to the root and anonymous does not have Overall read then we will start a login all over again.
+        // we are actually anonymous here as the security context has been cleared
+        if (Jenkins.getInstance().hasPermission(Jenkins.READ)) {
+            return super.getPostLogOutUrl(req, auth);
+        }
+        return req.getContextPath() + "/" + OicLogoutAction.POST_LOGOUT_URL;
     }
 
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
@@ -591,9 +602,11 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     /**
-    * This is where the user comes back to at the end of the OpenID redirect ping-pong.
+     * This is where the user comes back to at the end of the OpenID redirect ping-pong.
+     * @param request The user's request
+     * @return an HttpResponse
     */
-    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
+    public HttpResponse doFinishLogin(StaplerRequest request) {
         return OicSession.getCurrent().doFinishLogin(request);
     }
 

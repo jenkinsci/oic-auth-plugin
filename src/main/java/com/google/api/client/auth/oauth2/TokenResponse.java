@@ -65,7 +65,10 @@ public class TokenResponse extends GenericJson {
     @Key
     private String scope;
 
-    /** Returns the access token issued by the authorization server. */
+    /**
+     * Gets the access token issued by the authorization server.
+     * @return the access token
+     */
     public final String getAccessToken() {
         return accessToken;
     }
@@ -77,6 +80,8 @@ public class TokenResponse extends GenericJson {
      * Overriding is only supported for the purpose of calling the super implementation and changing
      * the return type, but nothing else.
      * </p>
+     * @param accessToken The access token
+     * @return the current object for fluent setting
      */
     public TokenResponse setAccessToken(String accessToken) {
         this.accessToken = Preconditions.checkNotNull(accessToken);
@@ -86,6 +91,7 @@ public class TokenResponse extends GenericJson {
     /**
      * Returns the token type (as specified in <a
      * href="http://tools.ietf.org/html/rfc6749#section-7.1">Access Token Types</a>).
+     * @return the token type
      */
     public final String getTokenType() {
         return tokenType;
@@ -99,6 +105,8 @@ public class TokenResponse extends GenericJson {
      * Overriding is only supported for the purpose of calling the super implementation and changing
      * the return type, but nothing else.
      * </p>
+     * @param tokenType The token type
+     * @return the current object for fluent setting
      */
     public TokenResponse setTokenType(String tokenType) {
         this.tokenType = Preconditions.checkNotNull(tokenType);
@@ -106,8 +114,8 @@ public class TokenResponse extends GenericJson {
     }
 
     /**
-     * Returns the lifetime in seconds of the access token (for example 3600 for an hour) or
-     * {@code null} for none.
+     * Returns the lifetime of the access token.
+     * @return the lifetime in seconds (for example 3600 for an hour) or {@code null} for none
      */
     public final Long getExpiresInSeconds() {
         if(expiresInSeconds == null) {
@@ -117,13 +125,14 @@ public class TokenResponse extends GenericJson {
     }
 
     /**
-     * Sets the lifetime in seconds of the access token (for example 3600 for an hour) or {@code null}
-     * for none.
+     * Sets the lifetime of the access token
      *
      * <p>
      * Overriding is only supported for the purpose of calling the super implementation and changing
      * the return type, but nothing else.
      * </p>
+     * @param expiresInSeconds the lifetime in seconds(for example 3600 for an hour) or {@code null} for none.
+     * @return the current object for fluent setting
      */
     public TokenResponse setExpiresInSeconds(Long expiresInSeconds) {
         this.expiresInSeconds = expiresInSeconds;
@@ -133,6 +142,7 @@ public class TokenResponse extends GenericJson {
     /**
      * Returns the refresh token which can be used to obtain new access tokens using the same
      * authorization grant or {@code null} for none.
+     * @return the refresh token
      */
     public final String getRefreshToken() {
         return refreshToken;
@@ -146,6 +156,8 @@ public class TokenResponse extends GenericJson {
      * Overriding is only supported for the purpose of calling the super implementation and changing
      * the return type, but nothing else.
      * </p>
+     * @param refreshToken the refresh token
+     * @return the current object for fluent setting
      */
     public TokenResponse setRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
@@ -153,7 +165,8 @@ public class TokenResponse extends GenericJson {
     }
 
     /**
-     * Returns the scope of the access token or {@code null} for none.
+     * Returns the scope of the access token
+     * @return the scope or {@code null} for none.
      */
     public final String getScope() {
         return scope;
@@ -166,6 +179,8 @@ public class TokenResponse extends GenericJson {
      * Overriding is only supported for the purpose of calling the super implementation and changing
      * the return type, but nothing else.
      * </p>
+     * @param scope the scope (eg, openid, profile etc)
+     * @return the current object for fluent setting
      */
     public TokenResponse setScope(String scope) {
         this.scope = scope;
