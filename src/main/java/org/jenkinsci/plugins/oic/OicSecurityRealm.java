@@ -69,11 +69,13 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
+import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
 
 /**
 * Login with OpenID Connect / OAuth 2
@@ -367,13 +369,13 @@ public class OicSecurityRealm extends SecurityRealm {
                     Object username;
                     GenericJson userInfo = null;
                     if (Strings.isNullOrEmpty(userInfoServerUrl)) {
-                        username = idToken.getPayload().get(userNameField);
+                        username = getField(idToken.getPayload(), userNameField);
                         if(username == null) {
                             return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the token payload to be used as the username");
                         }
                     } else {
                         userInfo = getUserInfo(flow, response.getAccessToken());
-                        username = userInfo.get(userNameField);
+                        username = getField(userInfo, userNameField);
                         if(username == null) {
                             return HttpResponses.error(500,"no field '" + userNameField + "' was supplied by the UserInfo payload to be used as the username");
                         }
@@ -452,7 +454,7 @@ public class OicSecurityRealm extends SecurityRealm {
             return false;
         }
 
-        Object value = idToken.getPayload().get(tokenFieldToCheckKey);
+        Object value = getField(idToken.getPayload(), tokenFieldToCheckKey);
         if(value == null) {
             return true;
         }
@@ -480,12 +482,12 @@ public class OicSecurityRealm extends SecurityRealm {
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
 
-        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) userInfo.get(emailFieldName);
+        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getField(userInfo, emailFieldName);
         if (email != null) {
             user.addProperty(new Mailer.UserProperty(email));
         }
 
-        String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) userInfo.get(fullNameFieldName);
+        String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getField(userInfo, fullNameFieldName);
         if (fullName != null) {
             user.setFullName(fullName);
         }
@@ -499,10 +501,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
         if (isNotBlank(groupsFieldName)) {
             if(Strings.isNullOrEmpty(userInfoServerUrl)) {
-                if (idToken.getPayload().containsKey(groupsFieldName)) {
-                    LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + idToken.getPayload().get(groupsFieldName).getClass());
+                if (containsField(idToken.getPayload(), groupsFieldName)) {
+                    LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());
                     @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) idToken.getPayload().get(groupsFieldName);
+                    List<String> groupNames = (List<String>) getField(idToken.getPayload(), groupsFieldName);
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                     for (String groupName : groupNames) {
                         LOGGER.fine("Adding group from idToken: " + groupName);
@@ -512,10 +514,10 @@ public class OicSecurityRealm extends SecurityRealm {
                     LOGGER.warning("idToken did not contain group field name: " + groupsFieldName);
                 }
             } else {
-                if (userInfo.containsKey(groupsFieldName)) {
-                    LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + userInfo.get(groupsFieldName).getClass());
+                if (containsField(userInfo, groupsFieldName)) {
+                    LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
                     @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) userInfo.get(groupsFieldName);
+                    List<String> groupNames = (List<String>) getField(userInfo, groupsFieldName);
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                     for (String groupName : groupNames) {
                         LOGGER.fine("Adding group from UserInfo: " + groupName);
@@ -533,7 +535,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     private String getField(IdToken idToken, String fullNameFieldName) {
-        Object value = idToken.getPayload().get(fullNameFieldName);
+        Object value = getField(idToken.getPayload(), fullNameFieldName);
         if(value != null) {
             return String.valueOf(value);
         }
@@ -607,6 +609,99 @@ public class OicSecurityRealm extends SecurityRealm {
     public HttpResponse doFinishLogin(StaplerRequest request) {
         return OicSession.getCurrent().doFinishLogin(request);
     }
+
+    /**
+     * Looks up the value of a field by it's key based on some json.
+     * keys with dot notation allow to denote nested structures.
+     *
+     * Keys containing dot's take precedence over nested values, by using "
+     * one can denote (partly) nested structures. dot notation feels more natural but
+     * '"' is the only illegal character in json strings
+     *
+     * given:
+     * {@code
+     * {
+     *     "do": {
+     *         "re.mi": "a"
+     *     },
+     *     "do": {
+     *         "re": {
+     *             "mi": "b"
+     *         }
+     *     },
+     *     "do.re": {
+     *         "mi": "c"
+     *     }
+     *     "do.re.mi": "d",
+     * }
+     * }
+     * {@literal
+     *  'do.re.mi' -&gt; 'd'
+     *  'do"re.mi' -> 'a'
+     *  'do"re"mi' -> 'b'
+     *  'do.re"mi' -> 'c'
+     * }
+     *
+     * @param payload   json payload to search
+     * @param field     field key
+     * @return value or null
+     */
+    public Object getField(GenericJson payload, String field) {
+        Object value = lookup(payload, field);
+        if(value == ABSENT) {
+            return null;
+        }
+        return value;
+    }
+
+    /**
+     * @see #getField(GenericJson, String)
+     * @param payload parsed json
+     * @param field to lookup a value
+     * @return true if there is a value associated with the field
+     */
+    public boolean containsField(GenericJson payload, String field) {
+        return lookup(payload, field) != ABSENT;
+    }
+
+    enum PlaceHolder {
+        ABSENT
+    }
+
+    private Object lookup(Map parsedJson, String key) {
+        if(key.contains("\"")) {
+            int indexMarker = key.indexOf('\"');
+            Object nested = parsedJson.get(key.substring(0,indexMarker));
+            if(nested == null || !(nested instanceof Map)) {
+                return parsedJson.containsKey(key.substring(0,indexMarker)) ? null : ABSENT;
+            }
+            return lookup((Map) nested, key.substring(indexMarker));
+        }
+
+        String firstPart = key;
+        int lastPos = key.length();
+        do {
+            firstPart = firstPart.substring(0, lastPos);
+            Object value = parsedJson.get(firstPart);
+            if (value != null) {
+                if(firstPart.length() == key.length()) {
+                    if(value instanceof Map) {
+                        return ABSENT;
+                    }
+                    return value;
+                }
+                if(value instanceof Map) {
+                    Object nested = lookup((Map) value, key.substring(firstPart.length()+1,key.length()));
+                    if(nested != null) {
+                        return nested;
+                    }
+                }
+            }
+            lastPos = firstPart.lastIndexOf('.');
+        } while (lastPos!=-1);
+        return parsedJson.containsKey(firstPart) ? null : ABSENT;
+    }
+
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
