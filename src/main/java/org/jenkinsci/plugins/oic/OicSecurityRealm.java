@@ -619,7 +619,7 @@ public class OicSecurityRealm extends SecurityRealm {
      * '"' is the only illegal character in json strings
      *
      * given:
-     * <pre>
+     * {@code
      * {
      *     "do": {
      *         "re.mi": "a"
@@ -634,13 +634,13 @@ public class OicSecurityRealm extends SecurityRealm {
      *     }
      *     "do.re.mi": "d",
      * }
-     * </pre>
-     * <pre>
-     *  'do.re.mi' -> 'd'
+     * }
+     * {@literal
+     *  'do.re.mi' -&gt; 'd'
      *  'do"re.mi' -> 'a'
      *  'do"re"mi' -> 'b'
      *  'do.re"mi' -> 'c'
-     * </pre>
+     * }
      *
      * @param payload   json payload to search
      * @param field     field key
