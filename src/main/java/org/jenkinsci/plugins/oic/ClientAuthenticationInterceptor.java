@@ -13,12 +13,12 @@ public class ClientAuthenticationInterceptor implements HttpExecuteInterceptor {
 
   private final String clientId;
   private final String clientSecret;
-  private final boolean useClientBasicAuthForToken;
+  private final boolean useBasicAuth;
 
-  public ClientAuthenticationInterceptor(String clientId, String clientSecret, boolean useClientBasicAuthForToken) {
+  public ClientAuthenticationInterceptor(String clientId, String clientSecret, boolean useBasicAuth) {
     this.clientId = Preconditions.checkNotNull(clientId);
     this.clientSecret = clientSecret;
-    this.useClientBasicAuthForToken = useClientBasicAuthForToken;
+    this.useBasicAuth = useBasicAuth;
   }
 
   @Override
@@ -30,13 +30,13 @@ public class ClientAuthenticationInterceptor implements HttpExecuteInterceptor {
   private void addUriParameters(HttpRequest httpRequest) {
     Map<String, Object> data = Data.mapOf(UrlEncodedContent.getContent(httpRequest).getData());
     data.put("client_id", this.clientId);
-    if (!useClientBasicAuthForToken && this.clientSecret != null) {
+    if (!useBasicAuth && this.clientSecret != null) {
       data.put("client_secret", this.clientSecret);
     }
   }
 
   private void addBasicAuth(HttpRequest httpRequest) {
-    if (useClientBasicAuthForToken) {
+    if (useBasicAuth) {
       HttpHeaders headers = httpRequest
           .getHeaders()
           .setBasicAuthentication(clientId, clientSecret);
