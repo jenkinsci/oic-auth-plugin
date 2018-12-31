@@ -68,6 +68,9 @@
     <f:entry title="${%Disable ssl verification}" field="disableSslVerification">
       <f:checkbox/>
     </f:entry>
+    <f:entry title="${%Use client basic auth on token request}" field="useClientBasicAuthForToken">
+      <f:checkbox/>
+    </f:entry>
 
     <f:block>
       <table>

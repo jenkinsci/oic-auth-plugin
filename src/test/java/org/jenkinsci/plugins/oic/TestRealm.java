@@ -45,7 +45,8 @@ public class TestRealm extends OicSecurityRealm {
             null,
             null,
             null,
-            "manual"
+            "manual",
+            false
         );
     }
 

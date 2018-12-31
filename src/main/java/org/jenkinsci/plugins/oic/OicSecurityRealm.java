@@ -26,7 +26,6 @@ package org.jenkinsci.plugins.oic;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.BearerToken;
-import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.auth.openidconnect.IdTokenResponse;
 import com.google.api.client.http.*;
@@ -111,6 +110,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String escapeHatchUsername;
     private final Secret escapeHatchSecret;
     private final String escapeHatchGroup;
+    private final boolean useClientBasicAuthForToken;
 
     private transient HttpTransport httpTransport;
     private transient Random random;
@@ -120,7 +120,7 @@ public class OicSecurityRealm extends SecurityRealm {
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
                             String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
                             Boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl, boolean escapeHatchEnabled,
-                            String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
+                            String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure, boolean useClientBasicAuthForToken) throws IOException {
         this.httpTransport = constructHttpTransport(disableSslVerification);
 
         this.clientId = clientId;
@@ -164,7 +164,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
         this.escapeHatchSecret = Secret.fromString(escapeHatchSecret);
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
-
+        this.useClientBasicAuthForToken = useClientBasicAuthForToken;
         this.random = new Random();
     }
 
@@ -345,9 +345,10 @@ public class OicSecurityRealm extends SecurityRealm {
                 httpTransport,
                 JSON_FACTORY,
                 new GenericUrl(tokenServerUrl),
-                new ClientParametersAuthentication(
+                new ClientAuthenticationInterceptor(
                         clientId,
-                        clientSecret.getPlainText()
+                        clientSecret.getPlainText(),
+                        useClientBasicAuthForToken
                 ),
                 clientId,
                 authorizationServerUrl
@@ -364,14 +365,18 @@ public class OicSecurityRealm extends SecurityRealm {
 
                     this.setIdToken(response.getIdToken());
 
-                    IdToken idToken = IdToken.parse(JSON_FACTORY, response.getIdToken());
+                    IdToken idToken = null;
 
                     Object username;
                     GenericJson userInfo = null;
                     if (Strings.isNullOrEmpty(userInfoServerUrl)) {
+                        idToken = IdToken.parse(JSON_FACTORY, response.getIdToken());
                         username = getField(idToken.getPayload(), userNameField);
                         if(username == null) {
-                            return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the token payload to be used as the username");
+                            return HttpResponses.error(500, "no field '" + userNameField + "' was supplied in the token payload to be used as the username");
+                        }
+                        if (failedCheckOfTokenField(idToken)) {
+                            return HttpResponses.errorWithoutStack(401, "Unauthorized");
                         }
                     } else {
                         userInfo = getUserInfo(flow, response.getAccessToken());
@@ -379,10 +384,6 @@ public class OicSecurityRealm extends SecurityRealm {
                         if(username == null) {
                             return HttpResponses.error(500,"no field '" + userNameField + "' was supplied by the UserInfo payload to be used as the username");
                         }
-                    }
-
-                    if(failedCheckOfTokenField(idToken)) {
-                        return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
 
                     flow.createAndStoreCredential(response, null);
@@ -669,6 +670,9 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     private Object lookup(Map parsedJson, String key) {
+        if (key == null) {
+            return ABSENT;
+        }
         if(key.contains("\"")) {
             int indexMarker = key.indexOf('\"');
             Object nested = parsedJson.get(key.substring(0,indexMarker));
