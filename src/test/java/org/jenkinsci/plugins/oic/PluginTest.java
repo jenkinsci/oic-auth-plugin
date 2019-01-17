@@ -28,7 +28,6 @@ import java.util.concurrent.Callable;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
@@ -67,7 +66,7 @@ public class PluginTest {
     @Test public void testLogin() throws Exception {
         KeyPair keyPair = createKeyPair();
 
-        stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
             aResponse()
                     .withStatus(302)
                     .withHeader("Content-Type", "text/html; charset=utf-8")
@@ -79,7 +78,7 @@ public class PluginTest {
         keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
         keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
 
-        stubFor(post(urlPathEqualTo("/token")).willReturn(
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
             aResponse()
                 .withHeader("Content-Type", "text/html; charset=utf-8")
                 .withBody("{" +
@@ -108,19 +107,63 @@ public class PluginTest {
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
 
+    @Test public void testLoginWithMinimalConfiguration() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+            aResponse()
+                    .withStatus(302)
+                    .withHeader("Content-Type", "text/html; charset=utf-8")
+                    .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                    .withBody("")
+        ));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody("{" +
+                            "\"id_token\": \""+createIdToken(keyPair.getPrivate(), keyValues)+"\"," +
+                            "\"access_token\":\"AcCeSs_ToKeN\"," +
+                            "\"token_type\":\"example\"," +
+                            "\"expires_in\":3600," +
+                            "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                            "\"example_parameter\":\"example_value\"" +
+                        "}")
+        ));
+
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, null, null));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Full name should be "+TEST_USER_FULL_NAME, user.getFullName(), TEST_USER_FULL_NAME);
+        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress(), TEST_USER_EMAIL_ADDRESS);
+        assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
+        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+    }
+    
     @Test public void testLoginUsingUserInfoEndpoint() throws Exception {
         wireMockRule.resetAll();
 
         KeyPair keyPair = createKeyPair();
 
-        stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
                 aResponse()
                         .withStatus(302)
                         .withHeader("Content-Type", "text/html; charset=utf-8")
                         .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
                         .withBody("")
         ));
-        stubFor(post(urlPathEqualTo("/token")).willReturn(
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
                 aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withBody("{" +
@@ -132,7 +175,7 @@ public class PluginTest {
                                 "\"example_parameter\":\"example_value\"" +
                                 "}")
         ));
-        stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
                 aResponse()
                     .withHeader("Content-Type", "application/json")
                     .withBody("{\n" +
@@ -162,7 +205,7 @@ public class PluginTest {
     @Test public void testNestedFieldLookup() throws Exception {
         KeyPair keyPair = createKeyPair();
 
-        stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
             aResponse()
                 .withStatus(302)
                 .withHeader("Content-Type", "text/html; charset=utf-8")
@@ -176,7 +219,7 @@ public class PluginTest {
         keyValues.put("nested", nested);
         keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
 
-        stubFor(post(urlPathEqualTo("/token")).willReturn(
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
             aResponse()
                 .withHeader("Content-Type", "text/html; charset=utf-8")
                 .withBody("{" +
@@ -210,14 +253,14 @@ public class PluginTest {
 
         KeyPair keyPair = createKeyPair();
 
-        stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
             aResponse()
                 .withStatus(302)
                 .withHeader("Content-Type", "text/html; charset=utf-8")
                 .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
                 .withBody("")
         ));
-        stubFor(post(urlPathEqualTo("/token")).willReturn(
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
             aResponse()
                 .withHeader("Content-Type", "application/json")
                 .withBody("{" +
@@ -229,7 +272,7 @@ public class PluginTest {
                     "\"example_parameter\":\"example_value\"" +
                     "}")
         ));
-        stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
             aResponse()
                 .withHeader("Content-Type", "application/json")
                 .withBody("{\n" +

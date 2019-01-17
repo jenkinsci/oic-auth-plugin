@@ -482,14 +482,18 @@ public class OicSecurityRealm extends SecurityRealm {
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
 
-        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getField(userInfo, emailFieldName);
-        if (email != null) {
-            user.addProperty(new Mailer.UserProperty(email));
+        if(emailFieldName!=null) {
+	        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getField(userInfo, emailFieldName);
+	        if (email != null) {
+	            user.addProperty(new Mailer.UserProperty(email));
+	        }
         }
 
-        String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getField(userInfo, fullNameFieldName);
-        if (fullName != null) {
-            user.setFullName(fullName);
+        if(fullNameFieldName!=null) {
+		    String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getField(userInfo, fullNameFieldName);
+		    if (fullName != null) {
+		        user.setFullName(fullName);
+		    }
         }
 
         return token;
