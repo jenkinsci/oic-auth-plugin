@@ -414,12 +414,16 @@ public class OicSecurityRealm extends SecurityRealm {
             if(isNotBlank(escapeHatchGroup)) {
                 authorities.add(new GrantedAuthorityImpl(escapeHatchGroup));
             }
+            String userName = "escape-hatch-admin";
+            GrantedAuthority[] grantedAuthorities = authorities.toArray(new GrantedAuthority[authorities.size()]);
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                    "escape-hatch-admin",
+            		userName,
                     "",
-                    authorities.toArray(new GrantedAuthority[authorities.size()])
+                    grantedAuthorities
             );
             SecurityContextHolder.getContext().setAuthentication(token);
+            OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
+            SecurityListener.fireAuthenticated(userDetails);
             return HttpRedirect.CONTEXT_ROOT;
         }
         return HttpResponses.redirectViaContextPath("loginError");
