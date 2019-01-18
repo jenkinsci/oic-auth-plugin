@@ -107,7 +107,7 @@ abstract class OicSession {
         } else if (code == null) {
             return new Failure("Missing authorization code");
         } else {
-            return onSuccess(code);
+            return onSuccess(request, code);
         }
     }
 
@@ -124,7 +124,7 @@ abstract class OicSession {
         return this.state;
     }
 
-    protected abstract HttpResponse onSuccess(String authorizationCode);
+    protected abstract HttpResponse onSuccess(StaplerRequest request, String authorizationCode);
 
     /**
      * Gets the {@link OicSession} associated with HTTP session in the current extend.

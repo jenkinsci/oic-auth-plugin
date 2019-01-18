@@ -48,6 +48,8 @@ import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import jenkins.security.seed.UserSeedProperty;
+
 import org.acegisecurity.*;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -357,7 +359,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
         return new OicSession(flow, from, buildOAuthRedirectUrl()) {
             @Override
-            public HttpResponse onSuccess(String authorizationCode) {
+            public HttpResponse onSuccess(StaplerRequest request, String authorizationCode) {
                 try {
                     IdTokenResponse response = IdTokenResponse.execute(
                             flow.newTokenRequest(authorizationCode).setRedirectUri(buildOAuthRedirectUrl()));
@@ -387,7 +389,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
                     flow.createAndStoreCredential(response, null);
 
-                    loginAndSetUserData(username.toString(), idToken, userInfo);
+                    loginAndSetUserData(request, username.toString(), idToken, userInfo);
 
                     return new HttpRedirect(redirectOnFinish);
 
@@ -462,7 +464,7 @@ public class OicSecurityRealm extends SecurityRealm {
         return tokenFieldToCheckValue.equals(String.valueOf(value));
     }
 
-    private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, IdToken idToken, GenericJson userInfo) throws IOException {
+    private UsernamePasswordAuthenticationToken loginAndSetUserData(StaplerRequest request, String userName, IdToken idToken, GenericJson userInfo) throws IOException {
 
         GrantedAuthority[] grantedAuthorities = determineAuthorities(idToken, userInfo);
         if(LOGGER.isLoggable(Level.FINEST)) {
@@ -481,7 +483,9 @@ public class OicSecurityRealm extends SecurityRealm {
         User user = User.get(token.getName());
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
-
+        // Store a user Seed
+        request.getSession().setAttribute(UserSeedProperty.USER_SESSION_SEED, user.getProperty(UserSeedProperty.class).getSeed());
+        
         String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getField(userInfo, emailFieldName);
         if (email != null) {
             user.addProperty(new Mailer.UserProperty(email));
@@ -607,7 +611,11 @@ public class OicSecurityRealm extends SecurityRealm {
      * @return an HttpResponse
     */
     public HttpResponse doFinishLogin(StaplerRequest request) {
-        return OicSession.getCurrent().doFinishLogin(request);
+    	OicSession currentSession = OicSession.getCurrent();
+    	if(currentSession==null) {
+    		return HttpResponses.errorWithoutStack(401, "Unauthorized");
+    	}
+        return currentSession.doFinishLogin(request);
     }
 
     /**
