@@ -48,6 +48,7 @@ import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import jenkins.security.SecurityListener;
 import org.acegisecurity.*;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -413,12 +414,16 @@ public class OicSecurityRealm extends SecurityRealm {
             if(isNotBlank(escapeHatchGroup)) {
                 authorities.add(new GrantedAuthorityImpl(escapeHatchGroup));
             }
+            String userName = "escape-hatch-admin";
+            GrantedAuthority[] grantedAuthorities = authorities.toArray(new GrantedAuthority[authorities.size()]);
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                    "escape-hatch-admin",
+            		userName,
                     "",
-                    authorities.toArray(new GrantedAuthority[authorities.size()])
+                    grantedAuthorities
             );
             SecurityContextHolder.getContext().setAuthentication(token);
+            OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
+            SecurityListener.fireAuthenticated(userDetails);
             return HttpRedirect.CONTEXT_ROOT;
         }
         return HttpResponses.redirectViaContextPath("loginError");
@@ -491,6 +496,9 @@ public class OicSecurityRealm extends SecurityRealm {
         if (fullName != null) {
             user.setFullName(fullName);
         }
+
+        OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
+        SecurityListener.fireAuthenticated(userDetails);
 
         return token;
     }
