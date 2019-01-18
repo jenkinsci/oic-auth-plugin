@@ -48,6 +48,7 @@ import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import jenkins.security.SecurityListener;
 import org.acegisecurity.*;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -491,6 +492,9 @@ public class OicSecurityRealm extends SecurityRealm {
         if (fullName != null) {
             user.setFullName(fullName);
         }
+
+        OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
+        SecurityListener.fireAuthenticated(userDetails);
 
         return token;
     }
