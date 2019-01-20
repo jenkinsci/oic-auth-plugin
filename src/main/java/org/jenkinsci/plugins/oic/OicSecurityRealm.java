@@ -47,6 +47,7 @@ import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.util.Secret;
 import jenkins.model.Jenkins;
+import jenkins.security.SecurityListener;
 import org.acegisecurity.*;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
@@ -414,12 +415,16 @@ public class OicSecurityRealm extends SecurityRealm {
             if(isNotBlank(escapeHatchGroup)) {
                 authorities.add(new GrantedAuthorityImpl(escapeHatchGroup));
             }
+            String userName = "escape-hatch-admin";
+            GrantedAuthority[] grantedAuthorities = authorities.toArray(new GrantedAuthority[authorities.size()]);
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                    "escape-hatch-admin",
+            		userName,
                     "",
-                    authorities.toArray(new GrantedAuthority[authorities.size()])
+                    grantedAuthorities
             );
             SecurityContextHolder.getContext().setAuthentication(token);
+            OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
+            SecurityListener.fireAuthenticated(userDetails);
             return HttpRedirect.CONTEXT_ROOT;
         }
         return HttpResponses.redirectViaContextPath("loginError");
@@ -483,15 +488,22 @@ public class OicSecurityRealm extends SecurityRealm {
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
 
-        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getField(userInfo, emailFieldName);
-        if (email != null) {
-            user.addProperty(new Mailer.UserProperty(email));
+        if(emailFieldName!=null) {
+	        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getField(userInfo, emailFieldName);
+	        if (email != null) {
+	            user.addProperty(new Mailer.UserProperty(email));
+	        }
         }
 
-        String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getField(userInfo, fullNameFieldName);
-        if (fullName != null) {
-            user.setFullName(fullName);
+        if(fullNameFieldName!=null) {
+		    String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getField(userInfo, fullNameFieldName);
+		    if (fullName != null) {
+		        user.setFullName(fullName);
+		    }
         }
+
+        OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
+        SecurityListener.fireAuthenticated(userDetails);
 
         return token;
     }
