@@ -99,10 +99,10 @@ public class PluginTest {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
         Authentication authentication = getAuthentication();
-        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, user.getFullName(), TEST_USER_FULL_NAME);
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress(), TEST_USER_EMAIL_ADDRESS);
+        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
@@ -143,12 +143,11 @@ public class PluginTest {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
         Authentication authentication = getAuthentication();
-        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, user.getFullName(), TEST_USER_FULL_NAME);
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress(), TEST_USER_EMAIL_ADDRESS);
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be null"+ TEST_USER_EMAIL_ADDRESS, null, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be not be part of any group", user.getAuthorities().isEmpty());
     }
     
     @Test public void testLoginUsingUserInfoEndpoint() throws Exception {
@@ -196,8 +195,8 @@ public class PluginTest {
         Authentication authentication = getAuthentication();
         assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, user.getFullName(), TEST_USER_FULL_NAME);
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress(), TEST_USER_EMAIL_ADDRESS);
+        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
@@ -242,8 +241,8 @@ public class PluginTest {
         Authentication authentication = getAuthentication();
         assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, user.getFullName(), TEST_USER_FULL_NAME);
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress(), TEST_USER_EMAIL_ADDRESS);
+        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
@@ -295,8 +294,8 @@ public class PluginTest {
         Authentication authentication = getAuthentication();
         assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, user.getFullName(), TEST_USER_FULL_NAME);
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress(), TEST_USER_EMAIL_ADDRESS);
+        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
