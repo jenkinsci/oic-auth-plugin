@@ -607,7 +607,12 @@ public class OicSecurityRealm extends SecurityRealm {
      * @return an HttpResponse
     */
     public HttpResponse doFinishLogin(StaplerRequest request) {
-        return OicSession.getCurrent().doFinishLogin(request);
+    	OicSession currentSession = OicSession.getCurrent();
+    	if(currentSession==null) {
+    		LOGGER.fine("No session to resume (perhaps jenkins was restarted?)");
+    		return HttpResponses.errorWithoutStack(401, "Unauthorized");
+    	}
+        return currentSession.doFinishLogin(request);
     }
 
     /**
