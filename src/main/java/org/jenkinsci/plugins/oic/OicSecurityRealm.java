@@ -566,7 +566,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     @Override
     public String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
-        if (this.logoutFromOpenidProvider) {
+        if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(this.endSessionUrl)) {
             StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionUrl);
             openidLogoutEndpoint.append("/?id_token_hint=").append(req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE));
             openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
