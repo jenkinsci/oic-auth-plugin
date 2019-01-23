@@ -25,6 +25,7 @@ package org.jenkinsci.plugins.oic;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
+import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.openidconnect.IdToken;
@@ -47,6 +48,7 @@ import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.util.Secret;
+import java.util.Collections;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
 import org.acegisecurity.*;
@@ -360,8 +362,12 @@ public class OicSecurityRealm extends SecurityRealm {
             @Override
             public HttpResponse onSuccess(String authorizationCode) {
                 try {
-                    IdTokenResponse response = IdTokenResponse.execute(
-                            flow.newTokenRequest(authorizationCode).setRedirectUri(buildOAuthRedirectUrl()));
+                    AuthorizationCodeTokenRequest tokenRequest = flow.newTokenRequest(authorizationCode)
+                        .setRedirectUri(buildOAuthRedirectUrl());
+                    // Supplying scope is not allowed when obtaining an access token with an authorization code.
+                    tokenRequest.setScopes(Collections.<String>emptyList());
+
+                    IdTokenResponse response = IdTokenResponse.execute(tokenRequest);
 
                     this.setIdToken(response.getIdToken());
 
