@@ -470,7 +470,7 @@ public class OicSecurityRealm extends SecurityRealm {
             return true;
         }
 
-        return tokenFieldToCheckValue.equals(String.valueOf(value));
+        return !tokenFieldToCheckValue.equals(String.valueOf(value));
     }
 
     private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, IdToken idToken, GenericJson userInfo) throws IOException {
