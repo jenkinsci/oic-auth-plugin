@@ -25,6 +25,7 @@ package org.jenkinsci.plugins.oic;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
+import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.openidconnect.IdToken;
@@ -47,6 +48,7 @@ import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.util.Secret;
+import java.util.Collections;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
 import org.acegisecurity.*;
@@ -375,8 +377,12 @@ public class OicSecurityRealm extends SecurityRealm {
             @Override
             public HttpResponse onSuccess(String authorizationCode) {
                 try {
-                    IdTokenResponse response = IdTokenResponse.execute(
-                            flow.newTokenRequest(authorizationCode).setRedirectUri(buildOAuthRedirectUrl()));
+                    AuthorizationCodeTokenRequest tokenRequest = flow.newTokenRequest(authorizationCode)
+                        .setRedirectUri(buildOAuthRedirectUrl());
+                    // Supplying scope is not allowed when obtaining an access token with an authorization code.
+                    tokenRequest.setScopes(Collections.<String>emptyList());
+
+                    IdTokenResponse response = IdTokenResponse.execute(tokenRequest);
 
                     this.setIdToken(response.getIdToken());
 
@@ -479,7 +485,7 @@ public class OicSecurityRealm extends SecurityRealm {
             return true;
         }
 
-        return tokenFieldToCheckValue.equals(String.valueOf(value));
+        return !tokenFieldToCheckValue.equals(String.valueOf(value));
     }
 
     private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, IdToken idToken, GenericJson userInfo) throws IOException {
@@ -581,7 +587,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     @Override
     public String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
-        if (this.logoutFromOpenidProvider) {
+        if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(this.endSessionEndpoint)) {
             StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionEndpoint);
             openidLogoutEndpoint.append("?id_token_hint=").append(req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE));
             openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
