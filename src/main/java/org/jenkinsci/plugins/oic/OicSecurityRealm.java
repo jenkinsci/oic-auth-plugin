@@ -65,6 +65,7 @@ import org.springframework.dao.DataAccessException;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -108,13 +109,18 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String scopes;
     private final boolean disableSslVerification;
     private final boolean logoutFromOpenidProvider;
-    private final String endSessionUrl;
+    private final String endSessionEndpoint;
     private final String postLogoutRedirectUrl;
     private final boolean escapeHatchEnabled;
     private final String escapeHatchUsername;
     private final Secret escapeHatchSecret;
     private final String escapeHatchGroup;
 
+    /** old field that had an '/' implicitly added at the end, 
+     * transient because we no longer want to have this value stored
+     * but it's still needed for backwards compatibility */
+    private transient String endSessionUrl;
+    
     private transient HttpTransport httpTransport;
     private transient Random random;
 
@@ -122,7 +128,7 @@ public class OicSecurityRealm extends SecurityRealm {
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
                             String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
-                            Boolean logoutFromOpenidProvider, String endSessionUrl, String postLogoutRedirectUrl, boolean escapeHatchEnabled,
+                            Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, boolean escapeHatchEnabled,
                             String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
         this.httpTransport = constructHttpTransport(disableSslVerification);
 
@@ -144,7 +150,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.userInfoServerUrl = config.getUserinfoEndpoint();
             this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
             this.logoutFromOpenidProvider = logoutFromOpenidProvider != null;
-            this.endSessionUrl = config.getEndSessionEndpoint();
+           	this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
             this.authorizationServerUrl = authorizationServerUrl;
             this.tokenServerUrl = tokenServerUrl;
@@ -152,7 +158,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
             this.logoutFromOpenidProvider = logoutFromOpenidProvider;
-            this.endSessionUrl = endSessionUrl;
+           	this.endSessionEndpoint = endSessionEndpoint;
         }
 
         this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
@@ -177,6 +183,15 @@ public class OicSecurityRealm extends SecurityRealm {
         }
         if(random==null) {
             random = new Random();
+        }
+        if(!Strings.isNullOrEmpty(endSessionUrl)) {
+        	try {
+        		Field field = getClass().getDeclaredField("endSessionEndpoint");
+				field.setAccessible(true);
+        		field.set(this, endSessionUrl + "/");
+			} catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
+				LOGGER.log(Level.SEVERE, "Can't set endSessionEndpoint from old value", e);
+			}
         }
         return this;
     }
@@ -255,10 +270,10 @@ public class OicSecurityRealm extends SecurityRealm {
     public boolean isLogoutFromOpenidProvider() {
         return logoutFromOpenidProvider;
     }
-
-    public String getEndSessionUrl() {
-        return endSessionUrl;
-    }
+    
+    public String getEndSessionEndpoint() {
+		return endSessionEndpoint;
+	}
 
     public String getPostLogoutRedirectUrl() {
         return postLogoutRedirectUrl;
@@ -572,9 +587,9 @@ public class OicSecurityRealm extends SecurityRealm {
 
     @Override
     public String getPostLogOutUrl(StaplerRequest req, Authentication auth) {
-        if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(this.endSessionUrl)) {
-            StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionUrl);
-            openidLogoutEndpoint.append("/?id_token_hint=").append(req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE));
+        if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(this.endSessionEndpoint)) {
+            StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionEndpoint);
+            openidLogoutEndpoint.append("?id_token_hint=").append(req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE));
             openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
 
             if (this.postLogoutRedirectUrl != null) {
@@ -828,12 +843,12 @@ public class OicSecurityRealm extends SecurityRealm {
             return FormValidation.ok();
         }
 
-        public FormValidation doCheckEndSessionUrl(@QueryParameter String endSessionUrl) {
-            if (endSessionUrl == null || endSessionUrl.equals("")) {
+        public FormValidation doCheckEndSessionEndpoint(@QueryParameter String endSessionEndpoint) {
+            if (endSessionEndpoint == null || endSessionEndpoint.equals("")) {
                 return FormValidation.error("End Session URL Key is required.");
             }
             try {
-                new URL(endSessionUrl);
+                new URL(endSessionEndpoint);
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
                 return FormValidation.error(e,"Not a valid url.");
