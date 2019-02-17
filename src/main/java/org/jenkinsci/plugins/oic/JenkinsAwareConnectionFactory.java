@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
 import com.google.api.client.http.javanet.ConnectionFactory;
-import com.google.common.base.Preconditions;
 import hudson.ProxyConfiguration;
 import jenkins.model.Jenkins;
 
@@ -15,6 +14,7 @@ import java.net.URL;
  *
  * @see com.google.api.client.http.javanet.DefaultConnectionFactory
  * This class uses, instead of a proxy object passed to the constructor, the jenkins {@link ProxyConfiguration} (Jenkins.getInstance().proxy) settings when available.
+ * @author Michael Bischoff
  */
 public class JenkinsAwareConnectionFactory implements ConnectionFactory {
 
