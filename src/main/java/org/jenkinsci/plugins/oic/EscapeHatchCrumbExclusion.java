@@ -10,6 +10,12 @@ import hudson.security.csrf.CrumbExclusion;
 
 import java.io.IOException;
 
+/**
+ * Excluding the escapeHatch login from CSRF protection as the crumb is calculated based on the authentication 
+ * mirroring behavior of the normal login page.
+ * 
+ * @author Michael Bischoff
+ */
 @Extension
 public class EscapeHatchCrumbExclusion extends CrumbExclusion {
 	
