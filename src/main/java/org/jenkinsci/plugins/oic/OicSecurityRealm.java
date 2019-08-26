@@ -124,6 +124,8 @@ public class OicSecurityRealm extends SecurityRealm {
     private transient HttpTransport httpTransport;
     private transient Random random;
 
+    private String automanualconfigure;
+
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
@@ -867,5 +869,9 @@ public class OicSecurityRealm extends SecurityRealm {
 
             return FormValidation.ok();
         }
+    }
+
+    public String getAutomanualconfigure() {
+        return automanualconfigure;
     }
 }
