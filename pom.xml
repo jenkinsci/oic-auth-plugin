@@ -3,12 +3,13 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.9</version>
+    <version>3.48</version>
   </parent>
 
   <properties>
     <jenkins.version>2.60.3</jenkins.version>
     <configuration-as-code.version>1.27</configuration-as-code.version>
+    <java.level>8</java.level>
   </properties>
 
   <artifactId>oic-auth</artifactId>
