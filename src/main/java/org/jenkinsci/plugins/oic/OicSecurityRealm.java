@@ -115,6 +115,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String escapeHatchUsername;
     private final Secret escapeHatchSecret;
     private final String escapeHatchGroup;
+    private String automanualconfigure;
 
     /** old field that had an '/' implicitly added at the end, 
      * transient because we no longer want to have this value stored
@@ -123,8 +124,6 @@ public class OicSecurityRealm extends SecurityRealm {
     
     private transient HttpTransport httpTransport;
     private transient Random random;
-
-    private String automanualconfigure;
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String authorizationServerUrl,
@@ -295,6 +294,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public String getEscapeHatchGroup() {
         return escapeHatchGroup;
+    }
+
+    public String getAutomanualconfigure() {
+        return automanualconfigure;
     }
 
     @Override
@@ -869,9 +872,5 @@ public class OicSecurityRealm extends SecurityRealm {
 
             return FormValidation.ok();
         }
-    }
-
-    public String getAutomanualconfigure() {
-        return automanualconfigure;
     }
 }
