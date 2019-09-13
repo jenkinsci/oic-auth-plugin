@@ -542,32 +542,26 @@ public class OicSecurityRealm extends SecurityRealm {
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
 
         if (isNotBlank(groupsFieldName)) {
-            if(Strings.isNullOrEmpty(userInfoServerUrl)) {
-                if (containsField(idToken.getPayload(), groupsFieldName)) {
-                    LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());
-                    @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) getField(idToken.getPayload(), groupsFieldName);
-                    LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
-                    for (String groupName : groupNames) {
-                        LOGGER.fine("Adding group from idToken: " + groupName);
-                        grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
-                    }
-                } else {
-                    LOGGER.warning("idToken did not contain group field name: " + groupsFieldName);
+            if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, groupsFieldName)) {
+                LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
+                @SuppressWarnings("unchecked")
+                List<String> groupNames = (List<String>) getField(userInfo, groupsFieldName);
+                LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+                for (String groupName : groupNames) {
+                    LOGGER.fine("Adding group from UserInfo: " + groupName);
+                    grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
+                }
+            } else if (containsField(idToken.getPayload(), groupsFieldName)) {
+                LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());
+                @SuppressWarnings("unchecked")
+                List<String> groupNames = (List<String>) getField(idToken.getPayload(), groupsFieldName);
+                LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+                for (String groupName : groupNames) {
+                    LOGGER.fine("Adding group from idToken: " + groupName);
+                    grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
                 }
             } else {
-                if (containsField(userInfo, groupsFieldName)) {
-                    LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
-                    @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) getField(userInfo, groupsFieldName);
-                    LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
-                    for (String groupName : groupNames) {
-                        LOGGER.fine("Adding group from UserInfo: " + groupName);
-                        grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
-                    }
-                } else {
-                    LOGGER.warning("UserInfo did not contain group field name: " + groupsFieldName);
-                }
+                LOGGER.warning("idToken and userInfo did not contain group field name: " + groupsFieldName);
             }
         } else {
             LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
