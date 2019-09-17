@@ -89,7 +89,7 @@ import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
 */
 public class OicSecurityRealm extends SecurityRealm {
 	private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
-	
+
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
@@ -116,11 +116,11 @@ public class OicSecurityRealm extends SecurityRealm {
     private final Secret escapeHatchSecret;
     private final String escapeHatchGroup;
 
-    /** old field that had an '/' implicitly added at the end, 
+    /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
      * but it's still needed for backwards compatibility */
     private transient String endSessionUrl;
-    
+
     private transient HttpTransport httpTransport;
     private transient Random random;
 
@@ -254,7 +254,7 @@ public class OicSecurityRealm extends SecurityRealm {
     public String getEmailFieldName() {
         return emailFieldName;
     }
-    
+
     public String getGroupsFieldName() {
     	return groupsFieldName;
     }
@@ -270,7 +270,7 @@ public class OicSecurityRealm extends SecurityRealm {
     public boolean isLogoutFromOpenidProvider() {
         return logoutFromOpenidProvider;
     }
-    
+
     public String getEndSessionEndpoint() {
 		return endSessionEndpoint;
 	}
@@ -324,7 +324,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     }
                 },
                 new UserDetailsService() {
-					
+
 					@Override
 					public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
 						// Retrieve the OicUserProperty to get the list of groups that has to be set in the OicUserDetails object.
@@ -537,7 +537,14 @@ public class OicSecurityRealm extends SecurityRealm {
                 if (containsField(idToken.getPayload(), groupsFieldName)) {
                     LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());
                     @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) getField(idToken.getPayload(), groupsFieldName);
+										Object groupsList = new Object();
+										if(getField(idToken.getPayload(), groupsFieldName).getClass() == String.class) {
+												groupsList = (List<String>) Arrays.asList(getField(idToken.getPayload(), groupsFieldName).toString().split(","));
+										}
+										else {
+												groupsList = getField(idToken.getPayload(), groupsFieldName);
+										}
+                    List<String> groupNames = (List<String>) groupsList;
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                     for (String groupName : groupNames) {
                         LOGGER.fine("Adding group from idToken: " + groupName);
@@ -550,7 +557,14 @@ public class OicSecurityRealm extends SecurityRealm {
                 if (containsField(userInfo, groupsFieldName)) {
                     LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
                     @SuppressWarnings("unchecked")
-                    List<String> groupNames = (List<String>) getField(userInfo, groupsFieldName);
+										Object groupsList = new Object();
+										if(getField(userInfo, groupsFieldName).getClass() == String.class) {
+												groupsList = (List<String>) Arrays.asList(getField(userInfo, groupsFieldName).toString().split(","));
+										}
+										else {
+												groupsList = getField(userInfo, groupsFieldName);
+										}
+										List<String> groupNames = (List<String>) groupsList;
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                     for (String groupName : groupNames) {
                         LOGGER.fine("Adding group from UserInfo: " + groupName);
