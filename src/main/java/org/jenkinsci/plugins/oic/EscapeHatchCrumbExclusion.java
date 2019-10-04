@@ -23,7 +23,7 @@ public class EscapeHatchCrumbExclusion extends CrumbExclusion {
 	public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 		String pathInfo = request.getPathInfo();
-		if (pathInfo != null && "/securityRealm/escapeHatch".equals(pathInfo)) {
+		if ("/securityRealm/escapeHatch".equals(pathInfo)) {
 			chain.doFilter(request, response);
 			return true;
 		}
