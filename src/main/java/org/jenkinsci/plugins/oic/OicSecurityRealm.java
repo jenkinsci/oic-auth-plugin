@@ -334,7 +334,11 @@ public class OicSecurityRealm extends SecurityRealm {
 					public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
 						// Retrieve the OicUserProperty to get the list of groups that has to be set in the OicUserDetails object.
 						LOGGER.fine("loadUserByUsername in createSecurityComponents called, username: " + username);
-						User u = User.get(username);
+						User u = User.get(username, false, Collections.emptyMap());
+						if (u == null) {
+							LOGGER.fine("loadUserByUsername in createSecurityComponents called, no user '" + username + "' found");
+							throw new UsernameNotFoundException(username);
+						}
 						LOGGER.fine("loadUserByUsername in createSecurityComponents called, user: " + u);
 						List<UserProperty> props = u.getAllProperties();
 						LOGGER.fine("loadUserByUsername in createSecurityComponents called, number of props: " + props.size());
