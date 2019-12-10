@@ -622,14 +622,14 @@ public class OicSecurityRealm extends SecurityRealm {
         } else if (referer != null) {
             target = referer;
         } else {
-            target = Jenkins.getInstance().getRootUrl();
+            target = Jenkins.getInstance().getRootUrlFromRequest();
         }
         return target;
     }
 
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private String buildOAuthRedirectUrl() throws NullPointerException {
-        String rootUrl = Jenkins.getInstance().getRootUrl();
+        String rootUrl = Jenkins.getInstance().getRootUrlFromRequest();
         if (rootUrl == null) {
             throw new NullPointerException("Jenkins root url should not be null");
         } else {
