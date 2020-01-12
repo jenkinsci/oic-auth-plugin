@@ -24,7 +24,7 @@
   </scm>
 
   <name>OpenId Connect Authentication Plugin</name>
-  <url>https://wiki.jenkins-ci.org/display/JENKINS/Openid+Connect+Authentication+Plugin</url>
+  <url>https://github.com/jenkinsci/oic-auth-plugin</url>
   <developers>
     <developer>
       <id>mbischoff</id>
@@ -41,7 +41,7 @@
   <licenses>
     <license>
       <name>MIT License</name>
-      <url>http://opensource.org/licenses/MIT</url>
+      <url>https://opensource.org/licenses/MIT</url>
     </license>
   </licenses>
   <dependencies>
