@@ -29,7 +29,7 @@ populate the configuration simplifying the configuration greatly. See
 also the following screenshot utilizing the google well known endpoint
 for a minimal configuration example: 
 
-![](/docs/images/global-config.png)
+![global-config](/docs/images/global-config.png)
 
 ### Using g-suite / google
 
