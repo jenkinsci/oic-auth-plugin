@@ -545,7 +545,7 @@ public class OicSecurityRealm extends SecurityRealm {
             if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, groupsFieldName)) {
                 LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
                 @SuppressWarnings("unchecked")
-                List<String> groupNames = (List<String>) getField(userInfo, groupsFieldName);
+                List<String> groupNames = ensureString(getField(userInfo, groupsFieldName));
                 LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                 for (String groupName : groupNames) {
                     LOGGER.fine("Adding group from UserInfo: " + groupName);
@@ -554,7 +554,7 @@ public class OicSecurityRealm extends SecurityRealm {
             } else if (containsField(idToken.getPayload(), groupsFieldName)) {
                 LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());
                 @SuppressWarnings("unchecked")
-                List<String> groupNames = (List<String>) getField(idToken.getPayload(), groupsFieldName);
+                List<String> groupNames = ensureString(getField(idToken.getPayload(), groupsFieldName));
                 LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                 for (String groupName : groupNames) {
                     LOGGER.fine("Adding group from idToken: " + groupName);
@@ -568,6 +568,26 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         return grantedAuthorities.toArray(new GrantedAuthority[grantedAuthorities.size()]);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> ensureString(Object field) {
+        if (field instanceof String) {
+            // if its a String, the original value was not a json array.
+            // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
+            // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
+            String sField= (String) field;
+            String[] rawFields = sField.split("[\\s\\[\\],]");
+            List<String> result = new ArrayList<>();
+            for (String rawField : rawFields) {
+                if (rawField != null && !rawField.isEmpty()) {
+                    result.add(rawField);
+                }
+            }
+            return result;
+        } else {
+           return (List<String>) field;
+        }
     }
 
     private String getField(IdToken idToken, String fullNameFieldName) {
