@@ -471,7 +471,7 @@ public class OicSecurityRealm extends SecurityRealm {
         HttpRequestFactory requestFactory = flow.getTransport().createRequestFactory(new HttpRequestInitializer() {
             @Override
             public void initialize(HttpRequest request) throws IOException {
-                request.getHeaders().setAuthorization("Bearer " + accessToken);
+                request.getHeaders().setAuthorization("Bearer " + accessToken).setAccept("application/json");
             }
         });
         HttpRequest request = requestFactory.buildGetRequest(new GenericUrl(userInfoServerUrl));
