@@ -44,6 +44,8 @@ import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.webtoken.JsonWebSignature;
+import com.google.api.client.json.webtoken.JsonWebToken;
 import com.google.api.client.util.Data;
 import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -102,6 +104,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
+
 
 /**
 * Login with OpenID Connect / OAuth 2
@@ -526,11 +529,17 @@ public class OicSecurityRealm extends SecurityRealm {
             }
         });
         HttpRequest request = requestFactory.buildGetRequest(new GenericUrl(userInfoServerUrl));
-        request.setParser(new JsonObjectParser(flow.getJsonFactory()));
         request.setThrowExceptionOnExecuteError(false);
         com.google.api.client.http.HttpResponse response = request.execute();
         if (response.isSuccessStatusCode()) {
-            return response.parseAs(GenericJson.class);
+            if (response.getHeaders().getContentType().contains("application/jwt")) {
+                String token = response.parseAsString();
+                JsonWebSignature jws = JsonWebSignature.parse(flow.getJsonFactory(), token);
+                return jws.getPayload();
+            }
+
+            JsonObjectParser parser = new JsonObjectParser(flow.getJsonFactory());
+            return parser.parseAndClose(response.getContent(), response.getContentCharset(), GenericJson.class);
         }
         throw new HttpResponseException(response);
     }
