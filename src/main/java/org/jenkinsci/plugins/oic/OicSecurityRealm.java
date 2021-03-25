@@ -412,6 +412,8 @@ public class OicSecurityRealm extends SecurityRealm {
                         }
                     }
 
+                    validateNonce(idToken.getPayload().getNonce());
+
                     if(failedCheckOfTokenField(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }

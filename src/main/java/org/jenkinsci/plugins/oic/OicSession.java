@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.oic;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Failure;
 import hudson.remoting.Base64;
@@ -54,7 +55,13 @@ abstract class OicSession {
     /**
      * An opaque value used by the client to maintain state between the request and callback.
      */
-    private final String state = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)).substring(0,20);
+    @VisibleForTesting
+    String state = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)).substring(0,20);
+    /**
+     * More random state, this time extending to the id token.
+     */
+    @VisibleForTesting
+    String nonce = UUID.randomUUID().toString();
     /**
      * The url the user was trying to navigate to.
      */
@@ -83,6 +90,7 @@ abstract class OicSession {
         // remember this in the session
         Stapler.getCurrentRequest().getSession().setAttribute(SESSION_NAME, this);
         AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
+        authorizationCodeRequestUrl.set("nonce", nonce); // no @Key field defined in AuthorizationRequestUrl
         return new HttpRedirect(authorizationCodeRequestUrl.toString());
     }
 
@@ -125,6 +133,12 @@ abstract class OicSession {
     }
 
     protected abstract HttpResponse onSuccess(String authorizationCode);
+
+    protected final void validateNonce(String nonce) {
+        if (!this.nonce.equals(nonce)) {
+            throw new Failure("Nonce is invalid");
+        }
+    }
 
     /**
      * Gets the {@link OicSession} associated with HTTP session in the current extend.

@@ -5,7 +5,6 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 
 public class TestRealm extends OicSecurityRealm {
 
@@ -51,13 +50,9 @@ public class TestRealm extends OicSecurityRealm {
 
     @Override
     public HttpResponse doFinishLogin(StaplerRequest request) {
-        try {
-            Field field = OicSession.class.getDeclaredField("state");
-            field.setAccessible(true);
-            field.set(OicSession.getCurrent(), "state");
-        } catch (Exception e) {
-            throw new RuntimeException("can't fudge state",e);
-        }
+        OicSession session = OicSession.getCurrent();
+        session.state = "state";
+        session.nonce = "nonce";
         return super.doFinishLogin(request);
     }
 }

@@ -33,8 +33,6 @@ import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -326,8 +324,7 @@ public class PluginTest {
             .setIssuer("issuer")
             .setSubject(TEST_USER_USERNAME)
             .setAudience(Collections.singletonList("clientId"))
-            .setAudience(System.currentTimeMillis() / 60 + 5)
-            .setIssuedAtTimeSeconds(System.currentTimeMillis() / 60);
+            .setNonce("nonce");
         for(Map.Entry<String, Object> keyValue : keyValues.entrySet()) {
             payload.set(keyValue.getKey(), keyValue.getValue());
         }
