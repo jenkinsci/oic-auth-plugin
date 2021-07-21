@@ -343,9 +343,8 @@ public class OicSecurityRealm extends SecurityRealm {
 						OicUserProperty oicProp = u.getProperty(OicUserProperty.class);
 						GrantedAuthority[] auths = new GrantedAuthority[0];
 						if (oicProp != null) {
-							LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username: " + oicProp.getUserName());
 							auths = oicProp.getAuthoritiesAsGrantedAuthorities();
-							LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop with auths size: " + auths.length);
+							LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username '" + oicProp.getUserName() + "', auths size: " + auths.length);
 						}
 						return new OicUserDetails(username, auths);
 					}
