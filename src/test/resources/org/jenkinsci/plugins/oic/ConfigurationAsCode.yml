@@ -13,6 +13,7 @@ jenkins:
       fullNameFieldName: fullNameFieldName
       groupsFieldName: groupsFieldName
       logoutFromOpenidProvider: true
+      nestedGroupFieldName: nestedGroupFieldName
       scopes: scopes
       tokenServerUrl: http://localhost
       userNameField: userNameField

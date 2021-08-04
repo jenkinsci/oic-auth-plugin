@@ -106,6 +106,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String fullNameFieldName;
     private final String emailFieldName;
     private final String groupsFieldName;
+    private final String nestedGroupFieldName;
     private final String scopes;
     private final boolean disableSslVerification;
     private final boolean logoutFromOpenidProvider;
@@ -128,7 +129,7 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
-                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
+                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, String nestedGroupFieldName, boolean disableSslVerification,
                             Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, boolean escapeHatchEnabled,
                             String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
         this.httpTransport = constructHttpTransport(disableSslVerification);
@@ -168,6 +169,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
+        this.nestedGroupFieldName = Util.fixEmpty(nestedGroupFieldName) == null ? "name" : nestedGroupFieldName;
         this.disableSslVerification = disableSslVerification;
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
         this.escapeHatchEnabled = escapeHatchEnabled;
@@ -258,6 +260,10 @@ public class OicSecurityRealm extends SecurityRealm {
     
     public String getGroupsFieldName() {
     	return groupsFieldName;
+    }
+
+    public String getNestedGroupFieldName() {
+        return nestedGroupFieldName;
     }
 
     public String getScopes() {
@@ -537,6 +543,14 @@ public class OicSecurityRealm extends SecurityRealm {
         return token;
     }
 
+    private boolean groupsTypeIsString(List<Object> groups) {
+        return groups.size() > 0 && groups.get(0) instanceof String ;
+    }
+
+    private boolean groupsTypeIsMap (List<Object> groups) {
+        return groups.size() > 0 && groups.get(0) instanceof Map ;
+    }
+
     private GrantedAuthority[] determineAuthorities(IdToken idToken, GenericJson userInfo) {
         List<GrantedAuthority> grantedAuthorities = new ArrayList<GrantedAuthority>();
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
@@ -545,11 +559,26 @@ public class OicSecurityRealm extends SecurityRealm {
             if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, groupsFieldName)) {
                 LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
                 @SuppressWarnings("unchecked")
-                List<String> groupNames = (List<String>) getField(userInfo, groupsFieldName);
-                LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
-                for (String groupName : groupNames) {
-                    LOGGER.fine("Adding group from UserInfo: " + groupName);
-                    grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
+                List<Object> groups = (List<Object>) getField(userInfo, groupsFieldName);
+                if (groupsTypeIsString(groups)) {
+                    LOGGER.fine("Number of groups in groupNames: " + groups.size());
+                    for (Object groupName : groups) {
+                        LOGGER.fine("Adding group from UserInfo: " + groupName);
+                        grantedAuthorities.add(new GrantedAuthorityImpl((String) groupName));
+                    }
+                } else {
+                    if (groupsTypeIsMap(groups)) {
+                        for (Object group : groups) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, String> groupMap = (Map<String, String>) group;
+                            if (groupMap.keySet().contains(nestedGroupFieldName)) {
+                                LOGGER.fine("Adding group name from map " + groupsFieldName + ":" + nestedGroupFieldName +  " : " + groupMap.get(nestedGroupFieldName));
+                                grantedAuthorities.add(new GrantedAuthorityImpl(groupMap.get(nestedGroupFieldName)));
+                            } else {
+                                LOGGER.fine("Group field " + groupsFieldName + " is a map, but does not contain a field \"" + nestedGroupFieldName +"\"");
+                            }
+                        }
+                    }
                 }
             } else if (containsField(idToken.getPayload(), groupsFieldName)) {
                 LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());

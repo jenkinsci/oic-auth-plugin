@@ -37,6 +37,7 @@ public class TestRealm extends OicSecurityRealm {
              emailFieldName,
             null,
              groupFieldName,
+            null,
             false,
             false,
             null,
