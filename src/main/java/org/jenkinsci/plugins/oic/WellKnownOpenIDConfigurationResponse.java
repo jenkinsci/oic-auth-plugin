@@ -22,6 +22,9 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
     @Key("token_endpoint")
     private String tokenEndpoint;
 
+    @Key("token_endpoint_auth_methods_supported")
+    private Set<String> tokenAuthMethods;
+
     @Key("userinfo_endpoint")
     private String userinfoEndpoint;
 
@@ -40,6 +43,26 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
 
     public String getTokenEndpoint() {
         return tokenEndpoint;
+    }
+
+    public Set<String> getTokenAuthMethods() {
+        return tokenAuthMethods;
+    }
+
+    public String getPreferredTokenAuthMethod() {
+        if (tokenAuthMethods != null && !tokenAuthMethods.isEmpty()) {
+            // Prefer post since that is what the original plugin implementation used
+            if(tokenAuthMethods.contains("client_secret_post")) {
+                return "client_secret_post";
+            // The RFC recommends basic, so that's our number two choice
+            } else if(tokenAuthMethods.contains("client_secret_basic")) {
+                return "client_secret_basic";
+            } else {
+                return tokenAuthMethods.iterator().next();
+            }
+        } else {
+            return "client_secret_post";
+        }
     }
 
     public String getUserinfoEndpoint() {

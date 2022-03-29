@@ -44,6 +44,7 @@ public class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertEquals("scopes", oicSecurityRealm.getScopes());
         assertEquals("http://localhost", oicSecurityRealm.getTokenServerUrl());
+        assertEquals("client_secret_post", oicSecurityRealm.getTokenAuthMethod());
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
     }
 

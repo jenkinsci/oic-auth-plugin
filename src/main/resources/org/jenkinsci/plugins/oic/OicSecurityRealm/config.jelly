@@ -21,6 +21,12 @@
       <f:entry title="${%Token server url}" field="tokenServerUrl">
         <f:textbox/>
       </f:entry>
+
+      <f:entry title="Token Authentication Method" field="tokenAuthMethod">
+        <f:radioBlock title="${%Basic}" name="tokenAuthMethod" checked="${instance.tokenAuthMethod == 'client_secret_basic'}" value="client_secret_basic" inline="true" />
+        <f:radioBlock title="${%Post}" name="tokenAuthMethod" checked="${instance.tokenAuthMethod == 'client_secret_post'}" value="client_secret_post" inline="true" />
+      </f:entry>
+
       <f:entry title="${%Authorization server url}" field="authorizationServerUrl">
         <f:textbox/>
       </f:entry>
