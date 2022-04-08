@@ -577,7 +577,7 @@ public class OicSecurityRealm extends SecurityRealm {
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
             // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
             String sField= (String) field;
-            String[] rawFields = sField.split("[\\s\\[\\],]");
+            String[] rawFields = sField.split("[\\s\\[\\]]");
             List<String> result = new ArrayList<>();
             for (String rawField : rawFields) {
                 if (rawField != null && !rawField.isEmpty()) {

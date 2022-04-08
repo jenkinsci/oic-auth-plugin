@@ -332,7 +332,7 @@ public class PluginTest {
                                 "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
                                 "   \"nested\": {\n" +
                                 "     \"email\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
-                                "     \"groups\": \"["+TEST_USER_GROUPS[0]+", "+TEST_USER_GROUPS[1]+"]\"\n" +
+                                "     \"groups\": \"["+TEST_USER_GROUPS[0]+"]\"\n" +
                                 "   }\n" +
                                 "  }")
         ));
@@ -351,8 +351,7 @@ public class PluginTest {
         assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
         assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
-        assertEquals("User should be in 2 groups", 2, user.getAuthorities().size());
+        assertEquals("User should be in 1 groups", 1, user.getAuthorities().size());
     }
 
     private String toJsonArray(String[] array) {
