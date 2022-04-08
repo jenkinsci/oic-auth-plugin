@@ -575,7 +575,7 @@ public class OicSecurityRealm extends SecurityRealm {
         if (field instanceof String) {
             // if its a String, the original value was not a json array.
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
-            // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
+            // Example value "[CN="abc",OU="org1"]"
             String sField= (String) field;
             String[] rawFields = sField.split("[\\s\\[\\]]");
             List<String> result = new ArrayList<>();
