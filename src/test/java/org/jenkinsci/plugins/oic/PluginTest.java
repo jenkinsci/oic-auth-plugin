@@ -149,7 +149,7 @@ public class PluginTest {
         assertEquals("Email should be null"+ TEST_USER_EMAIL_ADDRESS, null, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be not be part of any group", user.getAuthorities().isEmpty());
     }
-    
+    /*
     @Test public void testLoginUsingUserInfoEndpoint() throws Exception {
         wireMockRule.resetAll();
 
@@ -200,7 +200,7 @@ public class PluginTest {
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
-
+*/
     @Test public void testNestedFieldLookup() throws Exception {
         KeyPair keyPair = createKeyPair();
 
