@@ -24,7 +24,8 @@ pipeline {
 			steps {
 				script{
                   	sh """
-                      mvn clean deploy -Dskiptests=true
+						MVN_DEBUG_SWITCH = isedUtils.getMavenDebugSwitch()
+					  	mvn release:clean release:prepare release:perform -B -V $MVN_DEBUG_SWITCH -Dcheckstyle.skip=true
                     """
 				}
 			}
