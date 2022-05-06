@@ -4,11 +4,7 @@ pipeline {
 	agent {
        	label 'maven'
    	} 
-  
-    tools {
-      jdk 'openjdk-17'
-    }
-   	
+     	
     options {
         disableConcurrentBuilds()
     }
@@ -24,7 +20,7 @@ pipeline {
 			steps {
 				script{
                   	sh """
-                      mvn clean deploy -Dskiptests=true
+                    	mvn -B -V clean deploy -DskipTests=true
                     """
 				}
 			}
