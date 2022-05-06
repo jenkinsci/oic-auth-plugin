@@ -545,7 +545,10 @@ public class OicSecurityRealm extends SecurityRealm {
             if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, groupsFieldName)) {
                 LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
                 @SuppressWarnings("unchecked")
-                List<String> groupNames = (List<String>) getField(userInfo, groupsFieldName);
+                String jsonArrayString = (String)getField(userInfo, groupsFieldName);
+
+                List<String> groupNames = parseAuthPermissions(jsonArrayString);
+
                 LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                 for (String groupName : groupNames) {
                     LOGGER.fine("Adding group from UserInfo: " + groupName);
@@ -554,7 +557,10 @@ public class OicSecurityRealm extends SecurityRealm {
             } else if (containsField(idToken.getPayload(), groupsFieldName)) {
                 LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());
                 @SuppressWarnings("unchecked")
-                List<String> groupNames = (List<String>) getField(idToken.getPayload(), groupsFieldName);
+                String jsonArrayString = (String) getField(idToken.getPayload(), groupsFieldName);
+
+                List<String> groupNames = parseAuthPermissions(jsonArrayString);
+                
                 LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                 for (String groupName : groupNames) {
                     LOGGER.fine("Adding group from idToken: " + groupName);
@@ -568,6 +574,26 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         return grantedAuthorities.toArray(new GrantedAuthority[grantedAuthorities.size()]);
+    }
+
+    private List<String> parseAuthPermissions(String jsonArrayString) {
+        ArrayList<String> groupNames = new ArrayList<String>(); 
+        if(jsonArrayString != null && !jsonArrayString.isEmpty()) {
+            jsonArrayString = jsonArrayString.replaceAll("[\\[\\]\"]", "");
+            if(!jsonArrayString.contains(",")) {
+                String trimmedPermission = jsonArrayString.trim();
+                LOGGER.fine("Adding group name: " + trimmedPermission);
+                groupNames.add(trimmedPermission);
+            } else {
+                for(String permission : jsonArrayString.split(",")) {
+                    String trimmedPermission = permission.trim();
+                    LOGGER.fine("Adding group name: " + trimmedPermission);
+                    groupNames.add(trimmedPermission.trim());
+                }
+            }
+        }
+
+        return groupNames;
     }
 
     private String getField(IdToken idToken, String fullNameFieldName) {
@@ -759,7 +785,7 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         public String getDisplayName() {
-            return "Login with Openid Connect";
+            return "Login with OIDC - Authhub";
         }
 
         public FormValidation doCheckClientId(@QueryParameter String clientId) {
