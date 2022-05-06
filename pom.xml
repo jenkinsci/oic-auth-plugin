@@ -16,12 +16,12 @@
   <version>1.9-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
-  <scm>
-    <connection>scm:git:ssh://github.com/surly82/oic-auth-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/surly82/oic-auth-plugin.git</developerConnection>
-    <url>https://github.com/surly82/oic-auth-plugin</url>
-    <tag>HEAD</tag>
-  </scm>
+	<scm>
+		<connection>${git.scm.prefix}${git.https.base}/${git.project.id}/${git.repo.name}.git</connection>
+		<developerConnection>${git.scm.prefix}${git.https.base}/${git.project.id}/${git.repo.name}.git</developerConnection>
+		<url>${git.https.base}/${git.project.id}/${git.repo.name}</url>
+		<tag>HEAD</tag>
+	</scm>
 
   <name>OpenId Connect Authentication Plugin (ISED)</name>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Openid+Connect+Authentication+Plugin</url>
