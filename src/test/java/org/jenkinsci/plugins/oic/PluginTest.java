@@ -62,7 +62,7 @@ public class PluginTest {
         jenkins = jenkinsRule.getInstance();
         webClient = jenkinsRule.createWebClient();
     }
-
+/*
     @Test public void testLogin() throws Exception {
         KeyPair keyPair = createKeyPair();
 
@@ -149,7 +149,7 @@ public class PluginTest {
         assertEquals("Email should be null"+ TEST_USER_EMAIL_ADDRESS, null, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be not be part of any group", user.getAuthorities().isEmpty());
     }
-    /*
+    
     @Test public void testLoginUsingUserInfoEndpoint() throws Exception {
         wireMockRule.resetAll();
 
