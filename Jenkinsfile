@@ -19,8 +19,10 @@ pipeline {
     	stage('build') {
 			steps {
 				script{
+					MVN_DEBUG_SWITCH = isedUtils.getMavenDebugSwitch()
+					
                   	sh """
-                    	mvn -B -V clean deploy -DskipTests=true
+                    	mvn -B -V $MVN_DEBUG_SWITCH clean deploy -DskipTests=true
                     """
 				}
 			}
