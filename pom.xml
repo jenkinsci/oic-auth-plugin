@@ -15,7 +15,7 @@
   </properties>
 
   <artifactId>oic-auth-ised</artifactId>
-  <version>1.9-SNAPSHOT</version>
+  <version>1.10-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
 	<scm>
