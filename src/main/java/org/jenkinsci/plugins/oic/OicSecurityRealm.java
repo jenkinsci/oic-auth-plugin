@@ -190,8 +190,11 @@ public class OicSecurityRealm extends SecurityRealm {
             this.authorizationServerUrl = config.getAuthorizationEndpoint();
             this.tokenServerUrl = config.getTokenEndpoint();
             this.userInfoServerUrl = config.getUserinfoEndpoint();
-            this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty()
-                ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
+            if (config.getScopesSupported() != null && !config.getScopesSupported().isEmpty()) {
+                this.scopes = StringUtils.join(config.getScopesSupported(), " ");
+            } else {
+                this.scopes = "openid email";
+            }
             this.logoutFromOpenidProvider = logoutFromOpenidProvider != null;
             this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
