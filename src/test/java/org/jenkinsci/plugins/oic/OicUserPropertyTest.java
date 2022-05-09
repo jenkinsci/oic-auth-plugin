@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.oic;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.GrantedAuthorityImpl;
@@ -29,5 +30,13 @@ public class OicUserPropertyTest {
         String expectedAuthString =  result.toString();
 
         assertEquals(expectedAuthString, userProp.getAllGrantedAuthorities());
+    }
+
+    @Test
+    public void testGetDescriptor() {
+        String userName = "derek";
+        GrantedAuthority[] authorities = new GrantedAuthority[]{AUTH1, AUTH2};
+        userProp = new OicUserProperty(userName, authorities);
+        assertNotNull(userProp.getDescriptor());
     }
 }
