@@ -1,18 +1,14 @@
 package org.jenkinsci.plugins.oic;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.google.api.client.auth.oauth2.TokenResponse;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.JsonGenerator;
-import com.google.api.client.json.JsonParser;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.common.base.Charsets;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+
+import com.google.api.client.auth.oauth2.TokenResponse;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
 
 /**
  * We'd like to be more permissive by allowing both long literals and Strigns containing to accepted
