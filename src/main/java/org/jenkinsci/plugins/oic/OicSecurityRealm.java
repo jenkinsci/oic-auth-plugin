@@ -22,7 +22,6 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -219,25 +218,6 @@ public class OicSecurityRealm extends SecurityRealm {
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
 
         this.random = new Random();
-    }
-
-    private Object readResolve() {
-        if (httpTransport == null) {
-            httpTransport = constructHttpTransport(isDisableSslVerification());
-        }
-        if (random == null) {
-            random = new Random();
-        }
-        if (!Strings.isNullOrEmpty(endSessionUrl)) {
-            try {
-                Field field = getClass().getDeclaredField("endSessionEndpoint");
-                field.setAccessible(true);
-                field.set(this, endSessionUrl + "/");
-            } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
-                LOGGER.log(Level.SEVERE, "Can't set endSessionEndpoint from old value", e);
-            }
-        }
-        return this;
     }
 
     private static HttpTransport constructHttpTransport(boolean disableSslVerification) {
