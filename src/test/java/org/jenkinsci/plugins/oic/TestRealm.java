@@ -1,11 +1,12 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import java.io.IOException;
+import java.lang.reflect.Field;
+
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
 
 public class TestRealm extends OicSecurityRealm {
 
@@ -13,20 +14,22 @@ public class TestRealm extends OicSecurityRealm {
     public static final String EMAIL_FIELD = "email";
     public static final String FULL_NAME_FIELD = "fullName";
     public static final String GROUPS_FIELD = "groups";
+    public static final String MANUAL_CONFIG_FIELD = "manual";
+    public static final String AUTO_CONFIG_FIELD = "auto";
 
     public TestRealm(WireMockRule wireMockRule) throws IOException {
         this(wireMockRule, null);
     }
 
     public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl) throws IOException {
-        this(wireMockRule, userInfoServerUrl, EMAIL_FIELD, GROUPS_FIELD);
+        this(wireMockRule, userInfoServerUrl, EMAIL_FIELD, GROUPS_FIELD, MANUAL_CONFIG_FIELD);
     }
 
-    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupFieldName) throws IOException {
+    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupFieldName, String automanualconfigure) throws IOException {
         super(
              CLIENT_ID,
             "secret",
-            null,
+            "http://localhost:" + wireMockRule.port() + "/well.known",
             "http://localhost:" + wireMockRule.port() + "/token",
             "http://localhost:" + wireMockRule.port() + "/authorization",
              userInfoServerUrl,
@@ -45,7 +48,7 @@ public class TestRealm extends OicSecurityRealm {
             null,
             null,
             null,
-            "manual"
+            automanualconfigure
         );
     }
 
