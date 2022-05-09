@@ -19,11 +19,7 @@ pipeline {
     	stage('build') {
 			steps {
 				script{
-					MVN_DEBUG_SWITCH = isedUtils.getMavenDebugSwitch()
-
-                  	sh """
-					  	mvn release:clean release:prepare release:perform -B -V $MVN_DEBUG_SWITCH -Dcheckstyle.skip=true -DskipTests=true
-                    """
+					builder.releaseMavenLibrary()
 				}
 			}
     	}
