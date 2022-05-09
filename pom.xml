@@ -7,6 +7,8 @@
   </parent>
 
   <properties>
+		<git.repo.name>oic-auth-ised</git.repo.name>
+		<git.project.id>org.jenkins-ci.plugins</git.project.id>
     <jenkins.version>2.60.3</jenkins.version>
     <configuration-as-code.version>1.27</configuration-as-code.version>
     <java.level>8</java.level>

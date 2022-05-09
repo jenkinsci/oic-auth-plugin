@@ -19,7 +19,7 @@ pipeline {
     	stage('build') {
 			steps {
 				script{
-					builder.releaseMavenLibrary()
+					release.releaseMavenLibrary()
 				}
 			}
     	}
