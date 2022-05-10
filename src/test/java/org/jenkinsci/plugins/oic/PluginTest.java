@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Url;
 
+import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.api.client.auth.openidconnect.IdToken;
@@ -49,6 +50,7 @@ public class PluginTest {
 
     private static final JsonFactory JSON_FACORY = new JacksonFactory();
 
+    private static final String escapeHatchhUrl = "securityRealm/escapeHatch";
     private static final String TEST_USER_USERNAME = "testUser";
 
     private static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
@@ -169,26 +171,13 @@ public class PluginTest {
                     + "\"access_token\":\"AcCeSs_ToKeN\"," + "\"token_type\":\"example\"," + "\"expires_in\":3600,"
                     + "\"refresh_token\":\"ReFrEsH_ToKeN\"," + "\"example_parameter\":\"example_value\"" + "}")));
 
-        String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
-        String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
-        String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
-        String jwksUrl = "null";
-        String endSessionUrl = "null";
-
         wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(aResponse()
             .withHeader("Content-Type", "application/json")
             .withBody("{\n" + "   \"sub\": \"" + TEST_USER_USERNAME + "\",\n" + "   \"" + FULL_NAME_FIELD + "\": \""
                 + TEST_USER_FULL_NAME + "\",\n" + "   \"nested\": {\n" + "     \"email\": \"" + TEST_USER_EMAIL_ADDRESS
                 + "\",\n" + "     \"groups\": " + TEST_USER_GROUPS + "\n" + "   }\n" + "  }")));
 
-        wireMockRule.stubFor(get(urlPathEqualTo("/well.known"))
-            .willReturn(aResponse().withHeader("Content-Type", "text/html; charset=utf-8")
-                .withBody(String.format(
-                    "{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
-                        + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": [\"openid\"], "
-                        + "\"end_session_endpoint\":\"%s\"}",
-                    authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))));
-
+        configureWellKnown();
 
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD));
 
@@ -225,23 +214,12 @@ public class PluginTest {
                     + "\"access_token\":\"AcCeSs_ToKeN\"," + "\"token_type\":\"example\"," + "\"expires_in\":3600,"
                     + "\"refresh_token\":\"ReFrEsH_ToKeN\"," + "\"example_parameter\":\"example_value\"" + "}")));
 
-        String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
-        String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
-        String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
-        String jwksUrl = "null";
-        String endSessionUrl = "null";
-
         wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(aResponse()
             .withHeader("Content-Type", "application/json")
             .withBody("{\n" + "   \"sub\": \"" + TEST_USER_USERNAME + "\",\n" + "   \"" + FULL_NAME_FIELD + "\": \""
                 + TEST_USER_FULL_NAME + "\",\n" + "   \"nested\": {\n" + "     \"email\": \"" + TEST_USER_EMAIL_ADDRESS
                 + "\",\n" + "     \"groups\": " + TEST_USER_GROUPS + "\n" + "   }\n" + "  }")));
-
-        wireMockRule.stubFor(get(urlPathEqualTo("/well.known")).willReturn(aResponse()
-            .withHeader("Content-Type", "text/html; charset=utf-8")
-            .withBody(String.format("{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
-                + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": null, "
-                + "\"end_session_endpoint\":\"%s\"}", authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))));
+        configureWellKnown();
 
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD));
 
@@ -379,7 +357,7 @@ public class PluginTest {
 
 
     @Test
-    public void testDescriptor() throws Exception {
+    public void testOicUserPropertyDescriptor() throws Exception {
         KeyPair keyPair = createKeyPair();
 
         wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
@@ -420,6 +398,85 @@ public class PluginTest {
         assertEquals("Display name should be " + OPENID_CONNECT_USER_PROPERTY, OPENID_CONNECT_USER_PROPERTY,
             descriptor.getDisplayName());
 
+    }
+
+    @Test(expected = FailingHttpStatusCodeException.class)
+    public void testLoginUsingDisabledEscapeHatchEndpoint() throws Exception {
+        escapeHatchConfig(false);
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(),
+            Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(escapeHatchhUrl);
+    }
+
+    // @Test
+    // @WithMockUser(roles = "MANAGER", password = "asdf", username = "test")
+    public void testLoginUsingEnabledEscapeHatchEndpoint() throws Exception {
+        escapeHatchConfig(true);
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(),
+            Jenkins.ANONYMOUS.getPrincipal());
+
+        // wireMockRule.stubFor(
+        // post(urlPathEqualTo("/j_spring_security_check?j_username=test&j_password=21234"))
+        // .willReturn(aResponse().withHeader("Content-Type", "application/json")
+        // .withBody("j_username=test" + "/nj_password=21234")));
+        // j_username=<MY-USERNAME>" -F "j_password=<MY-PASSWORD>" <JENKINS-URL>/jenkins/
+
+        webClient.goTo(escapeHatchhUrl);
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Full name should be " + TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS,
+            user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group " + GROUP1, user.getAuthorities().contains(GROUP1));
+        assertTrue("User should be part of group " + GROUP2, user.getAuthorities().contains(GROUP2));
+    }
+
+    private void escapeHatchConfig(boolean escapeHatchEnabled) throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
+            .willReturn(aResponse().withStatus(302).withHeader("Content-Type", "text/html; charset=utf-8")
+                .withHeader("Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
+                .withBody("")));
+        wireMockRule.stubFor(
+            post(urlPathEqualTo("/token")).willReturn(aResponse().withHeader("Content-Type", "application/json")
+                .withBody("{" + "\"id_token\": \""
+                    + createIdToken(keyPair.getPrivate(), Collections.<String, Object> emptyMap()) + "\","
+                    + "\"access_token\":\"AcCeSs_ToKeN\"," + "\"token_type\":\"example\"," + "\"expires_in\":3600,"
+                    + "\"refresh_token\":\"ReFrEsH_ToKeN\"," + "\"example_parameter\":\"example_value\"" + "}")));
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody("{\n" + "   \"sub\": \"" + TEST_USER_USERNAME + "\",\n" + "   \"" + FULL_NAME_FIELD + "\": \""
+                + TEST_USER_FULL_NAME + "\",\n" + "   \"nested\": {\n" + "     \"email\": \"" + TEST_USER_EMAIL_ADDRESS
+                + "\",\n" + "     \"groups\": " + TEST_USER_GROUPS + "\n" + "   }\n" + "  }")));
+
+        configureWellKnown();
+        String escapeHatchUsername = "escapeHatchAdmin";
+        String escapeHatchSecret = "213451241234";
+        String escapeHatchGroup = "admin";
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD, escapeHatchEnabled,
+            escapeHatchUsername, escapeHatchSecret, escapeHatchGroup));
+    }
+
+    private void configureWellKnown() {
+        String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
+        String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
+        String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
+        String jwksUrl = "null";
+        String endSessionUrl = "null";
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/well.known")).willReturn(aResponse()
+            .withHeader("Content-Type", "text/html; charset=utf-8")
+            .withBody(String.format("{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
+                + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": null, "
+                + "\"end_session_endpoint\":\"%s\"}", authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))));
     }
 
     private String toJsonArray(String[] array) {

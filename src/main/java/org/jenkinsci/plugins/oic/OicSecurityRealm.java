@@ -51,6 +51,7 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.lang.StringUtils;
+import org.jfree.util.Log;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
@@ -153,12 +154,6 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String escapeHatchGroup;
 
     private String automanualconfigure;
-
-    /**
-     * old field that had an '/' implicitly added at the end, transient because we no longer want to have this value
-     * stored but it's still needed for backwards compatibility
-     */
-    private transient String endSessionUrl;
 
     private transient HttpTransport httpTransport;
 
@@ -458,6 +453,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public HttpResponse doEscapeHatch(@QueryParameter("j_username") String username,
                                       @QueryParameter("j_password") String password) {
+        Log.info(String.format("doEscapeHatch called with user %s and pass %s", username, password));
         randomWait(); // to slowdown brute forcing
         if (!isEscapeHatchEnabled()) {
             return HttpResponses.redirectViaContextPath("loginError");
@@ -575,7 +571,6 @@ public class OicSecurityRealm extends SecurityRealm {
             if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, groupsFieldName)) {
                 LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:"
                     + getField(userInfo, groupsFieldName).getClass());
-                @SuppressWarnings("unchecked")
                 List<String> groupNames = parseAuthPermissions(getField(userInfo, groupsFieldName));
 
                 LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
@@ -586,7 +581,6 @@ public class OicSecurityRealm extends SecurityRealm {
             } else if (containsField(idToken.getPayload(), groupsFieldName)) {
                 LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:"
                     + getField(idToken.getPayload(), groupsFieldName).getClass());
-                @SuppressWarnings("unchecked")
                 List<String> groupNames = parseAuthPermissions(getField(idToken.getPayload(), groupsFieldName));
 
                 LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
@@ -604,6 +598,7 @@ public class OicSecurityRealm extends SecurityRealm {
         return grantedAuthorities.toArray(new GrantedAuthority[grantedAuthorities.size()]);
     }
 
+    @SuppressWarnings("unchecked")
     private List<String> parseAuthPermissions(Object rawGroups) {
         ArrayList<String> groupNames = new ArrayList<String>();
         if (rawGroups == null) {
@@ -627,7 +622,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 }
             }
         } else if (rawGroups instanceof Collection) {
-            groupNames.addAll((Collection) rawGroups);
+            groupNames.addAll((Collection<String>) rawGroups);
         }
 
         return groupNames;
@@ -758,14 +753,14 @@ public class OicSecurityRealm extends SecurityRealm {
         ABSENT
     }
 
-    private Object lookup(Map parsedJson, String key) {
+    private Object lookup(Map<?, ?> parsedJson, String key) {
         if (key.contains("\"")) {
             int indexMarker = key.indexOf('\"');
             Object nested = parsedJson.get(key.substring(0, indexMarker));
             if (nested == null || !(nested instanceof Map)) {
                 return parsedJson.containsKey(key.substring(0, indexMarker)) ? null : ABSENT;
             }
-            return lookup((Map) nested, key.substring(indexMarker));
+            return lookup((Map<?, ?>) nested, key.substring(indexMarker));
         }
 
         String firstPart = key;
@@ -781,7 +776,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     return value;
                 }
                 if (value instanceof Map) {
-                    Object nested = lookup((Map) value, key.substring(firstPart.length() + 1, key.length()));
+                    Object nested = lookup((Map<?, ?>) value, key.substring(firstPart.length() + 1, key.length()));
                     if (nested != null) {
                         return nested;
                     }

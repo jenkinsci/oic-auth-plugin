@@ -52,6 +52,37 @@ public class TestRealm extends OicSecurityRealm {
         );
     }
 
+    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupFieldName,
+                     String automanualconfigure, boolean escapeHatchEnabled, String escapeHatchUsername,
+                     String escapeHatchSecret, String escapeHatchGroup) throws IOException {
+        super(
+             CLIENT_ID,
+            "secret",
+            "http://localhost:" + wireMockRule.port() + "/well.known",
+            "http://localhost:" + wireMockRule.port() + "/token",
+            "http://localhost:" + wireMockRule.port() + "/authorization",
+             userInfoServerUrl,
+            null,
+            null,
+            null,
+             FULL_NAME_FIELD,
+             emailFieldName,
+            null,
+             groupFieldName,
+            false,
+            false,
+            null,
+            null,
+            escapeHatchEnabled, 
+            escapeHatchUsername, 
+            escapeHatchSecret, 
+            escapeHatchGroup, 
+            automanualconfigure
+        );
+    }
+    
+    
+
     @Override
     public HttpResponse doFinishLogin(StaplerRequest request) {
         try {
