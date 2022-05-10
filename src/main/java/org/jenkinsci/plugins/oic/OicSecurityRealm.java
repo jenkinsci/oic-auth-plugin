@@ -22,6 +22,7 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -51,7 +52,6 @@ import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UserDetailsService;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.apache.commons.lang.StringUtils;
-import org.jfree.util.Log;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
@@ -155,6 +155,12 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private String automanualconfigure;
 
+    /**
+     * old field that had an '/' implicitly added at the end, transient because we no longer want to have this value
+     * stored but it's still needed for backwards compatibility
+     */
+    private transient String endSessionUrl;
+
     private transient HttpTransport httpTransport;
 
     private transient Random random;
@@ -185,11 +191,8 @@ public class OicSecurityRealm extends SecurityRealm {
             this.authorizationServerUrl = config.getAuthorizationEndpoint();
             this.tokenServerUrl = config.getTokenEndpoint();
             this.userInfoServerUrl = config.getUserinfoEndpoint();
-            if (config.getScopesSupported() != null && !config.getScopesSupported().isEmpty()) {
-                this.scopes = StringUtils.join(config.getScopesSupported(), " ");
-            } else {
-                this.scopes = "openid email";
-            }
+            this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty()
+                ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
             this.logoutFromOpenidProvider = logoutFromOpenidProvider != null;
             this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
@@ -216,6 +219,25 @@ public class OicSecurityRealm extends SecurityRealm {
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
 
         this.random = new Random();
+    }
+
+    private Object readResolve() {
+        if (httpTransport == null) {
+            httpTransport = constructHttpTransport(isDisableSslVerification());
+        }
+        if (random == null) {
+            random = new Random();
+        }
+        if (!Strings.isNullOrEmpty(endSessionUrl)) {
+            try {
+                Field field = getClass().getDeclaredField("endSessionEndpoint");
+                field.setAccessible(true);
+                field.set(this, endSessionUrl + "/");
+            } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
+                LOGGER.log(Level.SEVERE, "Can't set endSessionEndpoint from old value", e);
+            }
+        }
+        return this;
     }
 
     private static HttpTransport constructHttpTransport(boolean disableSslVerification) {
@@ -450,17 +472,43 @@ public class OicSecurityRealm extends SecurityRealm {
             }
         }.doCommenceLogin();
     }
-
+/*
     public HttpResponse doEscapeHatch(@QueryParameter("j_username") String username,
-                                      @QueryParameter("j_password") String password) {
-        Log.info(String.format("doEscapeHatch called with user %s and pass %s", username, password));
+                                      @QueryParameter("j_password") String password, StaplerRequest req) {
+        LOGGER.info(String.format("doEscapeHatch called with user %s and pass %s", username, password));
+
+        if (req != null) {
+            LOGGER.info(String.format("request getRequestURI %s", req.getRequestURI()));
+            Enumeration<String> e = req.getHeaderNames();
+            while (e.hasMoreElements()) {
+                String name = e.nextElement();
+                LOGGER.info(String.format("request getHeaderName %s and value %s", name, req.getHeader(name)));
+            }
+
+            String cookie = "Cookie";
+
+            LOGGER.info(String.format("request getHeaderName %s and value %s", cookie, req.getHeader(cookie)));
+            Cookie[] cookies = req.getCookies();
+
+            if (cookies != null) {
+                for (Cookie c : cookies) {
+                    String name = c.getName();
+                    String cookieValue = c.getValue();
+
+                    LOGGER.info(String.format("cookie name %s, value %s", name, cookieValue));
+                }
+            }
+
+            LOGGER.info(String.format("request getContentLength %s", req.getContentLength()));
+        }
+
         randomWait(); // to slowdown brute forcing
         if (!isEscapeHatchEnabled()) {
-            Log.error(String.format("isEscapeHatchEnabled is not enabled"));
+            LOGGER.info(String.format("isEscapeHatchEnabled is not enabled"));
             return HttpResponses.redirectViaContextPath("loginError");
         }
         if (this.escapeHatchUsername == null || this.escapeHatchSecret == null) {
-            Log.error(String.format("escapeHatchUsername or escapeHatchSecret is null"));
+            LOGGER.info(String.format("escapeHatchUsername or escapeHatchSecret is null"));
             return HttpResponses.redirectViaContextPath("loginError");
         }
         if (escapeHatchUsername.equalsIgnoreCase(username) && escapeHatchSecret.getPlainText().equals(password)) {
@@ -488,7 +536,7 @@ public class OicSecurityRealm extends SecurityRealm {
             Thread.currentThread().interrupt();
         }
     }
-
+*/
     private GenericJson getUserInfo(final AuthorizationCodeFlow flow, final String accessToken) throws IOException {
         HttpRequestFactory requestFactory = flow.getTransport().createRequestFactory(new HttpRequestInitializer() {
 
@@ -624,7 +672,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 }
             }
         } else if (rawGroups instanceof Collection) {
-            groupNames.addAll((Collection<String>) rawGroups);
+            groupNames.addAll((Collection) rawGroups);
         }
 
         return groupNames;
@@ -755,14 +803,14 @@ public class OicSecurityRealm extends SecurityRealm {
         ABSENT
     }
 
-    private Object lookup(Map<?, ?> parsedJson, String key) {
+    private Object lookup(Map parsedJson, String key) {
         if (key.contains("\"")) {
             int indexMarker = key.indexOf('\"');
             Object nested = parsedJson.get(key.substring(0, indexMarker));
             if (nested == null || !(nested instanceof Map)) {
                 return parsedJson.containsKey(key.substring(0, indexMarker)) ? null : ABSENT;
             }
-            return lookup((Map<?, ?>) nested, key.substring(indexMarker));
+            return lookup((Map) nested, key.substring(indexMarker));
         }
 
         String firstPart = key;
@@ -778,7 +826,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     return value;
                 }
                 if (value instanceof Map) {
-                    Object nested = lookup((Map<?, ?>) value, key.substring(firstPart.length() + 1, key.length()));
+                    Object nested = lookup((Map) value, key.substring(firstPart.length() + 1, key.length()));
                     if (nested != null) {
                         return nested;
                     }
