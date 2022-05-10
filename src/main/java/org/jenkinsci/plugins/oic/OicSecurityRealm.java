@@ -456,9 +456,11 @@ public class OicSecurityRealm extends SecurityRealm {
         Log.info(String.format("doEscapeHatch called with user %s and pass %s", username, password));
         randomWait(); // to slowdown brute forcing
         if (!isEscapeHatchEnabled()) {
+            Log.error(String.format("isEscapeHatchEnabled is not enabled"));
             return HttpResponses.redirectViaContextPath("loginError");
         }
         if (this.escapeHatchUsername == null || this.escapeHatchSecret == null) {
+            Log.error(String.format("escapeHatchUsername or escapeHatchSecret is null"));
             return HttpResponses.redirectViaContextPath("loginError");
         }
         if (escapeHatchUsername.equalsIgnoreCase(username) && escapeHatchSecret.getPlainText().equals(password)) {
