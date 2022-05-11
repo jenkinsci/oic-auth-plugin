@@ -8,6 +8,9 @@ import org.kohsuke.stapler.StaplerRequest;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 
+import hudson.model.Descriptor;
+import hudson.security.SecurityRealm;
+
 public class TestRealm extends OicSecurityRealm {
 
     public static final String CLIENT_ID = "clientId";
@@ -73,15 +76,18 @@ public class TestRealm extends OicSecurityRealm {
             false,
             null,
             null,
-            escapeHatchEnabled, 
-            escapeHatchUsername, 
-            escapeHatchSecret, 
-            escapeHatchGroup, 
+            escapeHatchEnabled,
+            escapeHatchUsername,
+            escapeHatchSecret,
+            escapeHatchGroup,
             automanualconfigure
         );
     }
-    
-    
+
+    @Override
+    public Descriptor<SecurityRealm> getDescriptor() {
+        return new DescriptorImpl();
+    }
 
     @Override
     public HttpResponse doFinishLogin(StaplerRequest request) {
