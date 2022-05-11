@@ -56,6 +56,21 @@ public class TokenResponseTest {
     }
 
     @Test
+    public void testSetters() throws IOException {
+        TokenResponse response = new TokenResponse();
+        assertEquals(response, response.setAccessToken("2YotnFZFEjr1zCsicMWpAA"));
+        assertEquals(response, response.setTokenType("example"));
+        assertEquals(response, response.setExpiresInSeconds(3600L));
+        assertEquals(response, response.setRefreshToken("tGzv3JOkF0XG5Qx2TlKWIA"));
+        assertEquals(response, response.set("example_parameter", "example_value"));
+        assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
+        assertEquals("example", response.getTokenType());
+        assertEquals(3600L, response.getExpiresInSeconds().longValue());
+        assertEquals("tGzv3JOkF0XG5Qx2TlKWIA", response.getRefreshToken());
+        assertEquals("example_value", response.get("example_parameter"));
+    }
+
+    @Test
     public void parseAbsent() throws IOException {
         JsonFactory jsonFactory = new JacksonFactory();
         TokenResponse response = jsonFactory.fromString(JSON_WITH_ABSENT, TokenResponse.class);
