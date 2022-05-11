@@ -2,11 +2,13 @@ package org.jenkinsci.plugins.oic;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Random;
 
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.google.api.client.http.HttpTransport;
 
 import hudson.model.Descriptor;
 import hudson.security.SecurityRealm;
@@ -99,5 +101,22 @@ public class TestRealm extends OicSecurityRealm {
             throw new RuntimeException("can't fudge state",e);
         }
         return super.doFinishLogin(request);
+    }
+
+    @Override
+    public Object readResolve() {
+        return super.readResolve();
+    }
+
+    public void setHttpTransport(HttpTransport httpTransport) {
+        this.httpTransport = httpTransport;
+    }
+
+    public void setRandom(Random random) {
+        this.random = random;
+    }
+
+    public void setEndSessionUrl(String endSessionUrl) {
+        this.endSessionUrl = endSessionUrl;
     }
 }

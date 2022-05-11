@@ -22,7 +22,6 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -141,7 +140,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private final boolean logoutFromOpenidProvider;
 
-    private final String endSessionEndpoint;
+    private String endSessionEndpoint;
 
     private final String postLogoutRedirectUrl;
 
@@ -159,11 +158,11 @@ public class OicSecurityRealm extends SecurityRealm {
      * old field that had an '/' implicitly added at the end, transient because we no longer want to have this value
      * stored but it's still needed for backwards compatibility
      */
-    private transient String endSessionUrl;
+    protected transient String endSessionUrl;
 
-    private transient HttpTransport httpTransport;
+    protected transient HttpTransport httpTransport;
 
-    private transient Random random;
+    protected transient Random random;
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl,
@@ -221,7 +220,10 @@ public class OicSecurityRealm extends SecurityRealm {
         this.random = new Random();
     }
 
-    private Object readResolve() {
+    /*
+     * this method must be called through reflection on the jenkins side. removing it causes the login process to fail
+     */
+    protected Object readResolve() {
         if (httpTransport == null) {
             httpTransport = constructHttpTransport(isDisableSslVerification());
         }
@@ -229,13 +231,7 @@ public class OicSecurityRealm extends SecurityRealm {
             random = new Random();
         }
         if (!Strings.isNullOrEmpty(endSessionUrl)) {
-            try {
-                Field field = getClass().getDeclaredField("endSessionEndpoint");
-                field.setAccessible(true);
-                field.set(this, endSessionUrl + "/");
-            } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
-                LOGGER.log(Level.SEVERE, "Can't set endSessionEndpoint from old value", e);
-            }
+            endSessionEndpoint = endSessionUrl + "/";
         }
         return this;
     }

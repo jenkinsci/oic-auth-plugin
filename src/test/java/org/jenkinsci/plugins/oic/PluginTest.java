@@ -198,6 +198,42 @@ public class PluginTest {
     }
 
     @Test
+    public void testreadResolve() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
+            .willReturn(aResponse().withStatus(302).withHeader("Content-Type", "text/html; charset=utf-8")
+                .withHeader("Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
+                .withBody("")));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(
+            post(urlPathEqualTo("/token")).willReturn(aResponse().withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody("{" + "\"id_token\": \"" + createIdToken(keyPair.getPrivate(), keyValues) + "\","
+                    + "\"access_token\":\"AcCeSs_ToKeN\"," + "\"token_type\":\"example\"," + "\"expires_in\":3600,"
+                    + "\"refresh_token\":\"ReFrEsH_ToKeN\"," + "\"example_parameter\":\"example_value\"" + "}")));
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(aResponse()
+            .withHeader("Content-Type", "application/json")
+            .withBody("{\n" + "   \"sub\": \"" + TEST_USER_USERNAME + "\",\n" + "   \"" + FULL_NAME_FIELD + "\": \""
+                + TEST_USER_FULL_NAME + "\",\n" + "   \"nested\": {\n" + "     \"email\": \"" + TEST_USER_EMAIL_ADDRESS
+                + "\",\n" + "     \"groups\": " + TEST_USER_GROUPS + "\n" + "   }\n" + "  }")));
+
+        configureWellKnown();
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+        jenkins.setSecurityRealm(realm);
+
+        realm.setEndSessionUrl("http://localhost/endSession");
+        realm.setHttpTransport(null);
+        realm.setRandom(null);
+
+        assertEquals(realm, realm.readResolve());
+    }
+
+    @Test
     public void testLoginWithAutoConfiguration_WithNoScope() throws Exception {
         KeyPair keyPair = createKeyPair();
 
