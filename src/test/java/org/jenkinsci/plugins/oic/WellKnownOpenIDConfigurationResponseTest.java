@@ -1,13 +1,17 @@
 package org.jenkinsci.plugins.oic;
 
-import java.io.IOException;
-
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
+import java.io.IOException;
+
+import org.junit.Test;
+
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
 
 public class WellKnownOpenIDConfigurationResponseTest {
 
@@ -88,4 +92,54 @@ public class WellKnownOpenIDConfigurationResponseTest {
         ));
     }
 
+    @Test
+    public void testEquals() {
+        WellKnownOpenIDConfigurationResponse obj1 = new WellKnownOpenIDConfigurationResponse();
+        assertNotEquals(obj1, new Object());
+        WellKnownOpenIDConfigurationResponse obj2 = new WellKnownOpenIDConfigurationResponse();
+        assertEquals(obj1, obj1);
+        assertEquals(obj1, obj2);
+
+        testField(obj1, obj2, "userinfo_endpoint", "some userinfo endpoint");
+        testField(obj1, obj2, "authorization_endpoint", "some auth endpoint");
+        testField(obj1, obj2, "token_endpoint", "some token_endpoint endpoint");
+        testField(obj1, obj2, "jwks_uri", "some jwks_uri endpoint");
+        testField(obj1, obj2, "end_session_endpoint", "some end_session_endpoint endpoint");
+    }
+
+    private void testField(WellKnownOpenIDConfigurationResponse obj1, WellKnownOpenIDConfigurationResponse obj2,
+                           String field, String value) {
+        obj1.set(field, value);
+        obj2.set(field, null);
+        assertNotEquals(obj1, obj2);
+
+        obj1.set(field, null);
+        obj2.set(field, value);
+        assertNotEquals(obj1, obj2);
+
+        obj1.set(field, value + "1");
+        obj2.set(field, value);
+        assertNotEquals(obj1, obj2);
+
+        obj1.set(field, value);
+        obj2.set(field, value + "1");
+        assertNotEquals(obj1, obj2);
+
+        obj1.set(field, null);
+        obj2.set(field, null);
+        assertEquals(obj1, obj2);
+
+        obj1.set(field, value);
+        obj2.set(field, value);
+        assertEquals(obj1, obj2);
+    }
+
+    @Test
+    public void testHashcode() {
+        WellKnownOpenIDConfigurationResponse obj1 = new WellKnownOpenIDConfigurationResponse();
+        assertEquals(701760682, obj1.hashCode());
+
+        obj1.set("userinfo_endpoint", "some endpoint");
+        assertEquals(961661960, obj1.hashCode());
+    }
 }
