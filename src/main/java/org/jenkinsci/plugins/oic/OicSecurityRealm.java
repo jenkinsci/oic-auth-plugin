@@ -105,7 +105,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
 
-    private static final JsonFactory JSON_FACTORY = new JacksonFactory();
+    static final JsonFactory JSON_FACTORY = new JacksonFactory();
 
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
 
