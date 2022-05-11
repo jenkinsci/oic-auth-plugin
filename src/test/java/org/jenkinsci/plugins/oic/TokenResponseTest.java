@@ -63,11 +63,21 @@ public class TokenResponseTest {
         assertEquals(response, response.setExpiresInSeconds(3600L));
         assertEquals(response, response.setRefreshToken("tGzv3JOkF0XG5Qx2TlKWIA"));
         assertEquals(response, response.set("example_parameter", "example_value"));
+        assertEquals(response, response.setScope("myScope"));
         assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
         assertEquals("example", response.getTokenType());
         assertEquals(3600L, response.getExpiresInSeconds().longValue());
         assertEquals("tGzv3JOkF0XG5Qx2TlKWIA", response.getRefreshToken());
         assertEquals("example_value", response.get("example_parameter"));
+        assertEquals("myScope", response.getScope());
+
+        TokenResponse cloned = response.clone();
+        assertEquals(response.getAccessToken(), cloned.getAccessToken());
+        assertEquals(response.getTokenType(), cloned.getTokenType());
+        assertEquals(response.getExpiresInSeconds().longValue(), cloned.getExpiresInSeconds().longValue());
+        assertEquals(response.getRefreshToken(), cloned.getRefreshToken());
+        assertEquals(response.get("example_parameter"), cloned.get("example_parameter"));
+        assertEquals(response.getScope(), cloned.getScope());
     }
 
     @Test
