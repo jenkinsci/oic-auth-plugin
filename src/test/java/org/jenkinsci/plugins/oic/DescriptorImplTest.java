@@ -168,6 +168,7 @@ public class DescriptorImplTest {
             descriptor.doCheckEndSessionEndpoint(null).getMessage());
         assertEquals("End Session URL Key is required.",
             descriptor.doCheckEndSessionEndpoint("").getMessage());
+        assertTrue(descriptor.doCheckEndSessionEndpoint("not a url").getMessage().contains("Not a valid url."));
         assertEquals(FormValidation.ok(), descriptor.doCheckEndSessionEndpoint("http://localhost"));
     }
 
@@ -181,6 +182,7 @@ public class DescriptorImplTest {
         assertNotNull(descriptor);
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(null));
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(""));
+        assertTrue(descriptor.doCheckPostLogoutRedirectUrl("not a url").getMessage().contains("Not a valid url."));
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl("http://localhost"));
     }
 
