@@ -25,9 +25,11 @@ public class OicSessionTest {
 
     private OicSession session;
 
-    private String from = "fromAddy";
-
     private HttpTransport httpTransport;
+
+    private static final String from = "fromAddy";
+
+    private static final String token = "token";
 
     private final String tokenServerUrl = "http://localhost/token";
 
@@ -57,6 +59,7 @@ public class OicSessionTest {
                 return null;
             }
         };
+        session.setIdToken(token);
     }
 
 
@@ -72,6 +75,11 @@ public class OicSessionTest {
     @Test
     public void getFrom() {
         assertEquals(from, session.getFrom());
+    }
+
+    @Test
+    public void getIdToken() {
+        assertEquals(token, session.getIdToken());
     }
 
     @Test
