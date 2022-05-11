@@ -171,6 +171,19 @@ public class DescriptorImplTest {
         assertEquals(FormValidation.ok(), descriptor.doCheckEndSessionEndpoint("http://localhost"));
     }
 
+    @Test
+    public void doCheckPostLogoutRedirectUrl() throws IOException {
+        configureWellKnown();
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+
+        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
+
+        assertNotNull(descriptor);
+        assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(null));
+        assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(""));
+        assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl("http://localhost"));
+    }
+
     private void configureWellKnown() {
         String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
         String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
