@@ -10,6 +10,8 @@ import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.security.KeyPair;
@@ -22,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.acegisecurity.Authentication;
+import org.jenkinsci.plugins.oic.OicSecurityRealm.DescriptorImpl;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,6 +40,7 @@ import com.google.api.client.json.webtoken.JsonWebSignature;
 
 import hudson.model.User;
 import hudson.tasks.Mailer;
+import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 
 /**
@@ -353,7 +357,6 @@ public class PluginTest {
         assertTrue("User should be part of group " + GROUP2, user.getAuthorities().contains(GROUP2));
     }
 
-
     @Test
     public void testOicUserPropertyDescriptor() throws Exception {
         KeyPair keyPair = createKeyPair();
@@ -395,7 +398,35 @@ public class PluginTest {
 
         assertEquals("Display name should be " + OPENID_CONNECT_USER_PROPERTY, OPENID_CONNECT_USER_PROPERTY,
             descriptor.getDisplayName());
+    }
 
+    @Test
+    public void testOicSecurityRealmDescriptorImpl() throws Exception {
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, MANUAL_CONFIG_FIELD);
+
+        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
+
+        assertNotNull(descriptor);
+
+        assertEquals("Login with OIDC - Authhub", descriptor.getDisplayName());
+        assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
+        assertEquals("Client id is required.", descriptor.doCheckClientId("").getMessage());
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
+        assertEquals("Client secret is required.", descriptor.doCheckClientSecret(null).getMessage());
+        assertEquals("Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
+
+        assertFalse(descriptor.isAuto());
+        assertFalse(descriptor.isManual());
+
+        jenkins.setSecurityRealm(realm);
+
+        descriptor = (DescriptorImpl) realm.getDescriptor();
+
+        assertNotNull(descriptor);
+
+        assertFalse(descriptor.isAuto());
+        assertTrue(descriptor.isManual());
     }
 
     private void configureWellKnown() {
