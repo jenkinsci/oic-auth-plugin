@@ -50,7 +50,7 @@ See this blog post <http://www.epiclabs.io/configure-jenkins-use-azure-ad-authe
 ## Interacting with Jenkins as a non front-end user
 
 TLDR: use an API token instead as described here: 
-[Authenticating scripted clients](https://wiki.jenkins.io/display/JENKINS/Authenticating+scripted+clients)
+[Authenticating scripted clients](https://www.jenkins.io/doc/book/system-administration/authenticating-scripted-clients/)
 
 Using basic auth for authentication won't work. This is because jenkins
 has no knowledge of the password due to the way openid connect works:
