@@ -8,6 +8,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import hudson.model.User;
 import hudson.tasks.Mailer;
+import javafx.print.PrintColor;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.junit.Before;
@@ -50,6 +51,7 @@ public class PluginTest {
     private static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
     private static final String TEST_USER_FULL_NAME = "Oic Test User";
     private static final String[] TEST_USER_GROUPS = new String[]{"group1", "group2"};
+    private static final String[] TEST_USER_GROUPS_REGEX = new String[]{"CN=group1, OU=Jenkins, O=test.jenkins", "cN=group2"};
 
     @Rule public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(),true);
     @Rule public JenkinsRule jenkinsRule = new JenkinsRule();
@@ -299,6 +301,65 @@ public class PluginTest {
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
+
+    @Test public void testGroupListUsingRegex() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+            aResponse()
+                    .withStatus(302)
+                    .withHeader("Content-Type", "text/html; charset=utf-8")
+                    .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                    .withBody("")
+        ));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS_REGEX);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody("{" +
+                            "\"id_token\": \""+createIdToken(keyPair.getPrivate(), keyValues)+"\"," +
+                            "\"access_token\":\"AcCeSs_ToKeN\"," +
+                            "\"token_type\":\"example\"," +
+                            "\"expires_in\":3600," +
+                            "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                            "\"example_parameter\":\"example_value\"" +
+                        "}")
+        ));
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\n" +
+                    "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                    "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                    "   \"nested\": {\n" +
+                    "     \"email\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
+                    "     \"groups\": "+toJsonArray(TEST_USER_GROUPS_REGEX)+"\n" +
+                    "   }\n" +
+                    "  }")
+        ));
+
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule,"http://localhost:" + wireMockRule.port() + "/userinfo", "nested.email", "nested.groups{[Cc][nN]=([^,\\s]+)}"));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+    
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
+        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+    }
+
 
     private String toJsonArray(String[] array) {
         StringBuilder builder = new StringBuilder();

@@ -2,4 +2,7 @@
     Not required. If the field exists in the token and is an array of strings, then each string is added as a group.
     This allows groups based authorization in Jenkins. The SSO server will need to add the field with the list of groups in 
     the token. For example in Keycloak, this can be done with a 'Group Membership' mapper in the configuration of the client.
+    You could also pass a string surrounded by bracket with a regex in the bracket and it will use that regex to look for specific string/s 
+    in  the token array of strings.
+    ex: fieldkey{regex expression here}
 </div>
