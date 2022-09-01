@@ -77,6 +77,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
@@ -116,6 +118,10 @@ public class OicSecurityRealm extends SecurityRealm {
     private final Secret escapeHatchSecret;
     private final String escapeHatchGroup;
     private String automanualconfigure;
+    private String fieldKey;
+    private String patternKey;
+
+
 
     /** old field that had an '/' implicitly added at the end, 
      * transient because we no longer want to have this value stored
@@ -340,17 +346,12 @@ public class OicSecurityRealm extends SecurityRealm {
 							throw new UsernameNotFoundException(username);
 						}
 						LOGGER.fine("loadUserByUsername in createSecurityComponents called, user: " + u);
-						List<UserProperty> props = u.getAllProperties();
-						LOGGER.fine("loadUserByUsername in createSecurityComponents called, number of props: " + props.size());
+						OicUserProperty oicProp = u.getProperty(OicUserProperty.class);
 						GrantedAuthority[] auths = new GrantedAuthority[0];
-						for (UserProperty prop: props) {
-							LOGGER.fine("loadUserByUsername in createSecurityComponents called, prop of type: " + prop.getClass().toString());
-							if (prop instanceof OicUserProperty) {
-								OicUserProperty oicProp = (OicUserProperty) prop;
-								LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username: " + oicProp.getUserName());
-								auths = oicProp.getAuthoritiesAsGrantedAuthorities();
-								LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop with auths size: " + auths.length);
-							}
+						if (oicProp != null) {
+							LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username: " + oicProp.getUserName());
+							auths = oicProp.getAuthoritiesAsGrantedAuthorities();
+							LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop with auths size: " + auths.length);
 						}
 						return new OicUserDetails(username, auths);
 					}
@@ -540,31 +541,71 @@ public class OicSecurityRealm extends SecurityRealm {
     private GrantedAuthority[] determineAuthorities(IdToken idToken, GenericJson userInfo) {
         List<GrantedAuthority> grantedAuthorities = new ArrayList<GrantedAuthority>();
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY);
+        //delimiters for separation 
+        String delimiters = "^(.*)\\{(.*)\\}";
+        // get the keyString and PatternString from the field groupsFieldName'=
+        if(!Strings.isNullOrEmpty(groupsFieldName)){
+            Pattern p = Pattern.compile(delimiters);
+            Matcher m = p.matcher(groupsFieldName);
+            // separate the keyString and PatternString
+            // by matching a separation pattern ("delimiters") where the separation pattern is: "keyString{PatternString}"
+            // example randomString{[a-z],} would be
+            // fieldKey = randomString
+            // patternKey = [a-z],
+            if (m.find()) {
+                    // get the two groups we were looking for
+                    fieldKey = m.group(1);
+                    patternKey = m.group(2);
+                    LOGGER.fine("fieldKey: " + fieldKey);
+                    LOGGER.fine("patternKey: " + fieldKey);
+                
+            }else{
+                // Note if you do not need any regex this code will also work with just fieldKey
+                fieldKey = groupsFieldName;
+                LOGGER.fine("patternKey without regex : " + fieldKey);
+            }
 
-        if (isNotBlank(groupsFieldName)) {
-            if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, groupsFieldName)) {
-                LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
-                @SuppressWarnings("unchecked")
-                List<String> groupNames = (List<String>) getField(userInfo, groupsFieldName);
-                LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
-                for (String groupName : groupNames) {
-                    LOGGER.fine("Adding group from UserInfo: " + groupName);
-                    grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
+            if (isNotBlank(fieldKey)) {
+                if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, fieldKey)) {
+                    LOGGER.fine("UserInfo contains group field name: " + fieldKey + " with value class:" + getField(userInfo, fieldKey).getClass());
+                    @SuppressWarnings("unchecked")
+                    List<String> groupNames = (List<String>) getField(userInfo, fieldKey);
+                    LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+                    if(!Strings.isNullOrEmpty(patternKey)){
+                        for (String Fullgroups : groupNames) {
+                            // use separation pattern to get a group information based on the regex provided 
+                            if (!patternKey.isEmpty()) {
+                                Pattern testpattern = Pattern.compile(patternKey);
+                                Matcher CNgroups = testpattern.matcher(Fullgroups);
+                                //  use keyString to locate the groups data in userInfo
+                                if (CNgroups.find()) {
+                                    // get the groups we were looking for
+                                    LOGGER.fine("Adding group from UserInfo: " + CNgroups.group(1));
+                                    grantedAuthorities.add(new GrantedAuthorityImpl(CNgroups.group(1)));
+                                }
+                            }    
+                        }
+                    }else{
+                        for (String groupName : groupNames) {
+                            LOGGER.fine("Adding group from UserInfo: " + groupName);
+                            grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
+                        }
+                    }
+                } else if (containsField(idToken.getPayload(),fieldKey )) {
+                    LOGGER.fine("idToken contains group field name: " + fieldKey + " with value class:" + getField(idToken.getPayload(), fieldKey).getClass());
+                    List<String> groupNames = (List<String>) getField(idToken.getPayload(), fieldKey);
+                    LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+                    for (String groupName : groupNames) {
+                            LOGGER.fine("Adding group from UserInfo: " + groupName);
+                            grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
+                        }
+                    
+                } else {
+                    LOGGER.warning("idToken and userInfo did not contain group field name: " + fieldKey);
                 }
-            } else if (containsField(idToken.getPayload(), groupsFieldName)) {
-                LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());
-                @SuppressWarnings("unchecked")
-                List<String> groupNames = (List<String>) getField(idToken.getPayload(), groupsFieldName);
-                LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
-                for (String groupName : groupNames) {
-                    LOGGER.fine("Adding group from idToken: " + groupName);
-                    grantedAuthorities.add(new GrantedAuthorityImpl(groupName));
-                }
-            } else {
-                LOGGER.warning("idToken and userInfo did not contain group field name: " + groupsFieldName);
             }
         } else {
-            LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
+            LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + fieldKey);
         }
 
         return grantedAuthorities.toArray(new GrantedAuthority[grantedAuthorities.size()]);
