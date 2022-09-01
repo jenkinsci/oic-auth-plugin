@@ -8,7 +8,6 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import hudson.model.User;
 import hudson.tasks.Mailer;
-import javafx.print.PrintColor;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.junit.Before;
