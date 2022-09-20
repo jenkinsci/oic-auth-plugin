@@ -123,7 +123,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private transient String endSessionUrl;
     
     private transient HttpTransport httpTransport;
-    private transient Random random;
+    private static final Random RANDOM = new Random();
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String authorizationServerUrl,
@@ -174,16 +174,11 @@ public class OicSecurityRealm extends SecurityRealm {
         this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
         this.escapeHatchSecret = Secret.fromString(escapeHatchSecret);
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
-
-        this.random = new Random();
     }
 
     private Object readResolve() {
         if(httpTransport==null) {
             httpTransport = constructHttpTransport(isDisableSslVerification());
-        }
-        if(random==null) {
-            random = new Random();
         }
         if(!Strings.isNullOrEmpty(endSessionUrl)) {
         	try {
@@ -459,9 +454,12 @@ public class OicSecurityRealm extends SecurityRealm {
         return HttpResponses.redirectViaContextPath("loginError");
     }
 
+    // False positive in spotbug about DMI_RANDOM_USED_ONLY_ONCE
+    // see https://github.com/spotbugs/spotbugs/issues/1539
+    @SuppressFBWarnings
     private void randomWait() {
         try {
-            Thread.sleep(1000 + random.nextInt(1000));
+            Thread.sleep(1000 + RANDOM.nextInt(1000));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
