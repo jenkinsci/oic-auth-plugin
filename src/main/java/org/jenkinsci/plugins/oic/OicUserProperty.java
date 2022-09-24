@@ -25,7 +25,7 @@ public class OicUserProperty extends UserProperty {
 
 		@Override
 		public String getDisplayName() {
-			return "OpenID Connect user property";
+			return Messages.openid_connect_user_property();
 		}
     	
     }
