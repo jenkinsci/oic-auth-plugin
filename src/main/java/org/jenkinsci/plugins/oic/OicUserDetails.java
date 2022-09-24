@@ -1,24 +1,27 @@
 package org.jenkinsci.plugins.oic;
 
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.userdetails.UserDetails;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 public class OicUserDetails implements UserDetails {
     private static final long serialVersionUID = 1L;
 
     private final String userName;
-    private final GrantedAuthority[] grantedAuthorities;
+    private final List<GrantedAuthority> grantedAuthorities;
 
-    public OicUserDetails(String userName, GrantedAuthority[] grantedAuthorities) {
+    public OicUserDetails(String userName, Collection<? extends GrantedAuthority> grantedAuthorities) {
         this.userName = userName;
-        this.grantedAuthorities = Arrays.copyOf(grantedAuthorities, grantedAuthorities.length);
+        this.grantedAuthorities = new ArrayList<>(grantedAuthorities);
     }
 
     @Override
-    public GrantedAuthority[] getAuthorities() {
-        return Arrays.copyOf(grantedAuthorities, grantedAuthorities.length);
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return grantedAuthorities;
     }
 
     @Override
