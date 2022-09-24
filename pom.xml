@@ -10,7 +10,6 @@
   <properties>
     <jenkins.version>2.370</jenkins.version>
     <spotbugs.failOnError>false</spotbugs.failOnError>
-    <jacoco.version>0.8.6</jacoco.version>
   </properties>
 
   <groupId>io.jenkins.plugins</groupId>
@@ -117,7 +116,6 @@
       <plugin>
 		<groupId>org.jacoco</groupId>
 		<artifactId>jacoco-maven-plugin</artifactId>
-		<version>${jacoco.version}</version>
 		<executions>
 			<execution>
 				<id>default-prepare-agent</id>
