@@ -10,6 +10,7 @@
   <properties>
     <jenkins.version>2.370</jenkins.version>
     <java.version>8</java.version>
+    <java.level>8</java.level>
     <spotbugs.failOnError>false</spotbugs.failOnError>
   </properties>
 
