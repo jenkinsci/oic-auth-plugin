@@ -1,3 +1,4 @@
 buildPlugin(
-  [ platform: "linux", jdk: "11", jenkins: "2.266" ]
+  platforms: ['linux'],
+  jdkVersions: ['11']
 )
