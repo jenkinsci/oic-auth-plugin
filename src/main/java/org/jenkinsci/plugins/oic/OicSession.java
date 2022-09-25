@@ -23,20 +23,21 @@
  */
 package org.jenkinsci.plugins.oic;
 
-import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
-import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
-import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.model.Failure;
-import hudson.remoting.Base64;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
+import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
+import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
+import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Failure;
+import hudson.remoting.Base64;
 
 /**
  * The state of the OpenId connect request.
@@ -47,6 +48,7 @@ import java.util.UUID;
  * @author Ryan Campbell - initial author?
  * @author Michael Bischoff - adoptation
  */
+@SuppressWarnings("deprecation")
 abstract class OicSession {
 
     private final AuthorizationCodeFlow flow;
