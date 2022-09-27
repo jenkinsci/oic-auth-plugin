@@ -39,7 +39,7 @@ public class OicLogoutAction implements UnprotectedRootAction {
 
     @Override
     public String getDisplayName() {
-        return Messages.oic_logout();
+		return Messages.oic_logout();
     }
 
     @Override
