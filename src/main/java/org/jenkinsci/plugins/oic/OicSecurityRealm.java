@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -141,7 +142,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private transient String endSessionUrl;
     
     private transient HttpTransport httpTransport;
-    private transient Random random;
+    private static final Random RANDOM = new Random();
 
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String authorizationServerUrl,
@@ -192,16 +193,11 @@ public class OicSecurityRealm extends SecurityRealm {
         this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
         this.escapeHatchSecret = Secret.fromString(escapeHatchSecret);
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
-
-        this.random = new Random();
     }
 
     private Object readResolve() {
         if(httpTransport==null) {
             httpTransport = constructHttpTransport(isDisableSslVerification());
-        }
-        if(random==null) {
-            random = new Random();
         }
         if(!Strings.isNullOrEmpty(endSessionUrl)) {
         	try {
@@ -471,9 +467,13 @@ public class OicSecurityRealm extends SecurityRealm {
         }.doCommenceLogin();
     }
     
+    @SuppressFBWarnings(
+        value = "DMI_RANDOM_USED_ONLY_ONCE",
+	justification = "False positive in spotbug about DMI_RANDOM_USED_ONLY_ONCE")
+    // see https://github.com/spotbugs/spotbugs/issues/1539
     private void randomWait() {
         try {
-            Thread.sleep(1000 + random.nextInt(1000));
+            Thread.sleep(1000 + RANDOM.nextInt(1000));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -526,6 +526,10 @@ public class OicSecurityRealm extends SecurityRealm {
         SecurityContextHolder.getContext().setAuthentication(token);
 
         User user = User.get2(token);
+	if(user == null){
+                // should not happen
+                throw new IOException("Cannot set OIDC property on anonymous user");
+	}
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
 
