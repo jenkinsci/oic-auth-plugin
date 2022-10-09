@@ -8,6 +8,9 @@
   </parent>
 
   <properties>
+    <revision>2.0.1</revision>
+    <changelist>-SNAPSHOT</changelist>
+    <gitHubRepo>jenkinsci/oic-auth-plugin</gitHubRepo>
     <jenkins.version>2.346.1</jenkins.version>
     <spotbugs.failOnError>true</spotbugs.failOnError>
     <spotbugs.effort>Max</spotbugs.effort>
@@ -15,14 +18,14 @@
   </properties>
 
   <artifactId>oic-auth</artifactId>
-  <version>2.0.0</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <scm>
-    <connection>scm:git:ssh://github.com/jenkinsci/oic-auth-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/oic-auth-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/oic-auth-plugin</url>
-    <tag>HEAD</tag>
+    <connection>scm:git:ssh://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/${gitHubRepo}.git</developerConnection>
+    <url>https://github.com/${gitHubRepo}</url>
+    <tag>${scmTag}</tag>
   </scm>
 
   <name>OpenId Connect Authentication Plugin</name>
