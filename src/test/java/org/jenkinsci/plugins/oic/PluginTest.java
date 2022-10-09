@@ -144,7 +144,6 @@ public class PluginTest {
         assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
         User user = User.get(String.valueOf(authentication.getPrincipal()));
         assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
-        assertEquals("Email should be null"+ TEST_USER_EMAIL_ADDRESS, null, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be not be part of any group", user.getAuthorities().isEmpty());
     }
     

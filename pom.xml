@@ -3,28 +3,33 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>3.48</version>
+    <version>4.48</version>
+    <relativePath />
   </parent>
 
   <properties>
-    <jenkins.version>2.60.3</jenkins.version>
-    <configuration-as-code.version>1.27</configuration-as-code.version>
-    <java.level>8</java.level>
+    <revision>2.0.1</revision>
+    <changelist>-SNAPSHOT</changelist>
+    <gitHubRepo>jenkinsci/oic-auth-plugin</gitHubRepo>
+    <jenkins.version>2.346.1</jenkins.version>
+    <spotbugs.failOnError>true</spotbugs.failOnError>
+    <spotbugs.effort>Max</spotbugs.effort>
+    <configuration-as-code.version>1512.vb_79d418d5fc8</configuration-as-code.version>
   </properties>
 
   <artifactId>oic-auth</artifactId>
-  <version>1.9-SNAPSHOT</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <scm>
-    <connection>scm:git:ssh://github.com/jenkinsci/oic-auth-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/oic-auth-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/oic-auth-plugin</url>
-    <tag>HEAD</tag>
+    <connection>scm:git:ssh://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/${gitHubRepo}.git</developerConnection>
+    <url>https://github.com/${gitHubRepo}</url>
+    <tag>${scmTag}</tag>
   </scm>
 
   <name>OpenId Connect Authentication Plugin</name>
-  <url>https://wiki.jenkins-ci.org/display/JENKINS/Openid+Connect+Authentication+Plugin</url>
+  <url>https://github.com/jenkinsci/oic-auth-plugin</url>
   <developers>
     <developer>
       <id>mbischoff</id>
@@ -41,7 +46,7 @@
   <licenses>
     <license>
       <name>MIT License</name>
-      <url>http://opensource.org/licenses/MIT</url>
+      <url>https://opensource.org/licenses/MIT</url>
     </license>
   </licenses>
   <dependencies>
@@ -49,52 +54,50 @@
     <dependency>
       <groupId>com.google.oauth-client</groupId>
       <artifactId>google-oauth-client</artifactId>
-      <version>1.23.0</version>
-      <scope>provided</scope>
+      <version>1.34.1</version>
     </dependency>
     <dependency>
       <groupId>com.google.http-client</groupId>
       <artifactId>google-http-client-jackson2</artifactId>
-      <version>1.23.0</version>
+      <version>1.42.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.http-client</groupId>
+      <artifactId>google-http-client</artifactId>
+      <version>1.42.2</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>mailer</artifactId>
-      <version>1.6</version>
+      <version>1.34.2</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>4.5.2</version>
+      <version>4.5.13</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.github.tomakehurst</groupId>
       <artifactId>wiremock-standalone</artifactId>
-      <version>2.15.0</version>
+      <version>2.27.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.jenkins</groupId>
-      <artifactId>configuration-as-code</artifactId>
+      <groupId>io.jenkins.configuration-as-code</groupId>
+      <artifactId>test-harness</artifactId>
       <version>${configuration-as-code.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.jenkins</groupId>
-      <artifactId>configuration-as-code</artifactId>
-      <version>${configuration-as-code.version}</version>
-      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
 
   <build>
     <plugins>
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.2</version>
+        <version>2.5.3</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -111,7 +114,7 @@
                 <artifactItem>
                   <groupId>com.google.oauth-client</groupId>
                   <artifactId>google-oauth-client</artifactId>
-                  <version>1.23.0</version>
+                  <version>1.34.1</version>
                   <type>jar</type>
                   <overWrite>true</overWrite>
                   <outputDirectory>${project.build.directory}/classes</outputDirectory>
