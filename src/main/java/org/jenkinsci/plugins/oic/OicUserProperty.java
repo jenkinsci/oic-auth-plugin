@@ -1,16 +1,17 @@
 package org.jenkinsci.plugins.oic;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.acegisecurity.GrantedAuthority;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import hudson.model.User;
 import hudson.model.UserProperty;
 import hudson.model.UserPropertyDescriptor;
-import org.acegisecurity.GrantedAuthorityImpl;
 
 public class OicUserProperty extends UserProperty {
 
@@ -19,7 +20,7 @@ public class OicUserProperty extends UserProperty {
 		@Override
 		public UserProperty newInstance(User user) {
 			LOGGER.fine("OicUserPropertyDescriptor.newInstance called, user:" + user);
-			return new OicUserProperty(user.getId(), new GrantedAuthority[0]);
+			return new OicUserProperty(user.getId(), new ArrayList<GrantedAuthority>());
 		}
 
 		@Override
@@ -31,10 +32,10 @@ public class OicUserProperty extends UserProperty {
 
 	private static final Logger LOGGER = Logger.getLogger(OicUserProperty.class.getName());
 
-	private final List<String> authorities = new ArrayList<String>();
+	private final List<String> authorities = new ArrayList<>();
 	private final String userName;
 
-	public OicUserProperty(String userName, GrantedAuthority[] authorities) {
+	public OicUserProperty(String userName, Collection<? extends GrantedAuthority> authorities) {
 		this.userName = userName;
 		for(GrantedAuthority authority : authorities) {
 			this.authorities.add(authority.getAuthority());
@@ -45,11 +46,11 @@ public class OicUserProperty extends UserProperty {
 		return Collections.unmodifiableList(authorities);
 	}
 
-	public GrantedAuthority[] getAuthoritiesAsGrantedAuthorities() {
-		GrantedAuthority[] authorities = new GrantedAuthority[this.authorities.size()];
-		for(int i=0; i<authorities.length; i++) {
-			authorities[i] = new GrantedAuthorityImpl(this.authorities.get(i));
-		}
+	public List<GrantedAuthority> getAuthoritiesAsGrantedAuthorities() {
+		List<GrantedAuthority> authorities = new ArrayList<>();
+		for(String auth : this.authorities)
+			authorities.add(new SimpleGrantedAuthority(auth));
+
 		return authorities;
 	}
 	
