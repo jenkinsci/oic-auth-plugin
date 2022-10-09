@@ -69,4 +69,20 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
         }
         return clone;
     }
+    
+    /**
+     * Overriding equals()
+     */
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    /**
+     * Overriding equals()
+     */
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
 }

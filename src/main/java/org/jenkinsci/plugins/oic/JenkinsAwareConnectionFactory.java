@@ -22,7 +22,7 @@ public class JenkinsAwareConnectionFactory implements ConnectionFactory {
 
     @Override
     public HttpURLConnection openConnection(@Nonnull URL url) throws IOException, ClassCastException {
-        Jenkins jenkins = Jenkins.getInstance();
+        Jenkins jenkins = Jenkins.get();
         if(jenkins != null){
             ProxyConfiguration proxyConfig = jenkins.proxy;
             if (proxyConfig != null) {
