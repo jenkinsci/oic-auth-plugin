@@ -11,7 +11,7 @@
     <jenkins.version>2.346.1</jenkins.version>
     <spotbugs.failOnError>true</spotbugs.failOnError>
     <spotbugs.effort>Max</spotbugs.effort>
-    <configuration-as-code.version>1.55.1</configuration-as-code.version>
+    <configuration-as-code.version>1512.vb_79d418d5fc8</configuration-as-code.version>
   </properties>
 
   <artifactId>oic-auth</artifactId>
