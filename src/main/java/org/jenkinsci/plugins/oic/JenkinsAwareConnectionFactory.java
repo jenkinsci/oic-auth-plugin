@@ -4,7 +4,7 @@ import com.google.api.client.http.javanet.ConnectionFactory;
 import hudson.ProxyConfiguration;
 import jenkins.model.Jenkins;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -21,7 +21,7 @@ public class JenkinsAwareConnectionFactory implements ConnectionFactory {
     public JenkinsAwareConnectionFactory() {}
 
     @Override
-    public HttpURLConnection openConnection(@Nonnull URL url) throws IOException, ClassCastException {
+    public HttpURLConnection openConnection(@NonNull URL url) throws IOException, ClassCastException {
         Jenkins jenkins = Jenkins.get();
         if(jenkins != null){
             ProxyConfiguration proxyConfig = jenkins.proxy;
