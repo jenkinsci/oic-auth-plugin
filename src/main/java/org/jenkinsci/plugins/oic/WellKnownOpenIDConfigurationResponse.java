@@ -2,6 +2,9 @@ package org.jenkinsci.plugins.oic;
 
 import java.util.Map;
 import java.util.Set;
+
+import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
+
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.util.Key;
 
@@ -49,19 +52,20 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
         return tokenAuthMethods;
     }
 
-    public String getPreferredTokenAuthMethod() {
+    public TokenAuthMethod getPreferredTokenAuthMethod() {
         if (tokenAuthMethods != null && !tokenAuthMethods.isEmpty()) {
             // Prefer post since that is what the original plugin implementation used
             if(tokenAuthMethods.contains("client_secret_post")) {
-                return "client_secret_post";
+                return TokenAuthMethod.client_secret_post;
             // The RFC recommends basic, so that's our number two choice
             } else if(tokenAuthMethods.contains("client_secret_basic")) {
-                return "client_secret_basic";
+                return TokenAuthMethod.client_secret_basic;
+            // Default to post, again because that was the original implementation
             } else {
-                return tokenAuthMethods.iterator().next();
+                return TokenAuthMethod.client_secret_post;
             }
         } else {
-            return "client_secret_post";
+            return TokenAuthMethod.client_secret_post;
         }
     }
 

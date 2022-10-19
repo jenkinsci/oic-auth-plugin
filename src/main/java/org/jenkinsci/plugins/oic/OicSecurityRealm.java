@@ -111,16 +111,18 @@ import jenkins.security.SecurityListener;
 public class OicSecurityRealm extends SecurityRealm {
 	
 	private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
-	
+    public static enum TokenAuthMethod { client_secret_basic, client_secret_post };
+
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
+
 
     private final String clientId;
     private final Secret clientSecret;
     private final String wellKnownOpenIDConfigurationUrl;
     private final String tokenServerUrl;
-    private final String tokenAuthMethod;
+    private final TokenAuthMethod tokenAuthMethod;
     private final String authorizationServerUrl;
     private final String userInfoServerUrl;
     private final String userNameField;
@@ -179,7 +181,7 @@ public class OicSecurityRealm extends SecurityRealm {
         } else {
             this.authorizationServerUrl = authorizationServerUrl;
             this.tokenServerUrl = tokenServerUrl;
-            this.tokenAuthMethod = tokenAuthMethod;
+            this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
             this.userInfoServerUrl = userInfoServerUrl;
             this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
@@ -248,7 +250,7 @@ public class OicSecurityRealm extends SecurityRealm {
         return tokenServerUrl;
     }
 
-    public String getTokenAuthMethod() {
+    public TokenAuthMethod getTokenAuthMethod() {
         return tokenAuthMethod;
     }
 
@@ -416,7 +418,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
         AccessMethod tokenAccessMethod = BearerToken.queryParameterAccessMethod();
         HttpExecuteInterceptor authInterceptor = new ClientParametersAuthentication(clientId, clientSecret.getPlainText());
-        if ("client_secret_basic".equals(tokenAuthMethod)) {
+        if (TokenAuthMethod.client_secret_basic.equals(tokenAuthMethod)) {
             tokenAccessMethod = BearerToken.authorizationHeaderAccessMethod();
             authInterceptor = new BasicAuthentication(clientId, clientSecret.getPlainText());
         }
