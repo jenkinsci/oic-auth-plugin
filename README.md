@@ -3,6 +3,8 @@
 A Jenkins plugin which lets you login to Jenkins using your own, self-hosted or public openid connect server.
 
 [![Plugin Version](https://img.shields.io/jenkins/plugin/v/oic-auth.svg)](https://plugins.jenkins.io/oic-auth)
+[![Change Log](https://img.shields.io/github/release/jenkinsci/oic-auth-plugin.svg?label=changelog)](https://github.com/jenkinsci/oic-auth-plugin/releases/latest)
+[![Install Number](https://img.shields.io/jenkins/plugin/i/oic-auth.svg?color=blue)](https://plugins.jenkins.io/oic-auth)
 [![Build Status](https://ci.jenkins.io/buildStatus/icon?job=Plugins/oic-auth-plugin/master)](https://ci.jenkins.io/job/Plugins/oic-auth-plugin/master)
 
 ![OpenID connect](/docs/images/openid-connect-logo.jpg)
