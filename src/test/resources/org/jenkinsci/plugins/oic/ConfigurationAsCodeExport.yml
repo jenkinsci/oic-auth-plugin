@@ -9,5 +9,6 @@ fullNameFieldName: "fullNameFieldName"
 groupsFieldName: "groupsFieldName"
 logoutFromOpenidProvider: true
 scopes: "scopes"
+tokenAuthMethod: "client_secret_post"
 tokenServerUrl: "http://localhost"
 userNameField: "userNameField"

@@ -6,6 +6,8 @@ import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import io.jenkins.plugins.casc.model.CNode;
+
+import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -44,6 +46,7 @@ public class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertEquals("scopes", oicSecurityRealm.getScopes());
         assertEquals("http://localhost", oicSecurityRealm.getTokenServerUrl());
+        assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
     }
 

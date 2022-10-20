@@ -70,9 +70,12 @@ import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
+import com.google.api.client.auth.oauth2.Credential.AccessMethod;
 import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.auth.openidconnect.IdTokenResponse;
+import com.google.api.client.http.BasicAuthentication;
 import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpExecuteInterceptor;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -108,15 +111,18 @@ import jenkins.security.SecurityListener;
 public class OicSecurityRealm extends SecurityRealm {
 	
 	private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
-	
+    public static enum TokenAuthMethod { client_secret_basic, client_secret_post };
+
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
+
 
     private final String clientId;
     private final Secret clientSecret;
     private final String wellKnownOpenIDConfigurationUrl;
     private final String tokenServerUrl;
+    private final TokenAuthMethod tokenAuthMethod;
     private final String authorizationServerUrl;
     private final String userInfoServerUrl;
     private final String userNameField;
@@ -145,7 +151,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private static final Random RANDOM = new Random();
 
     @DataBoundConstructor
-    public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String authorizationServerUrl,
+    public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String tokenAuthMethod, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
                             String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
                             Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, boolean escapeHatchEnabled,
@@ -167,6 +173,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
             this.authorizationServerUrl = config.getAuthorizationEndpoint();
             this.tokenServerUrl = config.getTokenEndpoint();
+            this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
             this.userInfoServerUrl = config.getUserinfoEndpoint();
             this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
             this.logoutFromOpenidProvider = logoutFromOpenidProvider != null;
@@ -174,6 +181,7 @@ public class OicSecurityRealm extends SecurityRealm {
         } else {
             this.authorizationServerUrl = authorizationServerUrl;
             this.tokenServerUrl = tokenServerUrl;
+            this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
             this.userInfoServerUrl = userInfoServerUrl;
             this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
@@ -240,6 +248,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public String getTokenServerUrl() {
         return tokenServerUrl;
+    }
+
+    public TokenAuthMethod getTokenAuthMethod() {
+        return tokenAuthMethod;
     }
 
     public String getAuthorizationServerUrl() {
@@ -404,15 +416,18 @@ public class OicSecurityRealm extends SecurityRealm {
     public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) {
         final String redirectOnFinish = determineRedirectTarget(from, referer);
 
+        AccessMethod tokenAccessMethod = BearerToken.queryParameterAccessMethod();
+        HttpExecuteInterceptor authInterceptor = new ClientParametersAuthentication(clientId, clientSecret.getPlainText());
+        if (TokenAuthMethod.client_secret_basic.equals(tokenAuthMethod)) {
+            tokenAccessMethod = BearerToken.authorizationHeaderAccessMethod();
+            authInterceptor = new BasicAuthentication(clientId, clientSecret.getPlainText());
+        }
         final AuthorizationCodeFlow flow = new AuthorizationCodeFlow.Builder(
-                BearerToken.queryParameterAccessMethod(),
+                tokenAccessMethod,
                 httpTransport,
                 JSON_FACTORY,
                 new GenericUrl(tokenServerUrl),
-                new ClientParametersAuthentication(
-                        clientId,
-                        clientSecret.getPlainText()
-                ),
+                authInterceptor,
                 clientId,
                 authorizationServerUrl
         )
@@ -845,6 +860,13 @@ public class OicSecurityRealm extends SecurityRealm {
             } catch (MalformedURLException e) {
                 return FormValidation.error(e,"Not a valid url.");
             }
+        }
+
+        public FormValidation doCheckTokenAuthMethod(@QueryParameter String tokenAuthMethod) {
+            if (tokenAuthMethod == null || tokenAuthMethod.trim().length() == 0 ) {
+                return FormValidation.error("Token auth method is required.");
+            }
+            return FormValidation.ok();
         }
 
         public FormValidation doCheckAuthorizationServerUrl(@QueryParameter String authorizationServerUrl) {

@@ -28,6 +28,7 @@ public class TestRealm extends OicSecurityRealm {
             "secret",
             null,
             "http://localhost:" + wireMockRule.port() + "/token",
+            "client_secret_post",
             "http://localhost:" + wireMockRule.port() + "/authorization",
              userInfoServerUrl,
             null,
