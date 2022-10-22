@@ -389,17 +389,11 @@ public class OicSecurityRealm extends SecurityRealm {
 							throw new UsernameNotFoundException(username);
 						}
 						LOGGER.fine("loadUserByUsername in createSecurityComponents called, user: " + u);
-						List<UserProperty> props = u.getAllProperties();
-						LOGGER.fine("loadUserByUsername in createSecurityComponents called, number of props: " + props.size());
-						List<GrantedAuthority> auths = new ArrayList<>();
-						for (UserProperty prop: props) {
-							LOGGER.fine("loadUserByUsername in createSecurityComponents called, prop of type: " + prop.getClass().toString());
-							if (prop instanceof OicUserProperty) {
-								OicUserProperty oicProp = (OicUserProperty) prop;
-								LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username: " + oicProp.getUserName());
-								auths = oicProp.getAuthoritiesAsGrantedAuthorities();
-								LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop with auths size: " + auths.size());
-							}
+						OicUserProperty oicProp = u.getProperty(OicUserProperty.class);
+						GrantedAuthority[] auths = new GrantedAuthority[0];
+						if (oicProp != null) {
+							auths = oicProp.getAuthoritiesAsGrantedAuthorities();
+							LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username '" + oicProp.getUserName() + "', auths size: " + auths.size());
 						}
 						return new OicUserDetails(username, auths);
 					}
