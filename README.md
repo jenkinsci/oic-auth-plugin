@@ -3,15 +3,43 @@
 A Jenkins plugin which lets you login to Jenkins using your own, self-hosted or public openid connect server.
 
 [![Plugin Version](https://img.shields.io/jenkins/plugin/v/oic-auth.svg)](https://plugins.jenkins.io/oic-auth)
+[![Change Log](https://img.shields.io/github/release/jenkinsci/oic-auth-plugin.svg?label=changelog)](https://github.com/jenkinsci/oic-auth-plugin/releases/latest)
+[![Install Number](https://img.shields.io/jenkins/plugin/i/oic-auth.svg?color=blue)](https://plugins.jenkins.io/oic-auth)
 [![Build Status](https://ci.jenkins.io/buildStatus/icon?job=Plugins/oic-auth-plugin/master)](https://ci.jenkins.io/job/Plugins/oic-auth-plugin/master)
+[![Contributors](https://img.shields.io/github/contributors/jenkinsci/oic-auth-plugin.svg)](https://github.com/jenkinsci/oic-auth-plugin/graphs/contributors)
 
 ![OpenID connect](/docs/images/openid-connect-logo.jpg)
 
-## Open Tickets (bugs and feature requests)
+## User guide
 
-[https://github.com/jenkinsci/oic-auth-plugin/issues](https://github.com/jenkinsci/oic-auth-plugin/issues?q=is%3Aopen+is%3Aissue)
+[OpenID Connect](https://openid.net/connect/) is an authentication
+and authorization protocol that allow users to use single sign-on (SSO)
+to access an application (Jenkins in this case) using Identity Providers.
+In practice, with this plugin, Jenkins administrators can
+configure a provider which will authenticate users, provide basic
+information (email, username, groups) and let Jenkins grant rights accordingly.
 
-## Configuration
+After installing the plugin, the Jenkins administrator can choose
+"OpenID Connect" as [Security Realm](https://www.jenkins.io/doc/book/security/managing-security/#access-control).
+The configuration involves the configuration of the provider and
+the related authorisation strategy.
+
+### Installation
+
+OpenID Connect Authentication plugin is installed as other plugins:
+
+- either using [Jenkins plugin management](https://www.jenkins.io/doc/book/managing/plugins/#installing-a-plugin)
+  from the web UI or the command line
+- or using [Jenkins Configuration as Code (JCasC)](https://www.jenkins.io/doc/book/managing/casc/#configuration-as-code)
+
+In either case, choosing the plugin as Security Realm means that other
+authentication methods (Jenkins Database, LDAP, ...) will no
+longer be available and any missconfiguration or service availability
+issue will lock out the users. An *escape hatch* can be activated at
+configuration time to define a admin credential which can be used to
+recover access to Jenkins.
+
+### Configuration quickstart
 
 Configuration of this plugin takes a bit of effort as it requires some
 knowledge of the openid connect standard as well as the non-standard
@@ -31,9 +59,10 @@ for a minimal configuration example: 
 
 ![global-config](/docs/images/global-config.png)
 
-### Using g-suite / google
+#### Using g-suite / google
 
-Obtain the client id and secret from the developer console: https://console.cloud.google.com/apis/credentials by creating Oauth client id.
+Obtain the client id and secret from the developer console:
+https://console.cloud.google.com/apis/credentials by creating Oauth client id.
 
 Use those to fill the respective fields in the configuration of Jenkins.
 
@@ -43,11 +72,11 @@ Well-known configuration: https://accounts.google.com/.well-known/openid-configu
 
 see also: <https://developers.google.com/identity/protocols/OpenIDConnect>
 
-### Using the plugin with Azure AD
+#### Using the plugin with Azure AD
 
 See this blog post <http://www.epiclabs.io/configure-jenkins-use-azure-ad-authentication-openid-connect/>
 
-## Interacting with Jenkins as a non front-end user
+### Interacting with Jenkins as a non front-end user
 
 TLDR: use an API token instead as described here: 
 [Authenticating scripted clients](https://www.jenkins.io/doc/book/system-administration/authenticating-scripted-clients/)
@@ -77,3 +106,46 @@ connect plugin is active: they will have to use an API
 token. 
 [Authenticating scripted clients](https://wiki.jenkins.io/display/JENKINS/Authenticating+scripted+clients) describes
 how to obtain one. 
+
+## OpenID Connect Authentication plugin
+
+This plugin relies on the users and people of goodwill to improve and make
+the plugin evolve in the most useful way. All feedbacks and help are welcome.
+We can provide help and support but it is limited to the fair use of
+volunteers' free time.
+
+### Open Tickets (bugs and feature requests)
+
+[GitHub issues](https://github.com/jenkinsci/oic-auth-plugin/issues?q=is%3Aopen+is%3Aissue)
+is our main communication channel for issues and feature request.
+We will look at issues entered through [Jenkins Jira](https://issues.jenkins.io/issues/?jql=project+%3D+JENKINS+AND+component+%3D+oic-auth-plugin)
+but the response time may currently be spotty at best.
+
+Before adding an issue, please search if the same issue has already be reported
+and avoid duplicating it. If it is a new issue and it not purley related
+to your environment, please provide relevant information (such as the version
+of Jenkins and the plugin).
+
+If an issue or a feature request is unclear, it will be tagged
+with **Need more info** label. Without answer after a month, the
+issue will be closed.
+
+### Changelog
+
+Changelog file has been removed and CHANGELOG content can be review in the
+[GitHub release](https://github.com/jenkinsci/oic-auth-plugin/releases)
+panel of the plugin's repository. They also available in the
+[Jenkins plugin](https://plugins.jenkins.io/oic-auth/#releases) panel.
+
+### Contributing
+
+Contributions are welcome, we are looking for:
+
+- developpers to implement the features, improve the code and whatever
+  hackers do for a living
+- anybody wanting to help sorting the issues, improve and translate
+  documentation, participate in pull request review or test before release
+- just anybody who wants to drop by and take an interest
+
+Please refer to the separate [CONTRIBUTING](docs/CONTRIBUTING.md) document for details on how to proceed!
+
