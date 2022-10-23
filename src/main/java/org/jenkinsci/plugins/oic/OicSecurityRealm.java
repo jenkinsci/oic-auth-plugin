@@ -798,19 +798,19 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         public String getDisplayName() {
-            return "Login with Openid Connect";
+            return Messages.OicSecurityRealm_DisplayName();
         }
 
         public FormValidation doCheckClientId(@QueryParameter String clientId) {
             if (clientId == null || clientId.trim().length() == 0) {
-                return FormValidation.error("Client id is required.");
+                return FormValidation.error(Messages.OicSecurityRealm_ClientIdRequired());
             }
             return FormValidation.ok();
         }
 
         public FormValidation doCheckClientSecret(@QueryParameter String clientSecret) {
             if (clientSecret == null || clientSecret.trim().length() == 0) {
-                return FormValidation.error("Client secret is required.");
+                return FormValidation.error(Messages.OicSecurityRealm_ClientSecretRequired());
             }
             return FormValidation.ok();
         }
@@ -828,79 +828,79 @@ public class OicSecurityRealm extends SecurityRealm {
                         .fromInputStream(response.getContent(), Charset.defaultCharset(),
                                 WellKnownOpenIDConfigurationResponse.class);
                 if(config.getAuthorizationEndpoint() == null || config.getTokenEndpoint() == null) {
-                    return FormValidation.warning("URL does seem to describe OpenID Connect endpoints");
+                    return FormValidation.warning(Messages.OicSecurityRealm_URLNotAOpenIdEnpoint());
                 }
 
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
-                return FormValidation.error(e, "Not a valid url.");
+                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
             } catch (HttpResponseException e) {
-                return FormValidation.error(e, "Could not retrieve well-known config %d %s",
-                        e.getStatusCode(), e.getStatusMessage());
+                return FormValidation.error(e, Messages.OicSecurityRealm_CouldNotRetreiveWellKnownConfig(
+                        e.getStatusCode(), e.getStatusMessage()));
             } catch (JsonParseException e) {
-                return FormValidation.error(e, "Could not parse response");
+                return FormValidation.error(e, Messages.OicSecurityRealm_CouldNotParseResponse());
             } catch (IOException e) {
-                return FormValidation.error(e, "Error when retrieving well-known config");
+                return FormValidation.error(e, Messages.OicSecurityRealm_ErrorRetreivingWellKnownConfig());
             }
         }
 
         public FormValidation doCheckTokenServerUrl(@QueryParameter String tokenServerUrl) {
             if (tokenServerUrl == null) {
-                return FormValidation.error("Token Server Url Key is required.");
+                return FormValidation.error(Messages.OicSecurityRealm_TokenServerURLKeyRequired());
             }
             try {
                 new URL(tokenServerUrl);
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
-                return FormValidation.error(e,"Not a valid url.");
+                return FormValidation.error(e,Messages.OicSecurityRealm_NotAValidURL());
             }
         }
 
         public FormValidation doCheckTokenAuthMethod(@QueryParameter String tokenAuthMethod) {
             if (tokenAuthMethod == null || tokenAuthMethod.trim().length() == 0 ) {
-                return FormValidation.error("Token auth method is required.");
+                return FormValidation.error(Messages.OicSecurityRealm_TokenAuthMethodRequired());
             }
             return FormValidation.ok();
         }
 
         public FormValidation doCheckAuthorizationServerUrl(@QueryParameter String authorizationServerUrl) {
             if (authorizationServerUrl == null) {
-                return FormValidation.error("Token Server Url Key is required.");
+                return FormValidation.error(Messages.OicSecurityRealm_TokenServerURLKeyRequired());
             }
             try {
                 new URL(authorizationServerUrl);
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
-                return FormValidation.error(e,"Not a valid url.");
+                return FormValidation.error(e,Messages.OicSecurityRealm_NotAValidURL());
             }
         }
 
         public FormValidation doCheckUserNameField(@QueryParameter String userNameField) {
             if (userNameField == null || userNameField.trim().length() == 0) {
-                return FormValidation.ok("Using 'sub'.");
+                return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultUsername());
             }
             return FormValidation.ok();
         }
 
         public FormValidation doCheckScopes(@QueryParameter String scopes) {
             if (scopes == null || scopes.trim().length() == 0) {
-                return FormValidation.ok("Using 'openid email'.");
+                return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultScopes());
             }
             if(!scopes.toLowerCase().contains("openid")) {
-                return FormValidation.warning("Are you sure you don't want to include 'openid' as an scope?");
+                return FormValidation.warning(Messages.OicSecurityRealm_RUSureOpenIdNotInScope());
             }
             return FormValidation.ok();
         }
 
         public FormValidation doCheckEndSessionEndpoint(@QueryParameter String endSessionEndpoint) {
             if (endSessionEndpoint == null || endSessionEndpoint.equals("")) {
-                return FormValidation.error("End Session URL Key is required.");
+                return FormValidation.error(Messages.OicSecurityRealm_EndSessionURLKeyRequired());
             }
             try {
                 new URL(endSessionEndpoint);
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
-                return FormValidation.error(e,"Not a valid url.");
+                return FormValidation.error(e,Messages.OicSecurityRealm_NotAValidURL());
             }
         }
 
@@ -910,7 +910,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     new URL(postLogoutRedirectUrl);
                     return FormValidation.ok();
                 } catch (MalformedURLException e) {
-                    return FormValidation.error(e,"Not a valid url.");
+                    return FormValidation.error(e,Messages.OicSecurityRealm_NotAValidURL());
                 }
             }
 
