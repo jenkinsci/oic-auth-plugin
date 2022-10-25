@@ -15,6 +15,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Url;
+import org.kohsuke.stapler.Stapler;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -352,6 +353,47 @@ public class PluginTest {
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
         assertEquals("User should be in 2 groups", 2, user.getAuthorities().size());
+    }
+
+    @Test public void testLogoutShouldBeJenkinsOnlyWhenNoProviderLogoutConfigured() throws Exception {
+        final TestRealm oicsr = new TestRealm.Builder(wireMockRule).build();
+        jenkins.setSecurityRealm(oicsr);
+
+	String[] logoutURL = new String[1];
+	jenkinsRule.executeOnServer(() -> {
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
+            return null;
+        });
+	assertEquals("/jenkins/", logoutURL[0]);
+    }
+
+    @Test public void testLogoutShouldBeProviderURLWhenProviderLogoutConfigured() throws Exception {
+        final TestRealm oicsr = new TestRealm.Builder(wireMockRule)
+		.WithLogout(Boolean.TRUE, "http://provider/logout")
+                .build();
+        jenkins.setSecurityRealm(oicsr);
+
+	String[] logoutURL = new String[1];
+	jenkinsRule.executeOnServer(() -> {
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
+            return null;
+        });
+	assertEquals("http://provider/logout?id_token_hint=null&state=null", logoutURL[0]);
+    }
+
+    @Test public void testLogoutShouldBeProviderURLWithRedirectWhenProviderLogoutConfiguredWithPostlogoutRedirect() throws Exception {
+        final TestRealm oicsr = new TestRealm.Builder(wireMockRule)
+		.WithLogout(Boolean.TRUE, "http://provider/logout")
+                .WithPostLogoutRedirectUrl("http://see.it/?cat&color=white")
+                .build();
+        jenkins.setSecurityRealm(oicsr);
+
+	String[] logoutURL = new String[1];
+	jenkinsRule.executeOnServer(() -> {
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
+            return null;
+        });
+	assertEquals("http://provider/logout?id_token_hint=null&state=null&post_logout_redirect_uri=http%3A%2F%2Fsee.it%2F%3Fcat%26color%3Dwhite", logoutURL[0]);
     }
 
     private String toJsonArray(String[] array) {
