@@ -27,9 +27,11 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
@@ -641,7 +643,11 @@ public class OicSecurityRealm extends SecurityRealm {
             openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
 
             if (this.postLogoutRedirectUrl != null) {
-                openidLogoutEndpoint.append("&post_logout_redirect_uri=").append(this.postLogoutRedirectUrl);
+		try {
+		    openidLogoutEndpoint.append("&post_logout_redirect_uri=").append(URLEncoder.encode(this.postLogoutRedirectUrl, "UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+		    throw new RuntimeException(e);
+		}
             }
             return openidLogoutEndpoint.toString();
         }
