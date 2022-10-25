@@ -7,6 +7,7 @@ A Jenkins plugin which lets you login to Jenkins using your own, self-hosted or 
 [![Install Number](https://img.shields.io/jenkins/plugin/i/oic-auth.svg?color=blue)](https://plugins.jenkins.io/oic-auth)
 [![Build Status](https://ci.jenkins.io/buildStatus/icon?job=Plugins/oic-auth-plugin/master)](https://ci.jenkins.io/job/Plugins/oic-auth-plugin/master)
 [![Contributors](https://img.shields.io/github/contributors/jenkinsci/oic-auth-plugin.svg)](https://github.com/jenkinsci/oic-auth-plugin/graphs/contributors)
+[![Crowdin](https://badges.crowdin.net/e/b7f2178f29b3eb9adff1da2429d20de3/localized.svg)](https://jenkins.crowdin.com/oic-auth-plugin)
 
 ![OpenID connect](/docs/images/openid-connect-logo.jpg)
 
@@ -143,8 +144,9 @@ Contributions are welcome, we are looking for:
 
 - developpers to implement the features, improve the code and whatever
   hackers do for a living
-- anybody wanting to help sorting the issues, improve and translate
-  documentation, participate in pull request review or test before release
+- anybody wanting to help sorting the issues, improve,
+  [translate](https://jenkins.crowdin.com/u/projects/25)
+  document, participate in pull request review or test before release
 - just anybody who wants to drop by and take an interest
 
 Please refer to the separate [CONTRIBUTING](docs/CONTRIBUTING.md) document for details on how to proceed!
