@@ -179,7 +179,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.userInfoServerUrl = config.getUserinfoEndpoint();
             this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
             this.logoutFromOpenidProvider = logoutFromOpenidProvider != null;
-           	this.endSessionEndpoint = config.getEndSessionEndpoint();
+	    this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
             this.authorizationServerUrl = authorizationServerUrl;
             this.tokenServerUrl = tokenServerUrl;
@@ -188,7 +188,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
             this.logoutFromOpenidProvider = logoutFromOpenidProvider;
-           	this.endSessionEndpoint = endSessionEndpoint;
+	    this.endSessionEndpoint = endSessionEndpoint;
         }
 
         this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
