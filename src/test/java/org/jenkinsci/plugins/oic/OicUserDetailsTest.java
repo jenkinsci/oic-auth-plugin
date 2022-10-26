@@ -6,12 +6,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
-
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.GrantedAuthorityImpl;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.junit.Before;
 import org.junit.Test;
+import java.util.Arrays;
+import java.util.List;
 
 public class OicUserDetailsTest {
 
@@ -19,11 +19,11 @@ public class OicUserDetailsTest {
 
     private String userName = "fred";
 
-    private GrantedAuthorityImpl admin = new GrantedAuthorityImpl("admin");
+    private SimpleGrantedAuthority admin = new SimpleGrantedAuthority("admin");
 
-    private GrantedAuthorityImpl read = new GrantedAuthorityImpl("read");
+    private SimpleGrantedAuthority read = new SimpleGrantedAuthority("read");
 
-    private GrantedAuthority[] grantedAuthorities = new GrantedAuthority[]{admin, read};
+    private List<GrantedAuthority> grantedAuthorities = Arrays.asList(admin, read);
 
     @Before
     public void init() {

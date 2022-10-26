@@ -35,11 +35,11 @@ import hudson.model.UnprotectedRootAction;
 public class OicLogoutAction implements UnprotectedRootAction {
 
     /** The URL of the action. */
-    public static final String POST_LOGOUT_URL = "OicLogout";
+    static final String POST_LOGOUT_URL = "OicLogout";
 
     @Override
     public String getDisplayName() {
-        return Messages.oic_logout();
+		return Messages.OicLogoutAction_OicLogout();
     }
 
     @Override

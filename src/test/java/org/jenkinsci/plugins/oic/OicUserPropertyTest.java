@@ -5,9 +5,11 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.GrantedAuthorityImpl;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.junit.Test;
+import java.util.List;
+import java.util.Arrays;
 
 public class OicUserPropertyTest {
 
@@ -15,21 +17,22 @@ public class OicUserPropertyTest {
 
     public static final String READ = "read";
 
-    private static final GrantedAuthorityImpl GRANTED_AUTH1 = new GrantedAuthorityImpl(ADMIN);
+    private static final SimpleGrantedAuthority GRANTED_AUTH1 = new SimpleGrantedAuthority(ADMIN);
 
-    private static final GrantedAuthorityImpl GRANTED_AUTH2 = new GrantedAuthorityImpl(READ);
+    private static final SimpleGrantedAuthority GRANTED_AUTH2 = new SimpleGrantedAuthority(READ);
 
     private OicUserProperty userProp;
 
     @Test
     public void testGetAllGrantedAuthorities() {
         String userName = "derek";
-        GrantedAuthority[] authorities = new GrantedAuthority[]{GRANTED_AUTH1, GRANTED_AUTH2};
+        List<GrantedAuthority> authorities = Arrays.asList(GRANTED_AUTH1, GRANTED_AUTH2);
+
         userProp = new OicUserProperty(userName, authorities);
 
         StringBuilder result = new StringBuilder();
         result.append("Number of GrantedAuthorities in OicUserProperty for ").append(userName).append(": ")
-            .append(authorities.length);
+            .append(authorities.size());
         for (GrantedAuthority authority : authorities) {
             result.append("<br>\nAuthority: ").append(authority.getAuthority());
         }
@@ -41,7 +44,8 @@ public class OicUserPropertyTest {
     @Test
     public void testGetAuthorities() {
         String userName = "derek";
-        GrantedAuthority[] authorities = new GrantedAuthority[]{GRANTED_AUTH1, GRANTED_AUTH2};
+        List<GrantedAuthority> authorities = Arrays.asList(GRANTED_AUTH1, GRANTED_AUTH2);
+
         userProp = new OicUserProperty(userName, authorities);
 
         assertThat(userProp.getAuthorities(), containsInAnyOrder(READ, ADMIN));
@@ -50,8 +54,10 @@ public class OicUserPropertyTest {
     @Test
     public void testGetDescriptor() {
         String userName = "derek";
-        GrantedAuthority[] authorities = new GrantedAuthority[]{GRANTED_AUTH1, GRANTED_AUTH2};
+        List<GrantedAuthority> authorities = Arrays.asList(GRANTED_AUTH1, GRANTED_AUTH2);
+
         userProp = new OicUserProperty(userName, authorities);
+
         assertNotNull(userProp.getDescriptor());
     }
 }

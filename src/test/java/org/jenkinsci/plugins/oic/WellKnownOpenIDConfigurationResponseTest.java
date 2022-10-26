@@ -78,6 +78,7 @@ public class WellKnownOpenIDConfigurationResponseTest {
         assertThat(response.getUserinfoEndpoint(), is("https://www.googleapis.com/oauth2/v3/userinfo"));
         assertThat(response.getJwksUri(), is("https://www.googleapis.com/oauth2/v3/certs"));
         assertThat(response.getScopesSupported(), containsInAnyOrder("openid", "email", "profile"));
+        assertThat(response.getTokenAuthMethods(), containsInAnyOrder("client_secret_basic", "client_secret_post"));
     }
 
     @Test
@@ -88,7 +89,8 @@ public class WellKnownOpenIDConfigurationResponseTest {
             "token_endpoint",
             "userinfo_endpoint",
             "jwks_uri",
-            "scopes_supported"
+            "scopes_supported",
+            "token_endpoint_auth_methods_supported"
         ));
     }
 

@@ -48,6 +48,7 @@ import hudson.remoting.Base64;
  * @author Ryan Campbell - initial author?
  * @author Michael Bischoff - adoptation
  */
+@SuppressWarnings("deprecation")
 abstract class OicSession {
 
     private final AuthorizationCodeFlow flow;

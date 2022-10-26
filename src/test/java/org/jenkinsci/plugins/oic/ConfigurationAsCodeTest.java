@@ -22,6 +22,19 @@ import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import io.jenkins.plugins.casc.model.CNode;
 import jenkins.model.Jenkins;
 
+import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
+import org.junit.ClassRule;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static io.jenkins.plugins.casc.misc.Util.*;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 public class ConfigurationAsCodeTest {
 
     @Rule
@@ -30,7 +43,7 @@ public class ConfigurationAsCodeTest {
     @Test
     @ConfiguredWithCode("ConfigurationAsCode.yml")
     public void testConfig() {
-        SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
+        SecurityRealm realm = Jenkins.get().getSecurityRealm();
 
         assertTrue(realm instanceof OicSecurityRealm);
         OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
@@ -49,6 +62,7 @@ public class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertEquals("scopes", oicSecurityRealm.getScopes());
         assertEquals("http://localhost", oicSecurityRealm.getTokenServerUrl());
+        assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
     }
 
