@@ -5,11 +5,26 @@ A Jenkins plugin which lets you login to Jenkins using your own, self-hosted or 
 [![Plugin Version](https://img.shields.io/jenkins/plugin/v/oic-auth.svg)](https://plugins.jenkins.io/oic-auth)
 [![Change Log](https://img.shields.io/github/release/jenkinsci/oic-auth-plugin.svg?label=changelog)](https://github.com/jenkinsci/oic-auth-plugin/releases/latest)
 [![Install Number](https://img.shields.io/jenkins/plugin/i/oic-auth.svg?color=blue)](https://plugins.jenkins.io/oic-auth)
+[![MIT license](https://img.shields.io/github/license/jenkinsci/oic-auth-plugin)](https://github.com/jenkinsci/oic-auth-plugin/blob/master/LICENSE)
 [![Build Status](https://ci.jenkins.io/buildStatus/icon?job=Plugins/oic-auth-plugin/master)](https://ci.jenkins.io/job/Plugins/oic-auth-plugin/master)
 [![Contributors](https://img.shields.io/github/contributors/jenkinsci/oic-auth-plugin.svg)](https://github.com/jenkinsci/oic-auth-plugin/graphs/contributors)
 [![Crowdin](https://badges.crowdin.net/e/b7f2178f29b3eb9adff1da2429d20de3/localized.svg)](https://jenkins.crowdin.com/oic-auth-plugin)
+[![codecov](https://codecov.io/gh/jenkinsci/oic-auth-plugin/branch/master/graph/badge.svg?token=rORWUCOfim)](https://codecov.io/gh/jenkinsci/oic-auth-plugin)
 
 ![OpenID connect](/docs/images/openid-connect-logo.jpg)
+<details>
+<summary><h2>Table of content</h2></summary>
+
+- [User guide](#user-guide)
+  - [Installation](#installation)
+  - [Configuration quickstart](#configuration-quickstart)
+  - [Interacting with Jenkins as a non front-end user](#interacting-with-jenkins-as-a-non-front-end-user)
+- [OpenID Connect Authentication plugin](#openid-connect-authentication-plugin)
+  - [Open Tickets (bugs and feature requests)](#open-tickets-bugs-and-feature-requests)
+  - [Changelog](#changelog)
+  - [Contributing](#contributing)
+
+</details>
 
 ## User guide
 
