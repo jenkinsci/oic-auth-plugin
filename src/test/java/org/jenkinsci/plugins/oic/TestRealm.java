@@ -1,11 +1,17 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.Random;
+
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.google.api.client.http.HttpTransport;
+
+import hudson.model.Descriptor;
+import hudson.security.SecurityRealm;
 
 public class TestRealm extends OicSecurityRealm {
 
@@ -13,20 +19,22 @@ public class TestRealm extends OicSecurityRealm {
     public static final String EMAIL_FIELD = "email";
     public static final String FULL_NAME_FIELD = "fullName";
     public static final String GROUPS_FIELD = "groups";
+    public static final String MANUAL_CONFIG_FIELD = "manual";
+    public static final String AUTO_CONFIG_FIELD = "auto";
 
     public TestRealm(WireMockRule wireMockRule) throws IOException {
         this(wireMockRule, null);
     }
 
     public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl) throws IOException {
-        this(wireMockRule, userInfoServerUrl, EMAIL_FIELD, GROUPS_FIELD);
+        this(wireMockRule, userInfoServerUrl, EMAIL_FIELD, GROUPS_FIELD, MANUAL_CONFIG_FIELD);
     }
 
-    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupFieldName) throws IOException {
+    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupFieldName, String automanualconfigure) throws IOException {
         super(
              CLIENT_ID,
             "secret",
-            null,
+            "http://localhost:" + wireMockRule.port() + "/well.known",
             "http://localhost:" + wireMockRule.port() + "/token",
             "http://localhost:" + wireMockRule.port() + "/authorization",
              userInfoServerUrl,
@@ -45,8 +53,42 @@ public class TestRealm extends OicSecurityRealm {
             null,
             null,
             null,
-            "manual"
+            automanualconfigure
         );
+    }
+
+    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupFieldName,
+                     String automanualconfigure, boolean escapeHatchEnabled, String escapeHatchUsername,
+                     String escapeHatchSecret, String escapeHatchGroup) throws IOException {
+        super(
+             CLIENT_ID,
+            "secret",
+            "http://localhost:" + wireMockRule.port() + "/well.known",
+            "http://localhost:" + wireMockRule.port() + "/token",
+            "http://localhost:" + wireMockRule.port() + "/authorization",
+             userInfoServerUrl,
+            null,
+            null,
+            null,
+             FULL_NAME_FIELD,
+             emailFieldName,
+            null,
+             groupFieldName,
+            false,
+            false,
+            null,
+            null,
+            escapeHatchEnabled,
+            escapeHatchUsername,
+            escapeHatchSecret,
+            escapeHatchGroup,
+            automanualconfigure
+        );
+    }
+
+    @Override
+    public Descriptor<SecurityRealm> getDescriptor() {
+        return new DescriptorImpl();
     }
 
     @Override
@@ -59,5 +101,22 @@ public class TestRealm extends OicSecurityRealm {
             throw new RuntimeException("can't fudge state",e);
         }
         return super.doFinishLogin(request);
+    }
+
+    @Override
+    public Object readResolve() {
+        return super.readResolve();
+    }
+
+    public void setHttpTransport(HttpTransport httpTransport) {
+        this.httpTransport = httpTransport;
+    }
+
+    public void setRandom(Random random) {
+        this.random = random;
+    }
+
+    public void setEndSessionUrl(String endSessionUrl) {
+        this.endSessionUrl = endSessionUrl;
     }
 }

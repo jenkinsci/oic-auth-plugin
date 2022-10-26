@@ -7,23 +7,25 @@
   </parent>
 
   <properties>
+		<git.repo.name>oic-auth-plugin</git.repo.name>
+		<git.project.id>ised-isde-canada</git.project.id>
     <jenkins.version>2.60.3</jenkins.version>
     <configuration-as-code.version>1.27</configuration-as-code.version>
     <java.level>8</java.level>
   </properties>
 
-  <artifactId>oic-auth</artifactId>
-  <version>1.9-SNAPSHOT</version>
+  <artifactId>oic-auth-ised</artifactId>
+  <version>1.11-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
-  <scm>
-    <connection>scm:git:ssh://github.com/jenkinsci/oic-auth-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/oic-auth-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/oic-auth-plugin</url>
-    <tag>HEAD</tag>
-  </scm>
+	<scm>
+		<connection>${git.scm.prefix}${git.https.base}/${git.project.id}/${git.repo.name}.git</connection>
+		<developerConnection>${git.scm.prefix}${git.https.base}/${git.project.id}/${git.repo.name}.git</developerConnection>
+		<url>${git.https.base}/${git.project.id}/${git.repo.name}</url>
+		<tag>HEAD</tag>
+	</scm>
 
-  <name>OpenId Connect Authentication Plugin</name>
+  <name>OpenId Connect Authentication Plugin (ISED)</name>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Openid+Connect+Authentication+Plugin</url>
   <developers>
     <developer>
@@ -49,8 +51,13 @@
     <dependency>
       <groupId>com.google.oauth-client</groupId>
       <artifactId>google-oauth-client</artifactId>
-      <version>1.23.0</version>
-      <scope>provided</scope>
+      <version>1.31.0</version>
+        <exclusions>
+            <exclusion>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+            </exclusion>
+        </exclusions>
     </dependency>
     <dependency>
       <groupId>com.google.http-client</groupId>
@@ -126,19 +133,4 @@
       </plugin>
     </plugins>
   </build>
-
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </repository>
-  </repositories>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
-
 </project>

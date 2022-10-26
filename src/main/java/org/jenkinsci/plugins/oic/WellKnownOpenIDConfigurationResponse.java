@@ -2,8 +2,10 @@ package org.jenkinsci.plugins.oic;
 
 import java.util.Map;
 import java.util.Set;
+
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.util.Key;
+import com.google.common.base.Objects;
 
 /**
  * OpenID Connect Discovery JSON.
@@ -68,5 +70,44 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
             clone.remove(key);
         }
         return clone;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (o == null || !(o instanceof WellKnownOpenIDConfigurationResponse)) {
+            return false;
+        }
+
+        WellKnownOpenIDConfigurationResponse obj = (WellKnownOpenIDConfigurationResponse) o;
+
+        if (!Objects.equal(authorizationEndpoint, obj.getAuthorizationEndpoint())) {
+            return false;
+        }
+        if (!Objects.equal(tokenEndpoint, obj.getTokenEndpoint())) {
+            return false;
+        }
+        if (!Objects.equal(userinfoEndpoint, obj.getUserinfoEndpoint())) {
+            return false;
+        }
+        if (!Objects.equal(jwksUri, obj.getJwksUri())) {
+            return false;
+        }
+        if (!Objects.equal(scopesSupported, obj.getScopesSupported())) {
+            return false;
+        }
+        if (!Objects.equal(endSessionEndpoint, obj.getEndSessionEndpoint())) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return (authorizationEndpoint + tokenEndpoint + userinfoEndpoint + jwksUri + scopesSupported
+            + endSessionEndpoint).hashCode();
     }
 }

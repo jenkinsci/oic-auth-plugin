@@ -12,14 +12,14 @@ pipeline {
    	environment {
 		// GLobal Vars
 
-		MVN_DEBUG_LOGGING = "true"
+		MVN_DEBUG_LOGGING = "false"
     }
   
     stages {
     	stage('build') {
 			steps {
 				script{
-        			builder.buildMavenLibrary()
+					release.releaseMavenLibrary()
 				}
 			}
     	}

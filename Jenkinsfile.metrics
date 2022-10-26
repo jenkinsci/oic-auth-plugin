@@ -3,24 +3,18 @@
 pipeline {
 	agent {
        	label 'maven'
-   	} 
-     	
+   	}
+   	
     options {
         disableConcurrentBuilds()
     }
-  
-   	environment {
-		// GLobal Vars
-
-		MVN_DEBUG_LOGGING = "true"
-    }
-  
+    
     stages {
-    	stage('build') {
+    	stage('analyze') {
 			steps {
 				script{
-        			builder.buildMavenLibrary()
-				}
+					metrics.runCodeCoverage()
+		    	}
 			}
     	}
     }

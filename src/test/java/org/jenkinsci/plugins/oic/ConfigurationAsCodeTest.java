@@ -1,31 +1,36 @@
 package org.jenkinsci.plugins.oic;
 
+import static io.jenkins.plugins.casc.misc.Util.getJenkinsRoot;
+import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
+import static io.jenkins.plugins.casc.misc.Util.toYamlString;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.Rule;
+import org.junit.Test;
+
 import hudson.security.SecurityRealm;
 import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import io.jenkins.plugins.casc.model.CNode;
-import org.junit.ClassRule;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static io.jenkins.plugins.casc.misc.Util.*;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import jenkins.model.Jenkins;
 
 public class ConfigurationAsCodeTest {
-    @ClassRule
-    @ConfiguredWithCode("ConfigurationAsCode.yml")
-    public static JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
+
+    @Rule
+    public JenkinsConfiguredWithCodeRule chain = new JenkinsConfiguredWithCodeRule();
 
     @Test
+    @ConfiguredWithCode("ConfigurationAsCode.yml")
     public void testConfig() {
-        SecurityRealm realm = j.jenkins.getSecurityRealm();
+        SecurityRealm realm = Jenkins.getInstance().getSecurityRealm();
 
         assertTrue(realm instanceof OicSecurityRealm);
         OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
@@ -48,8 +53,10 @@ public class ConfigurationAsCodeTest {
     }
 
     @Test
+    @ConfiguredWithCode("ConfigurationAsCode.yml")
     public void testExport() throws Exception {
         ConfigurationContext context = new ConfigurationContext(ConfiguratorRegistry.get());
+
         CNode yourAttribute = getJenkinsRoot(context).get("securityRealm").asMapping().get("oic");
 
         String exported = toYamlString(yourAttribute);
@@ -57,8 +64,8 @@ public class ConfigurationAsCodeTest {
         // secrets are always changing. so, just remove them before there's a better solution
         String[] lines = exported.split("\n");
         List<String> lineList = new ArrayList<>();
-        for(String line : lines) {
-            if(!line.contains("Secret")) {
+        for (String line : lines) {
+            if (!line.contains("Secret")) {
                 lineList.add(line);
             }
         }
