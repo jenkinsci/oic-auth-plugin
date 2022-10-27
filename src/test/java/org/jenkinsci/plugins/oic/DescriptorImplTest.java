@@ -48,7 +48,7 @@ public class DescriptorImplTest {
 
         assertNotNull(descriptor);
 
-        assertEquals("Login with OIDC - Authhub", descriptor.getDisplayName());
+        assertEquals("Login with Openid Connect", descriptor.getDisplayName());
         assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
         assertEquals("Client id is required.", descriptor.doCheckClientId("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
@@ -78,7 +78,7 @@ public class DescriptorImplTest {
 
         assertNotNull(descriptor);
 
-        assertEquals("Login with OIDC - Authhub", descriptor.getDisplayName());
+        assertEquals("Login with Openid Connect", descriptor.getDisplayName());
         assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
         assertEquals("Client id is required.", descriptor.doCheckClientId("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));

@@ -32,7 +32,7 @@ public class OicUserDetailsTest {
 
     @Test
     public void testGetAuthorities() {
-        assertThat(Arrays.asList(details.getAuthorities()), containsInAnyOrder(admin, read));
+        assertThat(details.getAuthorities(), containsInAnyOrder(admin, read));
     }
 
     @Test
