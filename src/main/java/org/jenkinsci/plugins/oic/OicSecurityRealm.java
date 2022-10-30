@@ -205,7 +205,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
     }
 
-    private Object readResolve() {
+    protected Object readResolve() {
         if(httpTransport==null) {
             httpTransport = constructHttpTransport(isDisableSslVerification());
         }
@@ -403,22 +403,16 @@ public class OicSecurityRealm extends SecurityRealm {
         );
     }
 
-    /**
-     * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
-     * @param from the relative URL to the page that the user has just come from
-     * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
-     * @return an {@link HttpResponse} object
-    */
-    public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) {
-        final String redirectOnFinish = determineRedirectTarget(from, referer);
-
+    /** Build authorization code flow
+     */
+    protected AuthorizationCodeFlow buildAuthorizationCodeFlow() {
         AccessMethod tokenAccessMethod = BearerToken.queryParameterAccessMethod();
         HttpExecuteInterceptor authInterceptor = new ClientParametersAuthentication(clientId, clientSecret.getPlainText());
         if (TokenAuthMethod.client_secret_basic.equals(tokenAuthMethod)) {
             tokenAccessMethod = BearerToken.authorizationHeaderAccessMethod();
             authInterceptor = new BasicAuthentication(clientId, clientSecret.getPlainText());
         }
-        final AuthorizationCodeFlow flow = new AuthorizationCodeFlow.Builder(
+        return new AuthorizationCodeFlow.Builder(
                 tokenAccessMethod,
                 httpTransport,
                 JSON_FACTORY,
@@ -429,6 +423,18 @@ public class OicSecurityRealm extends SecurityRealm {
         )
             .setScopes(Arrays.asList(scopes))
             .build();
+    }
+
+    /**
+     * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
+     * @param from the relative URL to the page that the user has just come from
+     * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
+     * @return an {@link HttpResponse} object
+    */
+    public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) {
+        final String redirectOnFinish = determineRedirectTarget(from, referer);
+
+        final AuthorizationCodeFlow flow = this.buildAuthorizationCodeFlow();
 
         return new OicSession(flow, from, buildOAuthRedirectUrl()) {
             @Override

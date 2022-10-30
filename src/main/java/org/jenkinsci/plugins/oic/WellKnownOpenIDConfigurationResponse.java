@@ -7,6 +7,7 @@ import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
 
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.util.Key;
+import com.google.common.base.Objects;
 
 /**
  * OpenID Connect Discovery JSON.
@@ -101,15 +102,44 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
      * Overriding equals()
      */
     @Override
-    public int hashCode() {
-        return super.hashCode();
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (o == null || !(o instanceof WellKnownOpenIDConfigurationResponse)) {
+            return false;
+        }
+
+        WellKnownOpenIDConfigurationResponse obj = (WellKnownOpenIDConfigurationResponse) o;
+
+        if (!Objects.equal(authorizationEndpoint, obj.getAuthorizationEndpoint())) {
+            return false;
+        }
+        if (!Objects.equal(tokenEndpoint, obj.getTokenEndpoint())) {
+            return false;
+        }
+        if (!Objects.equal(userinfoEndpoint, obj.getUserinfoEndpoint())) {
+            return false;
+        }
+        if (!Objects.equal(jwksUri, obj.getJwksUri())) {
+            return false;
+        }
+        if (!Objects.equal(scopesSupported, obj.getScopesSupported())) {
+            return false;
+        }
+        if (!Objects.equal(endSessionEndpoint, obj.getEndSessionEndpoint())) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     * Overriding equals()
+     * Overriding hashCode()
      */
     @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
+    public int hashCode() {
+	    return (authorizationEndpoint + tokenEndpoint + userinfoEndpoint +
+		    jwksUri + scopesSupported + endSessionEndpoint).hashCode();	
     }
 }

@@ -33,6 +33,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
+import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
+import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -51,6 +53,7 @@ public class PluginTest {
     private static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
     private static final String TEST_USER_FULL_NAME = "Oic Test User";
     private static final String[] TEST_USER_GROUPS = new String[]{"group1", "group2"};
+    private static final String OPENID_CONNECT_USER_PROPERTY = "OpenID Connect user property";
 
     @Rule public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(),true);
     @Rule public JenkinsRule jenkinsRule = new JenkinsRule();
@@ -59,7 +62,7 @@ public class PluginTest {
     private Jenkins jenkins;
 
     @Before
-    public  void setUp() {
+    public void setUp() {
         jenkins = jenkinsRule.getInstance();
         webClient = jenkinsRule.createWebClient();
     }
@@ -100,12 +103,12 @@ public class PluginTest {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
         Authentication authentication = getAuthentication();
-        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+        assertEquals("Full name should be " +TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
 
     @Test public void testLoginWithMinimalConfiguration() throws Exception {
@@ -144,10 +147,215 @@ public class PluginTest {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
         Authentication authentication = getAuthentication();
-        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Full name should be " +TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
         assertTrue("User should be not be part of any group", user.getAuthorities().isEmpty());
+    }
+
+    @Test public void testLoginWithAutoConfiguration() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
+            .willReturn(aResponse().withStatus(302).withHeader("Content-Type", "text/html; charset=utf-8")
+                .withHeader("Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
+                .withBody("")));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody("{" +
+                            "\"id_token\": \""+createIdToken(keyPair.getPrivate(), keyValues)+"\"," +
+                            "\"access_token\":\"AcCeSs_ToKeN\"," +
+                            "\"token_type\":\"example\"," +
+                            "\"expires_in\":3600," +
+                            "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                            "\"example_parameter\":\"example_value\"" +
+                        "}")
+        ));
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
+                            "   \""+GROUPS_FIELD+"\": "+toJsonArray(TEST_USER_GROUPS)+"\n" +
+                            "  }")
+        ));
+
+        configureWellKnown(null);
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Full name should be " + TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+    }
+
+    @Test public void testLoginWithAutoConfiguration_WithNoScope() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
+            .willReturn(aResponse().withStatus(302).withHeader("Content-Type", "text/html; charset=utf-8")
+                .withHeader("Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
+                .withBody("")));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody("{" +
+                            "\"id_token\": \""+createIdToken(keyPair.getPrivate(), keyValues)+"\"," +
+                            "\"access_token\":\"AcCeSs_ToKeN\"," +
+                            "\"token_type\":\"example\"," +
+                            "\"expires_in\":3600," +
+                            "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                            "\"example_parameter\":\"example_value\"" +
+                        "}")
+        ));
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\"\n" +
+                            "  }")
+        ));
+
+        configureWellKnown(null);
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        configureWellKnown(null);
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Full name should be " + TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be not be part of any group", user.getAuthorities().isEmpty());
+    }
+
+
+    @Test public void testreadResolve_withNulls() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+            aResponse()
+                    .withStatus(302)
+                    .withHeader("Content-Type", "text/html; charset=utf-8")
+                    .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                    .withBody("")
+        ));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody("{" +
+                            "\"id_token\": \""+createIdToken(keyPair.getPrivate(), keyValues)+"\"," +
+                            "\"access_token\":\"AcCeSs_ToKeN\"," +
+                            "\"token_type\":\"example\"," +
+                            "\"expires_in\":3600," +
+                            "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                            "\"example_parameter\":\"example_value\"" +
+                        "}")
+        ));
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
+                            "   \""+GROUPS_FIELD+"\": "+toJsonArray(TEST_USER_GROUPS)+"\n" +
+                            "  }")
+        ));
+
+        configureWellKnown(null);
+
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+        jenkins.setSecurityRealm(realm);
+
+        assertEquals(realm, realm.readResolve());
+    }
+
+    @Test
+    public void testreadResolve_withNonNulls() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+            aResponse()
+                    .withStatus(302)
+                    .withHeader("Content-Type", "text/html; charset=utf-8")
+                    .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                    .withBody("")
+        ));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody("{" +
+                            "\"id_token\": \""+createIdToken(keyPair.getPrivate(), keyValues)+"\"," +
+                            "\"access_token\":\"AcCeSs_ToKeN\"," +
+                            "\"token_type\":\"example\"," +
+                            "\"expires_in\":3600," +
+                            "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                            "\"example_parameter\":\"example_value\"" +
+                        "}")
+        ));
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
+                            "   \""+GROUPS_FIELD+"\": "+toJsonArray(TEST_USER_GROUPS)+"\n" +
+                            "  }")
+        ));
+
+        configureWellKnown("http://localhost/endSession");
+
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+        jenkins.setSecurityRealm(realm);
+
+        assertEquals(realm, realm.readResolve());
     }
     
     @Test public void testLoginUsingUserInfoEndpoint() throws Exception {
@@ -193,12 +401,12 @@ public class PluginTest {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
         Authentication authentication = getAuthentication();
-        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+        assertEquals("Full name should be " + TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
 
     @Test public void testNestedFieldLookup() throws Exception {
@@ -239,12 +447,12 @@ public class PluginTest {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
         Authentication authentication = getAuthentication();
-        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+        assertEquals("Full name should be " +TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
 
     @Test public void testNestedFieldLookupFromUserInfoEndpoint() throws Exception {
@@ -292,12 +500,12 @@ public class PluginTest {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
         Authentication authentication = getAuthentication();
-        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
         User user = User.get(String.valueOf(authentication.getPrincipal()));
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+        assertEquals("Full name should be " +TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
 
     @Test public void testGroupListFromStringInfoEndpoint() throws Exception {
@@ -348,11 +556,70 @@ public class PluginTest {
         assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
         User user = User.get(String.valueOf(authentication.getPrincipal()));
 
-        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
-        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
-        assertTrue("User should be part of group "+ TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+        assertEquals("Full name should be " +TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
         assertEquals("User should be in 2 groups", 2, user.getAuthorities().size());
+    }
+
+    @Test public void testOicUserPropertyDescriptor() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+			aResponse()
+				.withStatus(302)
+				.withHeader("Content-Type", "text/html; charset=utf-8")
+                .withHeader("Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
+                .withBody("")));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(
+            post(urlPathEqualTo("/token")).willReturn(aResponse().withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody("{" + "\"id_token\": \"" + createIdToken(keyPair.getPrivate(), keyValues) + "\","
+                    + "\"access_token\":\"AcCeSs_ToKeN\"," + "\"token_type\":\"example\"," + "\"expires_in\":3600,"
+                    + "\"refresh_token\":\"ReFrEsH_ToKeN\"," + "\"example_parameter\":\"example_value\"" + "}")));
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, MANUAL_CONFIG_FIELD));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Full name should be " + TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertEquals("User should be in 2 groups", 2, user.getAuthorities().size());
+
+        OicUserProperty.Descriptor descriptor = new OicUserProperty.Descriptor();
+        OicUserProperty newProperty = (OicUserProperty) descriptor.newInstance(user);
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, newProperty.getUserName());
+
+        assertEquals("Display name should be " + OPENID_CONNECT_USER_PROPERTY, OPENID_CONNECT_USER_PROPERTY, descriptor.getDisplayName());
+    }
+
+    private void configureWellKnown(String endSessionUrl) {
+        String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
+        String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
+        String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
+        String jwksUrl = "null";
+		String endSessionUrlStr = endSessionUrl == null ? "null" : endSessionUrl ;
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/well.known")).willReturn(
+			aResponse()
+				.withHeader("Content-Type", "text/html; charset=utf-8")
+				.withBody(String.format("{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
+                + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": null, "
+                + "\"end_session_endpoint\":\"%s\"}", authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))
+		));
     }
 
     @Test public void testLogoutShouldBeJenkinsOnlyWhenNoProviderLogoutConfigured() throws Exception {
@@ -439,7 +706,8 @@ public class PluginTest {
     private Authentication getAuthentication() {
         try {
             return webClient.executeOnServer(new Callable<Authentication>() {
-                public  Authentication call() throws Exception {
+                @Override
+                public Authentication call() throws Exception {
                     return jenkins.getAuthentication();
                 }
             });
