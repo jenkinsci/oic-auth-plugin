@@ -168,8 +168,4 @@ public class TestRealm extends OicSecurityRealm {
     public Object readResolve() {
         return super.readResolve();
     }
-
-    public void setHttpTransport(HttpTransport httpTransport) {
-        this.httpTransport = httpTransport;
-    }
 }

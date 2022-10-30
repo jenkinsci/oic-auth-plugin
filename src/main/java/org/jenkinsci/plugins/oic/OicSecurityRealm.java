@@ -149,7 +149,7 @@ public class OicSecurityRealm extends SecurityRealm {
      * but it's still needed for backwards compatibility */
     private transient String endSessionUrl;
     
-    protected transient HttpTransport httpTransport;
+    private transient HttpTransport httpTransport;
     private static final Random RANDOM = new Random();
 
     @DataBoundConstructor

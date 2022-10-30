@@ -708,7 +708,7 @@ public class PluginTest {
             return webClient.executeOnServer(new Callable<Authentication>() {
                 @Override
                 public Authentication call() throws Exception {
-                    return Jenkins.getAuthentication();
+                    return jenkins.getAuthentication();
                 }
             });
         } catch (Exception e) {
