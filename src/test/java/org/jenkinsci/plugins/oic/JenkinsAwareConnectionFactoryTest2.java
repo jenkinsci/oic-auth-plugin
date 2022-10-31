@@ -1,12 +1,11 @@
 package org.jenkinsci.plugins.oic;
 
-import static org.junit.Assert.assertNotNull;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
 import org.junit.Test;
+
+import static org.junit.Assert.assertNotNull;
 
 public class JenkinsAwareConnectionFactoryTest2 {
 

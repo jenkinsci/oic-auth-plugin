@@ -1,13 +1,12 @@
 package org.jenkinsci.plugins.oic;
 
 import com.google.api.client.http.javanet.ConnectionFactory;
-import hudson.ProxyConfiguration;
-import jenkins.model.Jenkins;
-
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.ProxyConfiguration;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import jenkins.model.Jenkins;
 
 /**
  * This Factory for {@link HttpURLConnection} honors the jenkins (proxy) settings when creating connections

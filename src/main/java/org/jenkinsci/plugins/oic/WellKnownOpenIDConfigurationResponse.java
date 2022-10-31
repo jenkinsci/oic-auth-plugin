@@ -1,13 +1,11 @@
 package org.jenkinsci.plugins.oic;
 
-import java.util.Map;
-import java.util.Set;
-
-import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
-
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.util.Key;
 import com.google.common.base.Objects;
+import java.util.Map;
+import java.util.Set;
+import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
 
 /**
  * OpenID Connect Discovery JSON.
@@ -97,7 +95,7 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
         }
         return clone;
     }
-    
+
     /**
      * Overriding equals()
      */
@@ -139,7 +137,7 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
      */
     @Override
     public int hashCode() {
-	    return (authorizationEndpoint + tokenEndpoint + userinfoEndpoint +
-		    jwksUri + scopesSupported + endSessionEndpoint).hashCode();	
+        return (authorizationEndpoint + tokenEndpoint + userinfoEndpoint +
+            jwksUri + scopesSupported + endSessionEndpoint).hashCode();
     }
 }

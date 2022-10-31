@@ -23,50 +23,6 @@
 */
 package org.jenkinsci.plugins.oic;
 
-import static org.apache.commons.lang.StringUtils.isNotBlank;
-import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Field;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.servlet.ServletException;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.Header;
-import org.kohsuke.stapler.HttpRedirect;
-import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
 import com.fasterxml.jackson.core.JsonParseException;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
@@ -89,19 +45,58 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.common.base.Strings;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.User;
-import hudson.model.UserProperty;
 import hudson.security.SecurityRealm;
 import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.util.Secret;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.security.GeneralSecurityException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.Header;
+import org.kohsuke.stapler.HttpRedirect;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+import static org.apache.commons.lang.StringUtils.isNotBlank;
+import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
 
 /**
 * Login with OpenID Connect / OAuth 2
@@ -111,8 +106,8 @@ import jenkins.security.SecurityListener;
 */
 @SuppressWarnings("deprecation")
 public class OicSecurityRealm extends SecurityRealm {
-	
-	private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
+
+    private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
     public static enum TokenAuthMethod { client_secret_basic, client_secret_post };
 
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
@@ -144,11 +139,11 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String escapeHatchGroup;
     private String automanualconfigure;
 
-    /** old field that had an '/' implicitly added at the end, 
+    /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
      * but it's still needed for backwards compatibility */
     private transient String endSessionUrl;
-    
+
     private transient HttpTransport httpTransport;
     private static final Random RANDOM = new Random();
 
@@ -179,7 +174,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.userInfoServerUrl = config.getUserinfoEndpoint();
             this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
             this.logoutFromOpenidProvider = logoutFromOpenidProvider != null;
-	    this.endSessionEndpoint = config.getEndSessionEndpoint();
+        this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
             this.authorizationServerUrl = authorizationServerUrl;
             this.tokenServerUrl = tokenServerUrl;
@@ -188,7 +183,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
             this.logoutFromOpenidProvider = logoutFromOpenidProvider;
-	    this.endSessionEndpoint = endSessionEndpoint;
+        this.endSessionEndpoint = endSessionEndpoint;
         }
 
         this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
@@ -210,13 +205,13 @@ public class OicSecurityRealm extends SecurityRealm {
             httpTransport = constructHttpTransport(isDisableSslVerification());
         }
         if(!Strings.isNullOrEmpty(endSessionUrl)) {
-        	try {
-        		Field field = getClass().getDeclaredField("endSessionEndpoint");
-				field.setAccessible(true);
-        		field.set(this, endSessionUrl + "/");
-			} catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
-				LOGGER.log(Level.SEVERE, "Can't set endSessionEndpoint from old value", e);
-			}
+            try {
+                Field field = getClass().getDeclaredField("endSessionEndpoint");
+                field.setAccessible(true);
+                field.set(this, endSessionUrl + "/");
+            } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
+                LOGGER.log(Level.SEVERE, "Can't set endSessionEndpoint from old value", e);
+            }
         }
         return this;
     }
@@ -283,9 +278,9 @@ public class OicSecurityRealm extends SecurityRealm {
     public String getEmailFieldName() {
         return emailFieldName;
     }
-    
+
     public String getGroupsFieldName() {
-    	return groupsFieldName;
+        return groupsFieldName;
     }
 
     public String getScopes() {
@@ -299,10 +294,10 @@ public class OicSecurityRealm extends SecurityRealm {
     public boolean isLogoutFromOpenidProvider() {
         return logoutFromOpenidProvider;
     }
-    
+
     public String getEndSessionEndpoint() {
-		return endSessionEndpoint;
-	}
+        return endSessionEndpoint;
+    }
 
     public String getPostLogoutRedirectUrl() {
         return postLogoutRedirectUrl;
@@ -347,7 +342,7 @@ public class OicSecurityRealm extends SecurityRealm {
     * so {@link org.acegisecurity.AuthenticationManager} becomes no-op.
     */
     @Override
-	public SecurityComponents createSecurityComponents() {
+    public SecurityComponents createSecurityComponents() {
         return new SecurityComponents(
                 new AuthenticationManager() {
                     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -355,51 +350,51 @@ public class OicSecurityRealm extends SecurityRealm {
                             return authentication;
 
                         if (authentication instanceof UsernamePasswordAuthenticationToken && escapeHatchEnabled) {
-                        	randomWait(); // to slowdown brute forcing
-                        	if( authentication.getPrincipal().toString().equals(escapeHatchUsername) &&
-                        		authentication.getCredentials().toString().equals(escapeHatchSecret.getPlainText())) {
-	                                List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
-	                                grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
-	                                if(isNotBlank(escapeHatchGroup)) {
-	                                	grantedAuthorities.add(new SimpleGrantedAuthority(escapeHatchGroup));
-	                                }
-	                                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-	                                		escapeHatchUsername,
-	                                        "",
-	                                        grantedAuthorities
-	                                );
-	                                SecurityContextHolder.getContext().setAuthentication(token);
-	                                OicUserDetails userDetails = new OicUserDetails(escapeHatchUsername, grantedAuthorities);
-	                                SecurityListener.fireAuthenticated2(userDetails);
-	                                return token;
+                            randomWait(); // to slowdown brute forcing
+                            if( authentication.getPrincipal().toString().equals(escapeHatchUsername) &&
+                                authentication.getCredentials().toString().equals(escapeHatchSecret.getPlainText())) {
+                                    List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+                                    grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
+                                    if(isNotBlank(escapeHatchGroup)) {
+                                        grantedAuthorities.add(new SimpleGrantedAuthority(escapeHatchGroup));
+                                    }
+                                    UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+                                            escapeHatchUsername,
+                                            "",
+                                            grantedAuthorities
+                                    );
+                                    SecurityContextHolder.getContext().setAuthentication(token);
+                                    OicUserDetails userDetails = new OicUserDetails(escapeHatchUsername, grantedAuthorities);
+                                    SecurityListener.fireAuthenticated2(userDetails);
+                                    return token;
                             } else {
-                            	throw new BadCredentialsException("Wrong username and password: " + authentication);
+                                throw new BadCredentialsException("Wrong username and password: " + authentication);
                             }
                         }
                         throw new BadCredentialsException("Unexpected authentication type: " + authentication);
                     }
                 },
                 new UserDetailsService() {
-					
-					@Override
-					public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-						// Retrieve the OicUserProperty to get the list of groups that has to be set in the OicUserDetails object.
-						LOGGER.fine("loadUserByUsername in createSecurityComponents called, username: " + username);
-						User u = User.get(username, false, Collections.emptyMap());
-						if (u == null) {
-							LOGGER.fine("loadUserByUsername in createSecurityComponents called, no user '" + username + "' found");
-							throw new UsernameNotFoundException(username);
-						}
-						LOGGER.fine("loadUserByUsername in createSecurityComponents called, user: " + u);
-						OicUserProperty oicProp = u.getProperty(OicUserProperty.class);
-						List<GrantedAuthority> auths = new ArrayList<>();
-						if (oicProp != null) {
-							auths = oicProp.getAuthoritiesAsGrantedAuthorities();
-							LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username '" + oicProp.getUserName() + "', auths size: " + auths.size());
-						}
-						return new OicUserDetails(username, auths);
-					}
-				}
+
+                    @Override
+                    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+                        // Retrieve the OicUserProperty to get the list of groups that has to be set in the OicUserDetails object.
+                        LOGGER.fine("loadUserByUsername in createSecurityComponents called, username: " + username);
+                        User u = User.get(username, false, Collections.emptyMap());
+                        if (u == null) {
+                            LOGGER.fine("loadUserByUsername in createSecurityComponents called, no user '" + username + "' found");
+                            throw new UsernameNotFoundException(username);
+                        }
+                        LOGGER.fine("loadUserByUsername in createSecurityComponents called, user: " + u);
+                        OicUserProperty oicProp = u.getProperty(OicUserProperty.class);
+                        List<GrantedAuthority> auths = new ArrayList<>();
+                        if (oicProp != null) {
+                            auths = oicProp.getAuthoritiesAsGrantedAuthorities();
+                            LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username '" + oicProp.getUserName() + "', auths size: " + auths.size());
+                        }
+                        return new OicUserDetails(username, auths);
+                    }
+                }
         );
     }
 
@@ -483,10 +478,10 @@ public class OicSecurityRealm extends SecurityRealm {
             }
         }.doCommenceLogin();
     }
-    
+
     @SuppressFBWarnings(
         value = "DMI_RANDOM_USED_ONLY_ONCE",
-	justification = "False positive in spotbug about DMI_RANDOM_USED_ONLY_ONCE")
+    justification = "False positive in spotbug about DMI_RANDOM_USED_ONLY_ONCE")
     // see https://github.com/spotbugs/spotbugs/issues/1539
     private void randomWait() {
         try {
@@ -530,12 +525,12 @@ public class OicSecurityRealm extends SecurityRealm {
 
         List<GrantedAuthority> grantedAuthorities = determineAuthorities(idToken, userInfo);
         if(LOGGER.isLoggable(Level.FINEST)) {
-		    StringBuilder grantedAuthoritiesAsString = new StringBuilder("(");
-		    for(GrantedAuthority grantedAuthority : grantedAuthorities) {
-		        grantedAuthoritiesAsString.append(" ").append(grantedAuthority.getAuthority());
+            StringBuilder grantedAuthoritiesAsString = new StringBuilder("(");
+            for(GrantedAuthority grantedAuthority : grantedAuthorities) {
+                grantedAuthoritiesAsString.append(" ").append(grantedAuthority.getAuthority());
             }
             grantedAuthoritiesAsString.append(" )");
-		    LOGGER.finest("GrantedAuthorities:" + grantedAuthoritiesAsString);
+            LOGGER.finest("GrantedAuthorities:" + grantedAuthoritiesAsString);
         }
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userName, "", grantedAuthorities);
@@ -543,25 +538,25 @@ public class OicSecurityRealm extends SecurityRealm {
         SecurityContextHolder.getContext().setAuthentication(token);
 
         User user = User.get2(token);
-	if(user == null){
+    if(user == null){
                 // should not happen
                 throw new IOException("Cannot set OIDC property on anonymous user");
-	}
+    }
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
 
         if(emailFieldName!=null) {
-	        String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getField(userInfo, emailFieldName);
-	        if (email != null) {
-	            user.addProperty(new Mailer.UserProperty(email));
-	        }
+            String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getField(userInfo, emailFieldName);
+            if (email != null) {
+                user.addProperty(new Mailer.UserProperty(email));
+            }
         }
 
         if(fullNameFieldName!=null) {
-		    String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getField(userInfo, fullNameFieldName);
-		    if (fullName != null) {
-		        user.setFullName(fullName);
-		    }
+            String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getField(userInfo, fullNameFieldName);
+            if (fullName != null) {
+                user.setFullName(fullName);
+            }
         }
 
         OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
@@ -649,11 +644,11 @@ public class OicSecurityRealm extends SecurityRealm {
             openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
 
             if (this.postLogoutRedirectUrl != null) {
-		try {
-		    openidLogoutEndpoint.append("&post_logout_redirect_uri=").append(URLEncoder.encode(this.postLogoutRedirectUrl, "UTF-8"));
-		} catch (UnsupportedEncodingException e) {
-		    throw new RuntimeException(e);
-		}
+        try {
+            openidLogoutEndpoint.append("&post_logout_redirect_uri=").append(URLEncoder.encode(this.postLogoutRedirectUrl, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
             }
             return openidLogoutEndpoint.toString();
         }
@@ -695,11 +690,11 @@ public class OicSecurityRealm extends SecurityRealm {
      * @return an HttpResponse
     */
     public HttpResponse doFinishLogin(StaplerRequest request) {
-    	OicSession currentSession = OicSession.getCurrent();
-    	if(currentSession==null) {
-    		LOGGER.fine("No session to resume (perhaps jenkins was restarted?)");
-    		return HttpResponses.errorWithoutStack(401, "Unauthorized");
-    	}
+        OicSession currentSession = OicSession.getCurrent();
+        if(currentSession==null) {
+            LOGGER.fine("No session to resume (perhaps jenkins was restarted?)");
+            return HttpResponses.errorWithoutStack(401, "Unauthorized");
+        }
         return currentSession.doFinishLogin(request);
     }
 
@@ -762,7 +757,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     @SuppressWarnings("rawtypes")
-	private Object lookup(Map parsedJson, String key) {
+    private Object lookup(Map parsedJson, String key) {
         if(key.contains("\"")) {
             int indexMarker = key.indexOf('\"');
             Object nested = parsedJson.get(key.substring(0,indexMarker));

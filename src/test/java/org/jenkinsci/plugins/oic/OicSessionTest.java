@@ -1,17 +1,15 @@
 package org.jenkinsci.plugins.oic;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-
+import java.io.IOException;
+import jenkins.model.Jenkins;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.kohsuke.stapler.HttpResponse;
 
-import java.io.IOException;
-
-import jenkins.model.Jenkins;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class OicSessionTest {
 
@@ -27,10 +25,10 @@ public class OicSessionTest {
     @Before
     public void init() throws IOException {
         TestRealm realm = new TestRealm.Builder("http://localhost/")
-		.WithMinimalDefaults().WithScopes("openid")
-		.build();
+        .WithMinimalDefaults().WithScopes("openid")
+        .build();
 
-	session = new OicSession(realm.buildAuthorizationCodeFlow(), from, buildOAuthRedirectUrl()) {
+    session = new OicSession(realm.buildAuthorizationCodeFlow(), from, buildOAuthRedirectUrl()) {
             @Override
             public HttpResponse onSuccess(String authorizationCode) {
                 return null;

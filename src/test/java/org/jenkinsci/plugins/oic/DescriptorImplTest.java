@@ -1,5 +1,16 @@
 package org.jenkinsci.plugins.oic;
 
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import hudson.util.FormValidation;
+import java.io.IOException;
+import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.oic.OicSecurityRealm.DescriptorImpl;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -10,19 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
-
-import org.jenkinsci.plugins.oic.OicSecurityRealm.DescriptorImpl;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
-
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
-
-import hudson.util.FormValidation;
-import jenkins.model.Jenkins;
 
 public class DescriptorImplTest {
 
