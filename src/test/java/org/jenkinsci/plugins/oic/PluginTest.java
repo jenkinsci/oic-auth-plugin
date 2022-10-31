@@ -8,6 +8,14 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import hudson.model.User;
 import hudson.tasks.Mailer;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Callable;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.junit.Before;
@@ -17,27 +25,16 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Url;
 import org.kohsuke.stapler.Stapler;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Callable;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -357,7 +354,7 @@ public class PluginTest {
 
         assertEquals(realm, realm.readResolve());
     }
-    
+
     @Test public void testLoginUsingUserInfoEndpoint() throws Exception {
         wireMockRule.resetAll();
 
@@ -569,9 +566,9 @@ public class PluginTest {
         KeyPair keyPair = createKeyPair();
 
         wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
-			aResponse()
-				.withStatus(302)
-				.withHeader("Content-Type", "text/html; charset=utf-8")
+            aResponse()
+                .withStatus(302)
+                .withHeader("Content-Type", "text/html; charset=utf-8")
                 .withHeader("Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
                 .withBody("")));
         Map<String, Object> keyValues = new HashMap<>();
@@ -611,56 +608,56 @@ public class PluginTest {
         String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
         String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
         String jwksUrl = "null";
-		String endSessionUrlStr = endSessionUrl == null ? "null" : endSessionUrl ;
+        String endSessionUrlStr = endSessionUrl == null ? "null" : endSessionUrl ;
 
         wireMockRule.stubFor(get(urlPathEqualTo("/well.known")).willReturn(
-			aResponse()
-				.withHeader("Content-Type", "text/html; charset=utf-8")
-				.withBody(String.format("{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
+            aResponse()
+                .withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody(String.format("{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
                 + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": null, "
                 + "\"end_session_endpoint\":\"%s\"}", authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))
-		));
+        ));
     }
 
     @Test public void testLogoutShouldBeJenkinsOnlyWhenNoProviderLogoutConfigured() throws Exception {
         final TestRealm oicsr = new TestRealm.Builder(wireMockRule).build();
         jenkins.setSecurityRealm(oicsr);
 
-	String[] logoutURL = new String[1];
-	jenkinsRule.executeOnServer(() -> {
+    String[] logoutURL = new String[1];
+    jenkinsRule.executeOnServer(() -> {
             logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
             return null;
         });
-	assertEquals("/jenkins/", logoutURL[0]);
+    assertEquals("/jenkins/", logoutURL[0]);
     }
 
     @Test public void testLogoutShouldBeProviderURLWhenProviderLogoutConfigured() throws Exception {
         final TestRealm oicsr = new TestRealm.Builder(wireMockRule)
-		.WithLogout(Boolean.TRUE, "http://provider/logout")
+        .WithLogout(Boolean.TRUE, "http://provider/logout")
                 .build();
         jenkins.setSecurityRealm(oicsr);
 
-	String[] logoutURL = new String[1];
-	jenkinsRule.executeOnServer(() -> {
+    String[] logoutURL = new String[1];
+    jenkinsRule.executeOnServer(() -> {
             logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
             return null;
         });
-	assertEquals("http://provider/logout?id_token_hint=null&state=null", logoutURL[0]);
+    assertEquals("http://provider/logout?id_token_hint=null&state=null", logoutURL[0]);
     }
 
     @Test public void testLogoutShouldBeProviderURLWithRedirectWhenProviderLogoutConfiguredWithPostlogoutRedirect() throws Exception {
         final TestRealm oicsr = new TestRealm.Builder(wireMockRule)
-		.WithLogout(Boolean.TRUE, "http://provider/logout")
+        .WithLogout(Boolean.TRUE, "http://provider/logout")
                 .WithPostLogoutRedirectUrl("http://see.it/?cat&color=white")
                 .build();
         jenkins.setSecurityRealm(oicsr);
 
-	String[] logoutURL = new String[1];
-	jenkinsRule.executeOnServer(() -> {
+        String[] logoutURL = new String[1];
+        jenkinsRule.executeOnServer(() -> {
             logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
             return null;
         });
-	assertEquals("http://provider/logout?id_token_hint=null&state=null&post_logout_redirect_uri=http%3A%2F%2Fsee.it%2F%3Fcat%26color%3Dwhite", logoutURL[0]);
+        assertEquals("http://provider/logout?id_token_hint=null&state=null&post_logout_redirect_uri=http%3A%2F%2Fsee.it%2F%3Fcat%26color%3Dwhite", logoutURL[0]);
     }
 
     private String toJsonArray(String[] array) {

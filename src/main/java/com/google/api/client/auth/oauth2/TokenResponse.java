@@ -196,3 +196,4 @@ public class TokenResponse extends GenericJson {
         return (TokenResponse) super.clone();
     }
 }
+

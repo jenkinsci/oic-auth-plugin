@@ -1,14 +1,12 @@
 package org.jenkinsci.plugins.oic;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-
-import org.junit.Test;
-
 import com.google.api.client.auth.oauth2.TokenResponse;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import java.io.IOException;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * We'd like to be more permissive by allowing both long literals and Strigns containing to accepted

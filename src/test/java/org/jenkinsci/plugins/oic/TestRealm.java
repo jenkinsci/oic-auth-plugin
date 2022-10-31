@@ -1,17 +1,12 @@
 package org.jenkinsci.plugins.oic;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.Random;
-
-import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.StaplerRequest;
-
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.google.api.client.http.HttpTransport;
-
 import hudson.model.Descriptor;
 import hudson.security.SecurityRealm;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.StaplerRequest;
 
 public class TestRealm extends OicSecurityRealm {
 
@@ -48,7 +43,7 @@ public class TestRealm extends OicSecurityRealm {
         public String automanualconfigure = MANUAL_CONFIG_FIELD;
 
         public Builder(WireMockRule wireMockRule) throws IOException {
-	     this("http://localhost:" + wireMockRule.port() + "/");
+         this("http://localhost:" + wireMockRule.port() + "/");
         }
         public Builder(String rootUrl) throws IOException {
              this.wellKnownOpenIDConfigurationUrl = rootUrl + "well.known";
@@ -60,8 +55,8 @@ public class TestRealm extends OicSecurityRealm {
         public Builder WithEmailFieldName(String emailFieldName) { this.emailFieldName = emailFieldName; return this; }
         public Builder WithGroupsFieldName(String groupsFieldName) { this.groupsFieldName = groupsFieldName; return this; }
         public Builder WithPostLogoutRedirectUrl(String postLogoutRedirectUrl) { this.postLogoutRedirectUrl = postLogoutRedirectUrl; return this; }
-	public Builder WithAutomanualconfigure(String automanualconfigure) { this.automanualconfigure = automanualconfigure; return this; }
-	public Builder WithScopes(String scopes) { this.scopes = scopes; return this; }
+    public Builder WithAutomanualconfigure(String automanualconfigure) { this.automanualconfigure = automanualconfigure; return this; }
+    public Builder WithScopes(String scopes) { this.scopes = scopes; return this; }
 
         public Builder WithMinimalDefaults() { return this.WithEmailFieldName(EMAIL_FIELD).WithGroupsFieldName(GROUPS_FIELD); }
         public Builder WithLogout(Boolean logoutFromOpenidProvider, String endSessionEndpoint) {
@@ -69,13 +64,13 @@ public class TestRealm extends OicSecurityRealm {
             this.endSessionEndpoint = endSessionEndpoint;
             return this;
         }
-	public Builder WithEscapeHatch(boolean escapeHatchEnabled, String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup) {
-		this.escapeHatchEnabled = escapeHatchEnabled;
-		this.escapeHatchUsername = escapeHatchUsername;
-		this.escapeHatchSecret = escapeHatchSecret;
-		this.escapeHatchGroup = escapeHatchGroup;
-		return this;
-	}
+    public Builder WithEscapeHatch(boolean escapeHatchEnabled, String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup) {
+        this.escapeHatchEnabled = escapeHatchEnabled;
+        this.escapeHatchUsername = escapeHatchUsername;
+        this.escapeHatchSecret = escapeHatchSecret;
+        this.escapeHatchGroup = escapeHatchGroup;
+        return this;
+    }
 
         public TestRealm build() throws IOException {
             return new TestRealm(this);
@@ -128,23 +123,23 @@ public class TestRealm extends OicSecurityRealm {
 
     public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupFieldName, String automanualconfigure) throws IOException {
         this(new Builder(wireMockRule).WithMinimalDefaults()
-			.WithUserInfoServerUrl(userInfoServerUrl)
-			.WithEmailFieldName(emailFieldName)
-			.WithGroupsFieldName(groupFieldName)
-			.WithAutomanualconfigure(automanualconfigure)
-			);
+            .WithUserInfoServerUrl(userInfoServerUrl)
+            .WithEmailFieldName(emailFieldName)
+            .WithGroupsFieldName(groupFieldName)
+            .WithAutomanualconfigure(automanualconfigure)
+            );
     }
 
     public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupFieldName,
                      String automanualconfigure, boolean escapeHatchEnabled, String escapeHatchUsername,
                      String escapeHatchSecret, String escapeHatchGroup) throws IOException {
         this(new Builder(wireMockRule).WithMinimalDefaults()
-			.WithUserInfoServerUrl(userInfoServerUrl)
-			.WithEmailFieldName(emailFieldName)
-			.WithGroupsFieldName(groupFieldName)
-			.WithAutomanualconfigure(automanualconfigure)
-			.WithEscapeHatch(escapeHatchEnabled, escapeHatchUsername, escapeHatchSecret, escapeHatchGroup)
-			);
+            .WithUserInfoServerUrl(userInfoServerUrl)
+            .WithEmailFieldName(emailFieldName)
+            .WithGroupsFieldName(groupFieldName)
+            .WithAutomanualconfigure(automanualconfigure)
+            .WithEscapeHatch(escapeHatchEnabled, escapeHatchUsername, escapeHatchSecret, escapeHatchGroup)
+            );
     }
 
     @Override

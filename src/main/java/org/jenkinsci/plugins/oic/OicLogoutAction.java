@@ -39,7 +39,7 @@ public class OicLogoutAction implements UnprotectedRootAction {
 
     @Override
     public String getDisplayName() {
-		return Messages.OicLogoutAction_OicLogout();
+        return Messages.OicLogoutAction_OicLogout();
     }
 
     @Override
