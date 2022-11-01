@@ -44,6 +44,7 @@ import com.google.api.client.json.GenericJson;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.util.Data;
 import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
@@ -572,16 +573,18 @@ public class OicSecurityRealm extends SecurityRealm {
         if (isNotBlank(groupsFieldName)) {
             if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, groupsFieldName)) {
                 LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
-                @SuppressWarnings("unchecked")
                 List<String> groupNames = ensureString(getField(userInfo, groupsFieldName));
-                LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+                if(groupNames.isEmpty()){
+                    LOGGER.warning("UserInfo does not contains groups in " + groupsFieldName);
+                } else {
+                    LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+                }
                 for (String groupName : groupNames) {
                     LOGGER.fine("Adding group from UserInfo: " + groupName);
                     grantedAuthorities.add(new SimpleGrantedAuthority(groupName));
                 }
             } else if (containsField(idToken.getPayload(), groupsFieldName)) {
                 LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());
-                @SuppressWarnings("unchecked")
                 List<String> groupNames = ensureString(getField(idToken.getPayload(), groupsFieldName));
                 LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                 for (String groupName : groupNames) {
@@ -598,9 +601,13 @@ public class OicSecurityRealm extends SecurityRealm {
         return grantedAuthorities;
     }
 
-    @SuppressWarnings("unchecked")
+    /** Ensure group field object returns is string or list of string
+     */
     private List<String> ensureString(Object field) {
-        if (field instanceof String) {
+        if (field == null || Data.isNull(field) ) {
+            LOGGER.warning("userInfo did not contain a valid group field content, got null");
+            return Collections.<String>emptyList();
+        } else if (field instanceof String) {
             // if its a String, the original value was not a json array.
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
             // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
@@ -614,7 +621,12 @@ public class OicSecurityRealm extends SecurityRealm {
             }
             return result;
         } else {
-           return (List<String>) field;
+            try {
+                return (List<String>) field;
+            } catch(ClassCastException e) {
+                LOGGER.warning("userInfo did not contain a valid group field content, got: " + field.getClass().getSimpleName());
+                return Collections.<String>emptyList();
+            }
         }
     }
 
