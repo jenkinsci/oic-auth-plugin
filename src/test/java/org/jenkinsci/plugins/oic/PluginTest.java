@@ -406,6 +406,146 @@ public class PluginTest {
         assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
 
+    @Test public void testShouldLogUserWithoutGroupsWhenUserGroupIsMissing() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+                aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")
+        ));
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+                aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{" +
+                                "\"id_token\": \""+createIdToken(keyPair.getPrivate(),Collections.<String,Object>emptyMap())+"\"," +
+                                "\"access_token\":\"AcCeSs_ToKeN\"," +
+                                "\"token_type\":\"example\"," +
+                                "\"expires_in\":3600," +
+                                "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                                "\"example_parameter\":\"example_value\"" +
+                                "}")
+        ));
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\"\n" +
+                            "  }")
+        ));
+
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo"));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertTrue("User shouldn't be part of any group", user.getAuthorities().isEmpty());
+    }
+
+    @Test public void testShouldLogUserWithoutGroupsWhenUserGroupIsNull() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+                aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")
+        ));
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+                aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{" +
+                                "\"id_token\": \""+createIdToken(keyPair.getPrivate(),Collections.<String,Object>emptyMap())+"\"," +
+                                "\"access_token\":\"AcCeSs_ToKeN\"," +
+                                "\"token_type\":\"example\"," +
+                                "\"expires_in\":3600," +
+                                "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                                "\"example_parameter\":\"example_value\"" +
+                                "}")
+        ));
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
+                            "   \""+GROUPS_FIELD+"\": null\n" +
+                            "  }")
+        ));
+
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo"));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertTrue("User shouldn't be part of any group", user.getAuthorities().isEmpty());
+    }
+
+    @Test public void testShouldLogUserWithoutGroupsWhenUserGroupIsNotAStringList() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+                aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")
+        ));
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+                aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{" +
+                                "\"id_token\": \""+createIdToken(keyPair.getPrivate(),Collections.<String,Object>emptyMap())+"\"," +
+                                "\"access_token\":\"AcCeSs_ToKeN\"," +
+                                "\"token_type\":\"example\"," +
+                                "\"expires_in\":3600," +
+                                "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                                "\"example_parameter\":\"example_value\"" +
+                                "}")
+        ));
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
+                            "   \""+GROUPS_FIELD+"\": {\"not\": \"a group\"}\n" +
+                            "  }")
+        ));
+
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo"));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertTrue("User shouldn't be part of any group", user.getAuthorities().isEmpty());
+    }
+
     @Test public void testNestedFieldLookup() throws Exception {
         KeyPair keyPair = createKeyPair();
 
