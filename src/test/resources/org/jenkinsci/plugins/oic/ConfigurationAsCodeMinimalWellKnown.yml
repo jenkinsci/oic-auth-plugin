@@ -1,7 +1,6 @@
 jenkins:
   securityRealm:
     oic:
-      automanualconfigure: auto
       wellKnownOpenIDConfigurationUrl: http://localhost:${MOCK_PORT}/well.known
       clientId: clientId
       clientSecret: clientSecret

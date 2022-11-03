@@ -138,7 +138,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private final String escapeHatchUsername;
     private final Secret escapeHatchSecret;
     private final String escapeHatchGroup;
-    private String automanualconfigure;
+    private final String automanualconfigure;
 
     /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
@@ -159,7 +159,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
         this.clientId = clientId;
         this.clientSecret = Secret.fromString(clientSecret);
-        if("auto".equals(automanualconfigure)) {
+        if("auto".equals(automanualconfigure) ||
+           (Util.fixNull(automanualconfigure).isEmpty() &&
+           !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
+            this.automanualconfigure = "auto";
             // Get the well-known configuration from the specified URL
             this.wellKnownOpenIDConfigurationUrl = Util.fixEmpty(wellKnownOpenIDConfigurationUrl);
             URL url = new URL(wellKnownOpenIDConfigurationUrl);
@@ -175,16 +178,17 @@ public class OicSecurityRealm extends SecurityRealm {
             this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
             this.userInfoServerUrl = config.getUserinfoEndpoint();
             this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
-            this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.FALSE);
+            this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
         this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
+            this.automanualconfigure = "manual";
             this.authorizationServerUrl = authorizationServerUrl;
             this.tokenServerUrl = tokenServerUrl;
             this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
             this.userInfoServerUrl = userInfoServerUrl;
             this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
-            this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.FALSE);
+            this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
             this.endSessionEndpoint = endSessionEndpoint;
         }
 
