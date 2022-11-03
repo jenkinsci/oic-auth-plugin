@@ -1,4 +1,5 @@
 authorizationServerUrl: "http://localhost"
+automanualconfigure: "manual"
 clientId: "clientId"
 disableSslVerification: true
 emailFieldName: "emailFieldName"

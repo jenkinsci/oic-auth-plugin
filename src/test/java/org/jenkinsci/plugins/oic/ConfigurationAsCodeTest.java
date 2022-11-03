@@ -74,12 +74,12 @@ public class ConfigurationAsCodeTest {
         String[] lines = exported.split("\n");
         List<String> lineList = new ArrayList<>();
         for (String line : lines) {
-            if (!line.contains("Secret")) {
+            if (!line.isEmpty() && !line.contains("Secret")) {
                 lineList.add(line);
             }
         }
         String cleanedExported = String.join("\n", lineList);
-        String expected = toStringFromYamlFile(this, "ConfigurationAsCodeExport.yml");
+        String expected = toStringFromYamlFile(this, "ConfigurationAsCodeExport.yml").trim();
 
         assertThat(cleanedExported, is(expected));
     }
