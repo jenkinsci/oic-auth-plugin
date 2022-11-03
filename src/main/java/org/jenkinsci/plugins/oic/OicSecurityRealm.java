@@ -151,10 +151,11 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundConstructor
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String tokenAuthMethod, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
-                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, boolean disableSslVerification,
-                            Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, boolean escapeHatchEnabled,
+                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, Boolean disableSslVerification,
+                            Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, Boolean escapeHatchEnabled,
                             String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
-        this.httpTransport = constructHttpTransport(disableSslVerification);
+        this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
+        this.httpTransport = constructHttpTransport(this.disableSslVerification);
 
         this.clientId = clientId;
         this.clientSecret = Secret.fromString(clientSecret);
@@ -174,7 +175,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
             this.userInfoServerUrl = config.getUserinfoEndpoint();
             this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
-            this.logoutFromOpenidProvider = logoutFromOpenidProvider != null;
+            this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.FALSE);
         this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
             this.authorizationServerUrl = authorizationServerUrl;
@@ -183,8 +184,8 @@ public class OicSecurityRealm extends SecurityRealm {
             this.userInfoServerUrl = userInfoServerUrl;
             this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
-            this.logoutFromOpenidProvider = logoutFromOpenidProvider;
-        this.endSessionEndpoint = endSessionEndpoint;
+            this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.FALSE);
+            this.endSessionEndpoint = endSessionEndpoint;
         }
 
         this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
@@ -193,9 +194,8 @@ public class OicSecurityRealm extends SecurityRealm {
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
-        this.disableSslVerification = disableSslVerification;
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
-        this.escapeHatchEnabled = escapeHatchEnabled;
+        this.escapeHatchEnabled = Util.fixNull(escapeHatchEnabled, Boolean.FALSE);
         this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
         this.escapeHatchSecret = Secret.fromString(escapeHatchSecret);
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
