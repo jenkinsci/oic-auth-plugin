@@ -29,8 +29,11 @@ import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Failure;
 import hudson.remoting.Base64;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.Stapler;
@@ -78,6 +81,7 @@ abstract class OicSession {
      * @return an {@link HttpResponse}
      */
     @SuppressFBWarnings("J2EE_STORE_OF_NON_SERIALIZABLE_OBJECT_INTO_SESSION")
+    @Restricted(DoNotUse.class)
     public HttpResponse doCommenceLogin() {
         // remember this in the session
         Stapler.getCurrentRequest().getSession().setAttribute(SESSION_NAME, this);
@@ -89,7 +93,7 @@ abstract class OicSession {
      * When the identity provider is done with its thing, the user comes back here.
      * @return an {@link HttpResponse}
      */
-    public HttpResponse doFinishLogin(StaplerRequest request)  {
+    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
         StringBuffer buf = request.getRequestURL();
         if (request.getQueryString() != null) {
             buf.append('?').append(request.getQueryString());

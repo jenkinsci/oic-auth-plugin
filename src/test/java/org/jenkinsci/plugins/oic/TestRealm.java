@@ -149,7 +149,7 @@ public class TestRealm extends OicSecurityRealm {
     }
 
     @Override
-    public HttpResponse doFinishLogin(StaplerRequest request) {
+    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
         try {
             Field field = OicSession.class.getDeclaredField("state");
             field.setAccessible(true);

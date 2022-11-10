@@ -103,7 +103,7 @@ public class DescriptorImplTest {
 
         assertNotNull(descriptor);
         assertEquals("Token Server Url Key is required.", descriptor.doCheckTokenServerUrl(null).getMessage());
-        assertTrue(descriptor.doCheckTokenServerUrl("").getMessage().contains("Not a valid url."));
+        assertTrue(descriptor.doCheckTokenServerUrl("").getMessage().contains("is required."));
         assertEquals(FormValidation.ok(), descriptor.doCheckTokenServerUrl("http://localhost"));
     }
 
