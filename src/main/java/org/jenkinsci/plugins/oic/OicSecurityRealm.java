@@ -160,7 +160,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
         this.clientId = clientId;
         this.clientSecret = clientSecret != null &&
-		!clientSecret.toLowerCase().equals(NO_SECRET) ? Secret.fromString(clientSecret) : null;
+            !clientSecret.toLowerCase().equals(NO_SECRET) ? Secret.fromString(clientSecret) : null;
         if("auto".equals(automanualconfigure) ||
            (Util.fixNull(automanualconfigure).isEmpty() &&
            !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {

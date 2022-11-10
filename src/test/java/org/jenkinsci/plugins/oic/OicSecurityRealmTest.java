@@ -69,18 +69,18 @@ public class OicSecurityRealmTest {
     @Test
     public void testShouldSetNullClientSecretWhenSecretIsNull() throws IOException {
         TestRealm realm = new TestRealm.Builder(wireMockRule)
-			.WithMinimalDefaults()
-			.WithClient("id without secret", null)
-			.build();
+            .WithMinimalDefaults()
+            .WithClient("id without secret", null)
+            .build();
         assertEquals("none", Secret.toString(realm.getClientSecret()));
     }
 
     @Test
     public void testShouldSetNullClientSecretWhenSecretIsNone() throws IOException {
         TestRealm realm = new TestRealm.Builder(wireMockRule)
-			.WithMinimalDefaults()
-			.WithClient("id with none secret", "NoNE")
-			.build();
+            .WithMinimalDefaults()
+            .WithClient("id with none secret", "NoNE")
+            .build();
         assertEquals("none", Secret.toString(realm.getClientSecret()));
     }
 }
