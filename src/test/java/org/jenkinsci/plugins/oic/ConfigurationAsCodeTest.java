@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.oic;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.security.SecurityRealm;
+import hudson.util.Secret;
 import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
@@ -45,12 +46,12 @@ public class ConfigurationAsCodeTest {
 
         assertEquals("http://localhost", oicSecurityRealm.getAuthorizationServerUrl());
         assertEquals("clientId", oicSecurityRealm.getClientId());
-        assertEquals("clientSecret", oicSecurityRealm.getClientSecret().getPlainText());
+        assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertTrue(oicSecurityRealm.isDisableSslVerification());
         assertEquals("emailFieldName", oicSecurityRealm.getEmailFieldName());
         assertTrue(oicSecurityRealm.isEscapeHatchEnabled());
         assertEquals("escapeHatchGroup", oicSecurityRealm.getEscapeHatchGroup());
-        assertEquals("escapeHatchSecret", oicSecurityRealm.getEscapeHatchSecret().getPlainText());
+        assertEquals("escapeHatchSecret", Secret.toString(oicSecurityRealm.getEscapeHatchSecret()));
         assertEquals("escapeHatchUsername", oicSecurityRealm.getEscapeHatchUsername());
         assertEquals("fullNameFieldName", oicSecurityRealm.getFullNameFieldName());
         assertEquals("groupsFieldName", oicSecurityRealm.getGroupsFieldName());
@@ -94,7 +95,7 @@ public class ConfigurationAsCodeTest {
 
         assertEquals("http://localhost/authorize", oicSecurityRealm.getAuthorizationServerUrl());
         assertEquals("clientId", oicSecurityRealm.getClientId());
-        assertEquals("clientSecret", oicSecurityRealm.getClientSecret().getPlainText());
+        assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
         assertNull(oicSecurityRealm.getEmailFieldName());
         assertFalse(oicSecurityRealm.isEscapeHatchEnabled());
@@ -130,7 +131,7 @@ public class ConfigurationAsCodeTest {
         assertEquals(urlBase+"/authorize", oicSecurityRealm.getAuthorizationServerUrl());
         assertEquals(urlBase+"/token", oicSecurityRealm.getTokenServerUrl());
         assertEquals("clientId", oicSecurityRealm.getClientId());
-        assertEquals("clientSecret", oicSecurityRealm.getClientSecret().getPlainText());
+        assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
         assertNull(oicSecurityRealm.getEmailFieldName());
         assertFalse(oicSecurityRealm.isEscapeHatchEnabled());

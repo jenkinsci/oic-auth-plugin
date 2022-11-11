@@ -114,6 +114,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private static final JsonFactory JSON_FACTORY = new JacksonFactory();
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
+    private static final String NO_SECRET = "none";
 
 
     private final String clientId;
@@ -158,7 +159,8 @@ public class OicSecurityRealm extends SecurityRealm {
         this.httpTransport = constructHttpTransport(this.disableSslVerification);
 
         this.clientId = clientId;
-        this.clientSecret = Secret.fromString(clientSecret);
+        this.clientSecret = clientSecret != null &&
+            !clientSecret.toLowerCase().equals(NO_SECRET) ? Secret.fromString(clientSecret) : null;
         if("auto".equals(automanualconfigure) ||
            (Util.fixNull(automanualconfigure).isEmpty() &&
            !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
@@ -241,7 +243,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     public Secret getClientSecret() {
-        return clientSecret;
+        return clientSecret == null ? Secret.fromString(NO_SECRET) : clientSecret;
     }
 
     public String getWellKnownOpenIDConfigurationUrl() {
@@ -357,7 +359,7 @@ public class OicSecurityRealm extends SecurityRealm {
                         if (authentication instanceof UsernamePasswordAuthenticationToken && escapeHatchEnabled) {
                             randomWait(); // to slowdown brute forcing
                             if( authentication.getPrincipal().toString().equals(escapeHatchUsername) &&
-                                authentication.getCredentials().toString().equals(escapeHatchSecret.getPlainText())) {
+                                authentication.getCredentials().toString().equals(Secret.toString(escapeHatchSecret))) {
                                     List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
                                     grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
                                     if(isNotBlank(escapeHatchGroup)) {
@@ -407,10 +409,10 @@ public class OicSecurityRealm extends SecurityRealm {
      */
     protected AuthorizationCodeFlow buildAuthorizationCodeFlow() {
         AccessMethod tokenAccessMethod = BearerToken.queryParameterAccessMethod();
-        HttpExecuteInterceptor authInterceptor = new ClientParametersAuthentication(clientId, clientSecret.getPlainText());
+        HttpExecuteInterceptor authInterceptor = new ClientParametersAuthentication(clientId, Secret.toString(clientSecret));
         if (TokenAuthMethod.client_secret_basic.equals(tokenAuthMethod)) {
             tokenAccessMethod = BearerToken.authorizationHeaderAccessMethod();
-            authInterceptor = new BasicAuthentication(clientId, clientSecret.getPlainText());
+            authInterceptor = new BasicAuthentication(clientId, Secret.toString(clientSecret));
         }
         return new AuthorizationCodeFlow.Builder(
                 tokenAccessMethod,

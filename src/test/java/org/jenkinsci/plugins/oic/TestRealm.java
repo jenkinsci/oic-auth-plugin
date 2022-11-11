@@ -51,6 +51,7 @@ public class TestRealm extends OicSecurityRealm {
              this.authorizationServerUrl = rootUrl + "authorization";
         }
 
+        public Builder WithClient(String clientId, String clientSecret) { this.clientId = clientId ; this.clientSecret = clientSecret; return this; }
         public Builder WithUserInfoServerUrl(String userInfoServerUrl) { this.userInfoServerUrl = userInfoServerUrl; return this; }
         public Builder WithEmailFieldName(String emailFieldName) { this.emailFieldName = emailFieldName; return this; }
         public Builder WithGroupsFieldName(String groupsFieldName) { this.groupsFieldName = groupsFieldName; return this; }
