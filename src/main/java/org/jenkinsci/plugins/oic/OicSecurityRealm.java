@@ -76,6 +76,8 @@ import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
 import org.apache.commons.lang.StringUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
@@ -83,6 +85,7 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -433,6 +436,7 @@ public class OicSecurityRealm extends SecurityRealm {
      * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
      * @return an {@link HttpResponse} object
     */
+    @Restricted(DoNotUse.class) // stapler only
     public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) {
         final String redirectOnFinish = determineRedirectTarget(from, referer);
 
@@ -644,6 +648,7 @@ public class OicSecurityRealm extends SecurityRealm {
         return null;
     }
 
+    @Restricted(DoNotUse.class) // stapler only
     public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         OicSession oicSession = OicSession.getCurrent();
         if(oicSession!=null) {
@@ -707,7 +712,7 @@ public class OicSecurityRealm extends SecurityRealm {
      * @param request The user's request
      * @return an HttpResponse
     */
-    public HttpResponse doFinishLogin(StaplerRequest request) {
+    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
         OicSession currentSession = OicSession.getCurrent();
         if(currentSession==null) {
             LOGGER.fine("No session to resume (perhaps jenkins was restarted?)");
@@ -826,21 +831,27 @@ public class OicSecurityRealm extends SecurityRealm {
             return Messages.OicSecurityRealm_DisplayName();
         }
 
+        @RequirePOST
         public FormValidation doCheckClientId(@QueryParameter String clientId) {
-            if (clientId == null || clientId.trim().length() == 0) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(clientId) == null) {
                 return FormValidation.error(Messages.OicSecurityRealm_ClientIdRequired());
             }
             return FormValidation.ok();
         }
 
+        @RequirePOST
         public FormValidation doCheckClientSecret(@QueryParameter String clientSecret) {
-            if (clientSecret == null || clientSecret.trim().length() == 0) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(clientSecret) == null) {
                 return FormValidation.error(Messages.OicSecurityRealm_ClientSecretRequired());
             }
             return FormValidation.ok();
         }
 
+        @RequirePOST
         public FormValidation doCheckWellKnownOpenIDConfigurationUrl(@QueryParameter String wellKnownOpenIDConfigurationUrl, @QueryParameter boolean disableSslVerification) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             try {
                 URL url = new URL(wellKnownOpenIDConfigurationUrl);
                 HttpRequest request = constructHttpTransport(disableSslVerification).createRequestFactory()
@@ -869,8 +880,10 @@ public class OicSecurityRealm extends SecurityRealm {
             }
         }
 
+        @RequirePOST
         public FormValidation doCheckTokenServerUrl(@QueryParameter String tokenServerUrl) {
-            if (tokenServerUrl == null) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(tokenServerUrl) == null) {
                 return FormValidation.error(Messages.OicSecurityRealm_TokenServerURLKeyRequired());
             }
             try {
@@ -881,14 +894,18 @@ public class OicSecurityRealm extends SecurityRealm {
             }
         }
 
+        @RequirePOST
         public FormValidation doCheckTokenAuthMethod(@QueryParameter String tokenAuthMethod) {
-            if (tokenAuthMethod == null || tokenAuthMethod.trim().length() == 0 ) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(tokenAuthMethod) == null) {
                 return FormValidation.error(Messages.OicSecurityRealm_TokenAuthMethodRequired());
             }
             return FormValidation.ok();
         }
 
+        @RequirePOST
         public FormValidation doCheckAuthorizationServerUrl(@QueryParameter String authorizationServerUrl) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (authorizationServerUrl == null) {
                 return FormValidation.error(Messages.OicSecurityRealm_TokenServerURLKeyRequired());
             }
@@ -900,15 +917,19 @@ public class OicSecurityRealm extends SecurityRealm {
             }
         }
 
+        @RequirePOST
         public FormValidation doCheckUserNameField(@QueryParameter String userNameField) {
-            if (userNameField == null || userNameField.trim().length() == 0) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(userNameField) == null) {
                 return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultUsername());
             }
             return FormValidation.ok();
         }
 
+        @RequirePOST
         public FormValidation doCheckScopes(@QueryParameter String scopes) {
-            if (scopes == null || scopes.trim().length() == 0) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(scopes) == null) {
                 return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultScopes());
             }
             if(!scopes.toLowerCase().contains("openid")) {
@@ -917,8 +938,10 @@ public class OicSecurityRealm extends SecurityRealm {
             return FormValidation.ok();
         }
 
+        @RequirePOST
         public FormValidation doCheckEndSessionEndpoint(@QueryParameter String endSessionEndpoint) {
-            if (endSessionEndpoint == null || endSessionEndpoint.equals("")) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(endSessionEndpoint) == null) {
                 return FormValidation.error(Messages.OicSecurityRealm_EndSessionURLKeyRequired());
             }
             try {
@@ -929,8 +952,10 @@ public class OicSecurityRealm extends SecurityRealm {
             }
         }
 
+        @RequirePOST
         public FormValidation doCheckPostLogoutRedirectUrl(@QueryParameter String postLogoutRedirectUrl) {
-            if (postLogoutRedirectUrl != null && !postLogoutRedirectUrl.equals("")) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(postLogoutRedirectUrl) != null) {
                 try {
                     new URL(postLogoutRedirectUrl);
                     return FormValidation.ok();
