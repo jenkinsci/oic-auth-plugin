@@ -17,3 +17,4 @@ jenkins:
       tokenAuthMethod: client_secret_post
       tokenServerUrl: http://localhost
       userNameField: userNameField
+      rootURLFromRequest: true

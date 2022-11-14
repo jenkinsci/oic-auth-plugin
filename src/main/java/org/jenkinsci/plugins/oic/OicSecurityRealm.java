@@ -79,6 +79,7 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Header;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
@@ -143,6 +144,12 @@ public class OicSecurityRealm extends SecurityRealm {
     private final Secret escapeHatchSecret;
     private final String escapeHatchGroup;
     private final String automanualconfigure;
+
+    /** Flag indicating if root url should be taken from config or request
+     *
+     * Taking root url from request requires a well configured proxy/ingress
+     */
+    private boolean rootURLFromRequest = false;
 
     /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
@@ -331,6 +338,15 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public String getAutomanualconfigure() {
         return automanualconfigure;
+    }
+
+    public boolean isRootURLFromRequest() {
+        return rootURLFromRequest;
+    }
+
+    @DataBoundSetter
+    public void setRootURLFromRequest(boolean rootURLFromRequest) {
+        this.rootURLFromRequest = rootURLFromRequest;
     }
 
     @Override
@@ -686,6 +702,14 @@ public class OicSecurityRealm extends SecurityRealm {
         return req.getContextPath() + "/" + OicLogoutAction.POST_LOGOUT_URL;
     }
 
+    private String getRootUrl() {
+        if (rootURLFromRequest) {
+            return Jenkins.get().getRootUrlFromRequest();
+        } else {
+            return Jenkins.get().getRootUrl();
+        }
+    }
+
     private String determineRedirectTarget(@QueryParameter String from, @Header("Referer") String referer) {
         String target;
         if (from != null) {
@@ -693,13 +717,13 @@ public class OicSecurityRealm extends SecurityRealm {
         } else if (referer != null) {
             target = referer;
         } else {
-            target = Jenkins.get().getRootUrlFromRequest();
+            target = getRootUrl();
         }
         return target;
     }
 
     private String buildOAuthRedirectUrl() throws NullPointerException {
-        String rootUrl = Jenkins.get().getRootUrlFromRequest();
+        String rootUrl = getRootUrl();
         if (rootUrl == null) {
             throw new NullPointerException("Jenkins root url should not be null");
         } else {

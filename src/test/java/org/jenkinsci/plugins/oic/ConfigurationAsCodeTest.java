@@ -60,6 +60,7 @@ public class ConfigurationAsCodeTest {
         assertEquals("http://localhost", oicSecurityRealm.getTokenServerUrl());
         assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
+	assertTrue(oicSecurityRealm.isRootURLFromRequest());
     }
 
     @Test
@@ -106,6 +107,7 @@ public class ConfigurationAsCodeTest {
         assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
+	assertFalse(oicSecurityRealm.isRootURLFromRequest());
     }
 
     @Rule(order = 0)
