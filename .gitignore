@@ -6,3 +6,5 @@ target/
 /.project
 /.settings
 /.apt_generated/
+
+.*.swp
