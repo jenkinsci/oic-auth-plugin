@@ -6,6 +6,8 @@ import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
+import com.google.api.client.json.webtoken.JsonWebToken;
+import com.google.gson.JsonElement;
 import hudson.model.User;
 import hudson.tasks.Mailer;
 import java.security.KeyPair;
@@ -29,6 +31,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.google.gson.JsonParser.parseString;
 import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
@@ -44,7 +47,7 @@ import static org.junit.Assert.assertTrue;
  */
 @Url("https://jenkins.io/blog/2018/01/13/jep-200/")
 public class PluginTest {
-    private static final JsonFactory JSON_FACORY = new JacksonFactory();
+    private static final JsonFactory JSON_FACTORY = new JacksonFactory();
 
     private static final String TEST_USER_USERNAME = "testUser";
     private static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
@@ -404,6 +407,56 @@ public class PluginTest {
         assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be part of group " + TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+    }
+
+    @Test public void testLoginUsingUserInfoWithJWT() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+                aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")
+        ));
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+                aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{" +
+                                "\"id_token\": \""+createIdToken(keyPair.getPrivate(),Collections.<String,Object>emptyMap())+"\"," +
+                                "\"access_token\":\"AcCeSs_ToKeN\"," +
+                                "\"token_type\":\"example\"," +
+                                "\"expires_in\":3600," +
+                                "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                                "\"example_parameter\":\"example_value\"" +
+                                "}")
+        ));
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/jwt")
+                    .withBody(createUserInfoJWT(keyPair.getPrivate(),"{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
+                            "   \""+GROUPS_FIELD+"\": \""+TEST_USER_GROUPS[0]+"\"\n" +
+                            "  }"))
+        ));
+
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo"));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Full name should be " + TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group " + TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
     }
 
     @Test public void testShouldLogUserWithoutGroupsWhenUserGroupIsMissing() throws Exception {
@@ -832,7 +885,20 @@ public class PluginTest {
             payload.set(keyValue.getKey(), keyValue.getValue());
         }
 
-        return JsonWebSignature.signUsingRsaSha256(privateKey, JSON_FACORY, header, payload);
+        return JsonWebSignature.signUsingRsaSha256(privateKey, JSON_FACTORY, header, payload);
+    }
+
+    private String createUserInfoJWT(PrivateKey privateKey, String userInfo) throws Exception {
+
+        JsonWebSignature.Header header = new JsonWebSignature.Header()
+            .setAlgorithm("RS256");
+
+        JsonWebToken.Payload payload = new JsonWebToken.Payload();
+        for(Map.Entry<String, JsonElement> keyValue : parseString(userInfo).getAsJsonObject().entrySet()) {
+            payload.set(keyValue.getKey(), keyValue.getValue().getAsString());
+        }
+
+        return JsonWebSignature.signUsingRsaSha256(privateKey, JSON_FACTORY, header, payload);
     }
 
     /**
