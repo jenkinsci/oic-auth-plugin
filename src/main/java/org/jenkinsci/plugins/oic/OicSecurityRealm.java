@@ -30,7 +30,6 @@ import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.Credential.AccessMethod;
 import com.google.api.client.auth.openidconnect.IdToken;
-import com.google.api.client.auth.openidconnect.IdTokenResponse;
 import com.google.api.client.http.BasicAuthentication;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpExecuteInterceptor;
@@ -470,11 +469,11 @@ public class OicSecurityRealm extends SecurityRealm {
                     // Supplying scope is not allowed when obtaining an access token with an authorization code.
                     tokenRequest.setScopes(Collections.<String>emptyList());
 
-                    IdTokenResponse response = IdTokenResponse.execute(tokenRequest);
+                    OicTokenResponse response = (OicTokenResponse) tokenRequest.execute();
 
                     this.setIdToken(response.getIdToken());
 
-                    IdToken idToken = IdToken.parse(JSON_FACTORY, response.getIdToken());
+                    IdToken idToken = response.parseIdToken();
 
                     Object username;
                     GenericJson userInfo = null;
