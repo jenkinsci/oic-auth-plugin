@@ -24,15 +24,34 @@
 package org.jenkinsci.plugins.oic;
 
 import com.google.api.client.auth.oauth2.TokenResponse;
+import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.util.Key;
+import hudson.Util;
+import java.io.IOException;
 import java.util.Objects;
 
-/**  Custom TokenResponse
+/**  Custom TokenResponse with id_token capabilities
 *
 * Customisation includes:
 * - expires_in: can be Long or String of Long
 */
 public class OicTokenResponse extends TokenResponse {
+
+    @Key("id_token")
+    private String idToken;
+
+    public final String getIdToken() {
+        return this.idToken;
+    }
+
+    public OicTokenResponse setIdToken(String str) {
+        this.idToken = (String) Util.fixNull(str);
+        return this;
+    }
+
+    public IdToken parseIdToken() throws IOException {
+        return IdToken.parse(getFactory(), this.idToken);
+    }
 
     /**
      * Lifetime in seconds of the access token (for example 3600 for an hour) or {@code null} for
@@ -98,5 +117,36 @@ public class OicTokenResponse extends TokenResponse {
     @Override
     public int hashCode() {
         return super.hashCode();
+    }
+
+    // ---- override com.google.api.client.auth.oauth2.TokenResponse
+
+    @Override // com.google.api.client.auth.oauth2.TokenResponse, com.google.api.client.json.GenericJson, com.google.api.client.util.GenericData
+    public OicTokenResponse set(String str, Object obj) {
+        return (OicTokenResponse) super.set(str, obj);
+    }
+
+    @Override // com.google.api.client.auth.oauth2.TokenResponse
+    public OicTokenResponse setAccessToken(String str) {
+        super.setAccessToken(str);
+        return this;
+    }
+
+    @Override // com.google.api.client.auth.oauth2.TokenResponse
+    public OicTokenResponse setRefreshToken(String str) {
+        super.setRefreshToken(str);
+        return this;
+    }
+
+    @Override // com.google.api.client.auth.oauth2.TokenResponse
+    public OicTokenResponse setScope(String str) {
+        super.setScope(str);
+        return this;
+    }
+
+    @Override // com.google.api.client.auth.oauth2.TokenResponse
+    public OicTokenResponse setTokenType(String str) {
+        super.setTokenType(str);
+        return this;
     }
 }
