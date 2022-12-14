@@ -1,5 +1,4 @@
 authorizationServerUrl: "http://localhost"
-automanualconfigure: "manual"
 clientId: "clientId"
 disableSslVerification: true
 emailFieldName: "emailFieldName"
@@ -8,7 +7,6 @@ escapeHatchGroup: "escapeHatchGroup"
 escapeHatchUsername: "escapeHatchUsername"
 fullNameFieldName: "fullNameFieldName"
 groupsFieldName: "groupsFieldName"
-logoutFromOpenidProvider: true
 rootURLFromRequest: true
 scopes: "scopes"
 tokenAuthMethod: "client_secret_post"

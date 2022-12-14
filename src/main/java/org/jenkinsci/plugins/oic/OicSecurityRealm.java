@@ -124,27 +124,27 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private final String clientId;
     private final Secret clientSecret;
-    private final String wellKnownOpenIDConfigurationUrl;
-    private final String tokenServerUrl;
-    private final TokenAuthMethod tokenAuthMethod;
-    private final String authorizationServerUrl;
-    private final String userInfoServerUrl;
-    private final String userNameField;
-    private final String tokenFieldToCheckKey;
-    private final String tokenFieldToCheckValue;
-    private final String fullNameFieldName;
-    private final String emailFieldName;
-    private final String groupsFieldName;
-    private final String scopes;
+    private String wellKnownOpenIDConfigurationUrl = null;
+    private String tokenServerUrl = null;
+    private TokenAuthMethod tokenAuthMethod;
+    private String authorizationServerUrl = null;
+    private String userInfoServerUrl = null;
+    private String userNameField = "sub";
+    private String tokenFieldToCheckKey = null;
+    private String tokenFieldToCheckValue = null;
+    private String fullNameFieldName = null;
+    private String emailFieldName = null;
+    private String groupsFieldName = null;
+    private String scopes = null;
     private final boolean disableSslVerification;
-    private final boolean logoutFromOpenidProvider;
-    private final String endSessionEndpoint;
-    private final String postLogoutRedirectUrl;
-    private final boolean escapeHatchEnabled;
-    private final String escapeHatchUsername;
-    private final Secret escapeHatchSecret;
-    private final String escapeHatchGroup;
-    private final String automanualconfigure;
+    private boolean logoutFromOpenidProvider = true;
+    private String endSessionEndpoint = null;
+    private String postLogoutRedirectUrl;
+    private boolean escapeHatchEnabled = false;
+    private String escapeHatchUsername = null;
+    private Secret escapeHatchSecret = null;
+    private String escapeHatchGroup = null;
+    private String automanualconfigure = null;
 
     /** Flag indicating if root url should be taken from config or request
      *
@@ -160,7 +160,10 @@ public class OicSecurityRealm extends SecurityRealm {
     private transient HttpTransport httpTransport;
     private static final Random RANDOM = new Random();
 
-    @DataBoundConstructor
+    /**
+     * @deprecated retained for backwards binary compatibility.
+     */
+    @Deprecated
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String tokenAuthMethod, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
                             String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, Boolean disableSslVerification,
@@ -191,8 +194,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
             this.userInfoServerUrl = config.getUserinfoEndpoint();
             this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
-            this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
-        this.endSessionEndpoint = config.getEndSessionEndpoint();
+            this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
             this.automanualconfigure = "manual";
             this.authorizationServerUrl = authorizationServerUrl;
@@ -201,21 +203,43 @@ public class OicSecurityRealm extends SecurityRealm {
             this.userInfoServerUrl = userInfoServerUrl;
             this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
-            this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
             this.endSessionEndpoint = endSessionEndpoint;
         }
 
-        this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
         this.tokenFieldToCheckKey = Util.fixEmpty(tokenFieldToCheckKey);
         this.tokenFieldToCheckValue = Util.fixEmpty(tokenFieldToCheckValue);
+        this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
+        this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
         this.escapeHatchEnabled = Util.fixNull(escapeHatchEnabled, Boolean.FALSE);
         this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
         this.escapeHatchSecret = Secret.fromString(escapeHatchSecret);
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
+    }
+
+    @DataBoundConstructor
+    public OicSecurityRealm(String clientId, String clientSecret, String authorizationServerUrl,
+                            String tokenServerUrl, String tokenAuthMethod, String userInfoServerUrl,
+                            String endSessionEndpoint, String scopes, String automanualconfigure,
+                            Boolean disableSslVerification) throws IOException {
+        // Needed in DataBoundSetter
+        this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
+        this.httpTransport = constructHttpTransport(this.disableSslVerification);
+        this.clientId = clientId;
+        this.clientSecret = clientSecret != null &&
+            !clientSecret.toLowerCase().equals(NO_SECRET) ? Secret.fromString(clientSecret) : null;
+        // auto/manual configuration as set in jcasc/config
+        this.automanualconfigure = Util.fixNull(automanualconfigure);
+        // previous values of OpenIDConnect configuration
+        this.authorizationServerUrl = authorizationServerUrl;
+        this.tokenServerUrl = tokenServerUrl;
+        this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
+        this.userInfoServerUrl = userInfoServerUrl;
+        this.endSessionEndpoint = endSessionEndpoint;
+        this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
     }
 
     protected Object readResolve() {
@@ -343,6 +367,94 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public boolean isRootURLFromRequest() {
         return rootURLFromRequest;
+    }
+
+    @DataBoundSetter
+    public void setWellKnownOpenIDConfigurationUrl(String wellKnownOpenIDConfigurationUrl) throws IOException {
+        if("auto".equals(this.automanualconfigure) ||
+           (this.automanualconfigure.isEmpty() &&
+           !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
+            this.automanualconfigure = "auto";
+            this.wellKnownOpenIDConfigurationUrl = wellKnownOpenIDConfigurationUrl;
+            // Get the well-known configuration from the specified URL
+            URL url = new URL(wellKnownOpenIDConfigurationUrl);
+            HttpRequest request = httpTransport.createRequestFactory().buildGetRequest(new GenericUrl(url));
+            com.google.api.client.http.HttpResponse response = request.execute();
+
+            WellKnownOpenIDConfigurationResponse config = OicSecurityRealm.JSON_FACTORY
+                    .fromInputStream(response.getContent(), Charset.defaultCharset(),
+                            WellKnownOpenIDConfigurationResponse.class);
+
+            this.authorizationServerUrl = config.getAuthorizationEndpoint();
+            this.tokenServerUrl = config.getTokenEndpoint();
+            this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
+            this.userInfoServerUrl = config.getUserinfoEndpoint();
+            this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
+            this.endSessionEndpoint = config.getEndSessionEndpoint();
+        } else {
+            this.automanualconfigure = "manual";
+            this.wellKnownOpenIDConfigurationUrl = null;
+        }
+    }
+
+    @DataBoundSetter
+    public void setUserNameField(String userNameField) {
+        this.userNameField = Util.fixEmpty(userNameField);
+    }
+
+    @DataBoundSetter
+    public void setTokenFieldToCheckKey(String tokenFieldToCheckKey) {
+        this.tokenFieldToCheckKey = Util.fixEmpty(tokenFieldToCheckKey);
+    }
+
+    @DataBoundSetter
+    public void setTokenFieldToCheckValue(String tokenFieldToCheckValue) {
+        this.tokenFieldToCheckValue = Util.fixEmpty(tokenFieldToCheckValue);
+    }
+
+    @DataBoundSetter
+    public void setFullNameFieldName(String fullNameFieldName) {
+        this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
+    }
+
+    @DataBoundSetter
+    public void setEmailFieldName(String emailFieldName) {
+        this.emailFieldName = Util.fixEmpty(emailFieldName);
+    }
+
+    @DataBoundSetter
+    public void setGroupsFieldName(String groupsFieldName) {
+        this.groupsFieldName = Util.fixEmpty(groupsFieldName);
+    }
+
+    @DataBoundSetter
+    public void setLogoutFromOpenidProvider(boolean logoutFromOpenidProvider) {
+        this.logoutFromOpenidProvider = logoutFromOpenidProvider;
+    }
+
+    @DataBoundSetter
+    public void setPostLogoutRedirectUrl(String postLogoutRedirectUrl) {
+        this.postLogoutRedirectUrl = Util.fixEmpty(postLogoutRedirectUrl);
+    }
+
+    @DataBoundSetter
+    public void setEscapeHatchEnabled(boolean escapeHatchEnabled) {
+        this.escapeHatchEnabled = escapeHatchEnabled;
+    }
+
+    @DataBoundSetter
+    public void setEscapeHatchUsername(String escapeHatchUsername) {
+        this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
+    }
+
+    @DataBoundSetter
+    public void setEscapeHatchSecret(Secret escapeHatchSecret) {
+        this.escapeHatchSecret = escapeHatchSecret;
+    }
+
+    @DataBoundSetter
+    public void setEscapeHatchGroup(String escapeHatchGroup) {
+        this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
     }
 
     @DataBoundSetter
