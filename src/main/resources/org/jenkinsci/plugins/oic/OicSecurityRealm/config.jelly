@@ -13,6 +13,15 @@
         <f:entry title="${%Well-known configuration endpoint}" field="wellKnownOpenIDConfigurationUrl">
           <f:textbox/>
         </f:entry>
+        <f:block>
+          <table>
+            <f:optionalBlock inline="true" title="${%Override scopes}" field="overrideScopesDefined">
+              <f:entry title="${%Scopes}" field="overrideScopes">
+                <f:textbox />
+              </f:entry>
+            </f:optionalBlock>
+          </table>
+        </f:block>
       </f:radioBlock>
     </f:block>
 
@@ -34,7 +43,7 @@
         <f:textbox/>
       </f:entry>
       <f:entry title="${%Scopes}" field="scopes">
-        <f:textbox/>
+        <f:textbox />
       </f:entry>
       <f:block>
         <table>
