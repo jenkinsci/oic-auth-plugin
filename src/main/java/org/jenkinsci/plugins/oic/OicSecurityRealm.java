@@ -67,6 +67,7 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -146,6 +147,14 @@ public class OicSecurityRealm extends SecurityRealm {
     private String escapeHatchGroup = null;
     private String automanualconfigure = null;
 
+    /** flag to clear overrideScopes
+     */
+    private transient Boolean overrideScopesDefined = null;
+
+    /** Override scopes in wellknown configuration
+     */
+    private String overrideScopes = null;
+
     /** Flag indicating if root url should be taken from config or request
      *
      * Taking root url from request requires a well configured proxy/ingress
@@ -193,7 +202,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.tokenServerUrl = config.getTokenEndpoint();
             this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
             this.userInfoServerUrl = config.getUserinfoEndpoint();
-            this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
+            this.setScopes(config.getScopesSupported() != null ? StringUtils.join(config.getScopesSupported(), " ") : null);
             this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
             this.automanualconfigure = "manual";
@@ -201,7 +210,7 @@ public class OicSecurityRealm extends SecurityRealm {
             this.tokenServerUrl = tokenServerUrl;
             this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
             this.userInfoServerUrl = userInfoServerUrl;
-            this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
+            this.setScopes(scopes);
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
             this.endSessionEndpoint = endSessionEndpoint;
         }
@@ -239,7 +248,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
         this.userInfoServerUrl = userInfoServerUrl;
         this.endSessionEndpoint = endSessionEndpoint;
-        this.scopes = Util.fixEmpty(scopes) == null ? "openid email" : scopes;
+        this.setScopes(scopes);
     }
 
     protected Object readResolve() {
@@ -326,7 +335,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     public String getScopes() {
-        return scopes;
+        return scopes != null ? scopes : "openid email";
     }
 
     public boolean isDisableSslVerification() {
@@ -365,13 +374,25 @@ public class OicSecurityRealm extends SecurityRealm {
         return automanualconfigure;
     }
 
+    public boolean isOverrideScopesDefined() {
+        return overrideScopes != null;
+    }
+
+    public String getOverrideScopes() {
+        return overrideScopes;
+    }
+
     public boolean isRootURLFromRequest() {
         return rootURLFromRequest;
     }
 
+    public boolean isAutoConfigure() {
+        return "auto".equals(this.automanualconfigure);
+    }
+
     @DataBoundSetter
     public void setWellKnownOpenIDConfigurationUrl(String wellKnownOpenIDConfigurationUrl) throws IOException {
-        if("auto".equals(this.automanualconfigure) ||
+        if( this.isAutoConfigure() ||
            (this.automanualconfigure.isEmpty() &&
            !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
@@ -389,12 +410,28 @@ public class OicSecurityRealm extends SecurityRealm {
             this.tokenServerUrl = config.getTokenEndpoint();
             this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
             this.userInfoServerUrl = config.getUserinfoEndpoint();
-            this.scopes = config.getScopesSupported() != null && !config.getScopesSupported().isEmpty() ? StringUtils.join(config.getScopesSupported(), " ") : "openid email";
+            this.setScopes(config.getScopesSupported() != null ? StringUtils.join(config.getScopesSupported(), " ") : null);
+            this.applyOverrideScopes();
             this.endSessionEndpoint = config.getEndSessionEndpoint();
         } else {
             this.automanualconfigure = "manual";
             this.wellKnownOpenIDConfigurationUrl = null;
         }
+    }
+
+    private void applyOverrideScopes() {
+        if(!"auto".equals(this.automanualconfigure) || this.overrideScopes == null) {
+            // only applies in "auto" mode when overrideScopes defined
+            return;
+        }
+        if(this.scopes == null) {
+            this.scopes = overrideScopes;
+            return;
+        }
+        // keep only scopes that are in overrideScopes
+        HashSet<String> scopesSet = new HashSet<>(Arrays.asList(this.scopes.trim().split("\\s+")));
+        scopesSet.retainAll(Arrays.asList(this.overrideScopes.trim().split("\\s+")));
+        this.setScopes(StringUtils.join(scopesSet," "));
     }
 
     @DataBoundSetter
@@ -427,6 +464,11 @@ public class OicSecurityRealm extends SecurityRealm {
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
     }
 
+    // Not a DataBoundSetter - set in constructor
+    public void setScopes(String scopes) {
+        this.scopes = Util.fixEmptyAndTrim(scopes);
+    }
+
     @DataBoundSetter
     public void setLogoutFromOpenidProvider(boolean logoutFromOpenidProvider) {
         this.logoutFromOpenidProvider = logoutFromOpenidProvider;
@@ -455,6 +497,25 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundSetter
     public void setEscapeHatchGroup(String escapeHatchGroup) {
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
+    }
+
+    @DataBoundSetter
+    public void setOverrideScopesDefined(boolean overrideScopesDefined) {
+        if(overrideScopesDefined) {
+            this.overrideScopesDefined = Boolean.TRUE;
+        } else {
+            this.overrideScopesDefined = Boolean.FALSE;
+            this.overrideScopes = null;
+            this.applyOverrideScopes();
+        }
+    }
+
+    @DataBoundSetter
+    public void setOverrideScopes(String overrideScopes) {
+        if(this.overrideScopesDefined == null || this.overrideScopesDefined) {
+            this.overrideScopes = Util.fixEmptyAndTrim(overrideScopes);
+            this.applyOverrideScopes();
+        }
     }
 
     @DataBoundSetter
@@ -555,7 +616,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 clientId,
                 authorizationServerUrl
         )
-            .setScopes(Arrays.asList(scopes))
+            .setScopes(Arrays.asList(this.getScopes()))
             .build();
     }
 
@@ -1077,6 +1138,18 @@ public class OicSecurityRealm extends SecurityRealm {
                 return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultScopes());
             }
             if(!scopes.toLowerCase().contains("openid")) {
+                return FormValidation.warning(Messages.OicSecurityRealm_RUSureOpenIdNotInScope());
+            }
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
+        public FormValidation doCheckOverrideScopes(@QueryParameter String overrideScopes) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(overrideScopes) == null) {
+                return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultScopes());
+            }
+            if(!overrideScopes.toLowerCase().contains("openid")) {
                 return FormValidation.warning(Messages.OicSecurityRealm_RUSureOpenIdNotInScope());
             }
             return FormValidation.ok();

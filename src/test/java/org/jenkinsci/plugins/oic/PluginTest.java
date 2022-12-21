@@ -189,7 +189,7 @@ public class PluginTest {
                             "  }")
         ));
 
-        configureWellKnown(null);
+        configureWellKnown(null, null);
 
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
 
@@ -240,13 +240,13 @@ public class PluginTest {
                             "  }")
         ));
 
-        configureWellKnown(null);
+        configureWellKnown(null, null);
 
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
 
         assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
 
-        configureWellKnown(null);
+        configureWellKnown(null, null);
 
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
 
@@ -262,6 +262,21 @@ public class PluginTest {
         assertTrue("User should be not be part of any group", user.getAuthorities().isEmpty());
     }
 
+    @Test public void testConfigurationWithAutoConfiguration_withScopeOverride() throws Exception {
+        configureWellKnown(null, "[\"openid\",\"profile\",\"scope1\",\"scope2\",\"scope3\"]");
+        TestRealm oicsr = new TestRealm.Builder(wireMockRule).WithMinimalDefaults()
+            .WithAutomanualconfigure("auto")
+            .build();
+        assertEquals("All scopes of WellKnown should be used" ,"openid profile scope1 scope2 scope3", oicsr.getScopes());
+
+        oicsr.setOverrideScopes("openid profile scope2 other");
+        assertEquals("Predefined scopes of WellKnown should be used" ,"openid profile scope2", oicsr.getScopes());
+
+        oicsr.setScopes("openid profile other");
+        oicsr.setOverrideScopes("");
+        oicsr.setWellKnownOpenIDConfigurationUrl(oicsr.getWellKnownOpenIDConfigurationUrl());
+        assertEquals("All scopes of WellKnown should be used" ,"openid profile scope1 scope2 scope3", oicsr.getScopes());
+    }
 
     @Test public void testreadResolve_withNulls() throws Exception {
         KeyPair keyPair = createKeyPair();
@@ -302,7 +317,7 @@ public class PluginTest {
                             "  }")
         ));
 
-        configureWellKnown(null);
+        configureWellKnown(null, null);
 
         TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
         jenkins.setSecurityRealm(realm);
@@ -350,7 +365,7 @@ public class PluginTest {
                             "  }")
         ));
 
-        configureWellKnown("http://localhost/endSession");
+        configureWellKnown("http://localhost/endSession", null);
 
         TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
         jenkins.setSecurityRealm(realm);
@@ -796,7 +811,7 @@ public class PluginTest {
         assertEquals("Display name should be " + OPENID_CONNECT_USER_PROPERTY, OPENID_CONNECT_USER_PROPERTY, descriptor.getDisplayName());
     }
 
-    private void configureWellKnown(String endSessionUrl) {
+    private void configureWellKnown(String endSessionUrl, String scopesSupported) {
         String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
         String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
         String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
@@ -807,7 +822,7 @@ public class PluginTest {
             aResponse()
                 .withHeader("Content-Type", "text/html; charset=utf-8")
                 .withBody(String.format("{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
-                + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": null, "
+                + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": " + scopesSupported + ", "
                 + "\"end_session_endpoint\":\"%s\"}", authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))
         ));
     }
