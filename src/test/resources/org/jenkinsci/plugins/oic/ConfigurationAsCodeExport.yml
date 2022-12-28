@@ -9,6 +9,7 @@ fullNameFieldName: "fullNameFieldName"
 groupsFieldName: "groupsFieldName"
 rootURLFromRequest: true
 scopes: "scopes"
+sendScopesInTokenRequest: true
 tokenAuthMethod: "client_secret_post"
 tokenServerUrl: "http://localhost"
 userNameField: "userNameField"

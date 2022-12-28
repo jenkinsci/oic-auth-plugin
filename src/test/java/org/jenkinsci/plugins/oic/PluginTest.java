@@ -28,9 +28,15 @@ import org.jvnet.hudson.test.Url;
 import org.kohsuke.stapler.Stapler;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.notMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static com.google.gson.JsonParser.parseString;
 import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
@@ -67,7 +73,7 @@ public class PluginTest {
         webClient = jenkinsRule.createWebClient();
     }
 
-    @Test public void testLogin() throws Exception {
+    @Test public void testLoginWithDefaults() throws Exception {
         KeyPair keyPair = createKeyPair();
 
         wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
@@ -109,6 +115,51 @@ public class PluginTest {
         assertEquals("Email should be " + TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
         assertTrue("User should be part of group " + TEST_USER_GROUPS[0], user.getAuthorities().contains(TEST_USER_GROUPS[0]));
         assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
+
+        verify(getRequestedFor(urlPathEqualTo("/authorization"))
+                . withQueryParam("scope", equalTo("openid email")));
+        verify(postRequestedFor(urlPathEqualTo("/token"))
+                .withRequestBody(notMatching(".*&scope=.*")));
+    }
+
+    @Test public void testLoginWithScopesInTokenRequest() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+            aResponse()
+                    .withStatus(302)
+                    .withHeader("Content-Type", "text/html; charset=utf-8")
+                    .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                    .withBody("")
+        ));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "text/html; charset=utf-8")
+                .withBody("{" +
+                            "\"id_token\": \""+createIdToken(keyPair.getPrivate(), keyValues)+"\"," +
+                            "\"access_token\":\"AcCeSs_ToKeN\"," +
+                            "\"token_type\":\"example\"," +
+                            "\"expires_in\":3600," +
+                            "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                            "\"example_parameter\":\"example_value\"" +
+                        "}")
+        ));
+
+
+        TestRealm oidcSecurityRealm = new TestRealm(wireMockRule);
+        oidcSecurityRealm.setSendScopesInTokenRequest(true);
+        jenkins.setSecurityRealm(oidcSecurityRealm);
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        verify(getRequestedFor(urlPathEqualTo("/authorization"))
+                . withQueryParam("scope", equalTo("openid email")));
+        verify(postRequestedFor(urlPathEqualTo("/token"))
+                .withRequestBody(containing("&scope=openid+email&")));
     }
 
     @Test public void testLoginWithMinimalConfiguration() throws Exception {
