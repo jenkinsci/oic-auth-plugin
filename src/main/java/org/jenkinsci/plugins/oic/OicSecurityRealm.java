@@ -161,6 +161,10 @@ public class OicSecurityRealm extends SecurityRealm {
      */
     private boolean rootURLFromRequest = false;
 
+    /** Flag to send scopes in code token request
+     */
+    private boolean sendScopesInTokenRequest = false;
+
     /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
      * but it's still needed for backwards compatibility */
@@ -386,6 +390,10 @@ public class OicSecurityRealm extends SecurityRealm {
         return rootURLFromRequest;
     }
 
+    public boolean isSendScopesInTokenRequest() {
+        return sendScopesInTokenRequest;
+    }
+
     public boolean isAutoConfigure() {
         return "auto".equals(this.automanualconfigure);
     }
@@ -523,6 +531,11 @@ public class OicSecurityRealm extends SecurityRealm {
         this.rootURLFromRequest = rootURLFromRequest;
     }
 
+    @DataBoundSetter
+    public void setSendScopesInTokenRequest(boolean sendScopesInTokenRequest) {
+        this.sendScopesInTokenRequest = sendScopesInTokenRequest;
+    }
+
     @Override
     public String getLoginUrl() {
         //Login begins with our doCommenceLogin(String,String) method
@@ -639,8 +652,9 @@ public class OicSecurityRealm extends SecurityRealm {
                     AuthorizationCodeTokenRequest tokenRequest = flow.newTokenRequest(authorizationCode)
                         .setRedirectUri(buildOAuthRedirectUrl())
                         .setResponseClass(OicTokenResponse.class);
-                    // Supplying scope is not allowed when obtaining an access token with an authorization code.
-                    tokenRequest.setScopes(Collections.<String>emptyList());
+                    if (!sendScopesInTokenRequest) {
+                        tokenRequest.setScopes(Collections.<String>emptyList());
+                    }
 
                     OicTokenResponse response = (OicTokenResponse) tokenRequest.execute();
 

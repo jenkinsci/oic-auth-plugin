@@ -86,6 +86,9 @@
     <f:entry title="${%Use Root URL from request}" field="rootURLFromRequest">
       <f:checkbox/>
     </f:entry>
+    <f:entry title="${%Send scopes in token request}" field="sendScopesInTokenRequest">
+      <f:checkbox/>
+    </f:entry>
 
     <f:block>
       <table>

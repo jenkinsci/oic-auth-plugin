@@ -18,3 +18,4 @@ jenkins:
       tokenServerUrl: http://localhost
       userNameField: userNameField
       rootURLFromRequest: true
+      sendScopesInTokenRequest: true
