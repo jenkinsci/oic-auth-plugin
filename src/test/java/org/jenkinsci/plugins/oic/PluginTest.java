@@ -764,6 +764,58 @@ public class PluginTest {
         assertTrue("User should be part of group " + TEST_USER_GROUPS[1], user.getAuthorities().contains(TEST_USER_GROUPS[1]));
     }
 
+    @Test public void testFieldLookupFromIdTokenWhenNotInUserInfoEndpoint() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+            aResponse()
+                .withStatus(302)
+                .withHeader("Content-Type", "text/html; charset=utf-8")
+                .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                .withBody("")
+        ));
+
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put("sub", TEST_USER_USERNAME);
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "application/json")
+                .withBody("{" +
+                    "\"id_token\": \""+createIdToken(keyPair.getPrivate(), keyValues)+"\"," +
+                    "\"access_token\":\"AcCeSs_ToKeN\"," +
+                    "\"token_type\":\"example\"," +
+                    "\"expires_in\":3600," +
+                    "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                    "\"example_parameter\":\"example_value\"" +
+                    "}")
+        ));
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+            aResponse()
+                .withHeader("Content-Type", "application/json")
+                        .withBody("{\n" +
+                                "   \"sub\": \"\",\n" +
+                                "   \""+FULL_NAME_FIELD+"\": null,\n" +
+                                "   \"groups\": \"["+TEST_USER_GROUPS[0]+", "+TEST_USER_GROUPS[1]+"]\"\n" +
+                                "  }")
+        ));
+
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo", "email", "groups"));
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should read field (ex:username) from IdToken when empty in userInfo", authentication.getPrincipal(), TEST_USER_USERNAME);
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Should read field (ex:full name) from IdToken when null in userInfo", TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Should read field (ex:email) from IdToken when not in userInfo", TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+    }
+
     @Test public void testGroupListFromStringInfoEndpoint() throws Exception {
         wireMockRule.resetAll();
 
