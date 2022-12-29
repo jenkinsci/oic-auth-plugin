@@ -661,24 +661,17 @@ public class OicSecurityRealm extends SecurityRealm {
                     this.setIdToken(response.getIdToken());
 
                     IdToken idToken = response.parseIdToken();
-
-                    Object username;
-                    GenericJson userInfo = null;
-                    if (Strings.isNullOrEmpty(userInfoServerUrl)) {
-                        username = getField(idToken.getPayload(), userNameField);
-                        if(username == null) {
-                            return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the token payload to be used as the username");
-                        }
-                    } else {
-                        userInfo = getUserInfo(flow, response.getAccessToken());
-                        username = getField(userInfo, userNameField);
-                        if(username == null) {
-                            return HttpResponses.error(500,"no field '" + userNameField + "' was supplied by the UserInfo payload to be used as the username");
-                        }
-                    }
-
                     if(failedCheckOfTokenField(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
+                    }
+
+                    GenericJson userInfo = null;
+                    if (!Strings.isNullOrEmpty(userInfoServerUrl)) {
+                        userInfo = getUserInfo(flow, response.getAccessToken());
+                    }
+                    String username = determineStringField(userNameField, idToken, userInfo);
+                    if(username == null) {
+                        return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the UserInfo or the IdToken payload to be used as the username");
                     }
 
                     flow.createAndStoreCredential(response, null);
@@ -760,31 +753,48 @@ public class OicSecurityRealm extends SecurityRealm {
         SecurityContextHolder.getContext().setAuthentication(token);
 
         User user = User.get2(token);
-    if(user == null){
-                // should not happen
-                throw new IOException("Cannot set OIDC property on anonymous user");
-    }
+        if(user == null){
+            // should not happen
+            throw new IOException("Cannot set OIDC property on anonymous user");
+        }
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
 
-        if(emailFieldName!=null) {
-            String email = userInfo == null ? getField(idToken, emailFieldName) : (String) getField(userInfo, emailFieldName);
-            if (email != null) {
-                user.addProperty(new Mailer.UserProperty(email));
-            }
+        String email = determineStringField(emailFieldName, idToken, userInfo);
+        if (email != null) {
+            user.addProperty(new Mailer.UserProperty(email));
         }
 
-        if(fullNameFieldName!=null) {
-            String fullName = userInfo == null ? getField(idToken, fullNameFieldName) : (String) getField(userInfo, fullNameFieldName);
-            if (fullName != null) {
-                user.setFullName(fullName);
-            }
+        String fullName = determineStringField(fullNameFieldName, idToken, userInfo);
+        if (fullName != null) {
+            user.setFullName(fullName);
         }
 
         OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
         SecurityListener.fireAuthenticated2(userDetails);
 
         return token;
+    }
+
+    private String determineStringField(String fieldName, IdToken idToken, GenericJson userInfo) {
+        if (fieldName != null) {
+            if (userInfo != null) {
+                Object field = getField(userInfo, fieldName);
+                if (field != null && field instanceof String) {
+                    String fieldValue = Util.fixEmptyAndTrim((String) field);
+                    if (fieldValue != null) {
+                        return fieldValue;
+                    }
+                }
+            }
+            if (idToken != null) {
+                String fieldValue = Util.fixEmptyAndTrim(getField(idToken, fieldName));
+                if (fieldValue != null) {
+                    return fieldValue;
+                }
+            }
+        }
+        return null;
     }
 
     private List<GrantedAuthority> determineAuthorities(IdToken idToken, GenericJson userInfo) {
