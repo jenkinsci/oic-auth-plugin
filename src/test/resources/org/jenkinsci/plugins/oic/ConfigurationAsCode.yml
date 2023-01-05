@@ -19,3 +19,4 @@ jenkins:
       userNameField: userNameField
       rootURLFromRequest: true
       sendScopesInTokenRequest: true
+      pkceEnabled: true

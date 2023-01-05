@@ -165,6 +165,10 @@ public class OicSecurityRealm extends SecurityRealm {
      */
     private boolean sendScopesInTokenRequest = false;
 
+    /** Flag to enable PKCE challenge
+     */
+    private boolean pkceEnabled = false;
+
     /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
      * but it's still needed for backwards compatibility */
@@ -394,6 +398,10 @@ public class OicSecurityRealm extends SecurityRealm {
         return sendScopesInTokenRequest;
     }
 
+    public boolean isPkceEnabled() {
+        return pkceEnabled;
+    }
+
     public boolean isAutoConfigure() {
         return "auto".equals(this.automanualconfigure);
     }
@@ -536,6 +544,11 @@ public class OicSecurityRealm extends SecurityRealm {
         this.sendScopesInTokenRequest = sendScopesInTokenRequest;
     }
 
+    @DataBoundSetter
+    public void setPkceEnabled(boolean pkceEnabled) {
+        this.pkceEnabled = pkceEnabled;
+    }
+
     @Override
     public String getLoginUrl() {
         //Login begins with our doCommenceLogin(String,String) method
@@ -620,7 +633,7 @@ public class OicSecurityRealm extends SecurityRealm {
             tokenAccessMethod = BearerToken.authorizationHeaderAccessMethod();
             authInterceptor = new BasicAuthentication(clientId, Secret.toString(clientSecret));
         }
-        return new AuthorizationCodeFlow.Builder(
+        AuthorizationCodeFlow.Builder builder = new AuthorizationCodeFlow.Builder(
                 tokenAccessMethod,
                 httpTransport,
                 JSON_FACTORY,
@@ -629,8 +642,13 @@ public class OicSecurityRealm extends SecurityRealm {
                 clientId,
                 authorizationServerUrl
         )
-            .setScopes(Arrays.asList(this.getScopes()))
-            .build();
+            .setScopes(Arrays.asList(this.getScopes()));
+
+        if(pkceEnabled) {
+            builder.enablePKCE();
+        }
+
+        return builder.build();
     }
 
     /**
