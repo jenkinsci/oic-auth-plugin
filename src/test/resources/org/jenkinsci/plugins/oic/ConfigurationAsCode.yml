@@ -14,5 +14,9 @@ jenkins:
       groupsFieldName: groupsFieldName
       logoutFromOpenidProvider: true
       scopes: scopes
+      tokenAuthMethod: client_secret_post
       tokenServerUrl: http://localhost
       userNameField: userNameField
+      rootURLFromRequest: true
+      sendScopesInTokenRequest: true
+      pkceEnabled: true

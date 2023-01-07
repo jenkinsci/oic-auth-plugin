@@ -10,3 +10,7 @@ updates:
   target-branch: master
   labels:
   - skip-changelog
+  ignore:
+    # Checkstyle >=10 requires Java 11+
+    - dependency-name: "com.puppycrawl.tools:checkstyle"
+      versions: [">= 10.0"]

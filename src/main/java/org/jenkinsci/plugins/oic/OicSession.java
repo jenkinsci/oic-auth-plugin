@@ -23,14 +23,6 @@
  */
 package org.jenkinsci.plugins.oic;
 
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
-
-import org.kohsuke.stapler.HttpRedirect;
-import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
-
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
@@ -39,6 +31,16 @@ import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Failure;
 import hudson.remoting.Base64;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+import javax.servlet.http.HttpSession;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.stapler.HttpRedirect;
+import org.kohsuke.stapler.HttpResponse;
+import org.kohsuke.stapler.Stapler;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * The state of the OpenId connect request.
@@ -84,13 +86,22 @@ abstract class OicSession {
     }
 
     /**
+     * Setup the session - isolate warning suppression
+     */
+    @SuppressFBWarnings("J2EE_STORE_OF_NON_SERIALIZABLE_OBJECT_INTO_SESSION")
+    private void setupOicSession(HttpSession session) {
+        // remember this in the session
+        session.setAttribute(SESSION_NAME, this);
+    }
+
+
+    /**
      * Starts the login session.
      * @return an {@link HttpResponse}
      */
-    @SuppressFBWarnings("J2EE_STORE_OF_NON_SERIALIZABLE_OBJECT_INTO_SESSION")
+    @Restricted(DoNotUse.class)
     public HttpResponse doCommenceLogin() {
-        // remember this in the session
-        Stapler.getCurrentRequest().getSession().setAttribute(SESSION_NAME, this);
+        setupOicSession(Stapler.getCurrentRequest().getSession());
         AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
         authorizationCodeRequestUrl.set("nonce", nonce); // no @Key field defined in AuthorizationRequestUrl
         return new HttpRedirect(authorizationCodeRequestUrl.toString());
@@ -100,7 +111,7 @@ abstract class OicSession {
      * When the identity provider is done with its thing, the user comes back here.
      * @return an {@link HttpResponse}
      */
-    public HttpResponse doFinishLogin(StaplerRequest request)  {
+    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
         StringBuffer buf = request.getRequestURL();
         if (request.getQueryString() != null) {
             buf.append('?').append(request.getQueryString());
@@ -109,16 +120,25 @@ abstract class OicSession {
         if (!state.equals(responseUrl.getState())) {
             return new Failure("State is invalid");
         }
-        String code = responseUrl.getCode();
         if (responseUrl.getError() != null) {
             return new Failure(
                     "Error from provider: " + responseUrl.getError() + ". Details: " + responseUrl.getErrorDescription()
-            );
-        } else if (code == null) {
-            return new Failure("Missing authorization code");
-        } else {
-            return onSuccess(code);
+                    );
         }
+
+        String code = responseUrl.getCode();
+        if (code == null) {
+            return new Failure("Missing authorization code");
+        }
+
+        HttpSession session = request.getSession(false);
+        if(session != null){
+            // avoid session fixation
+            session.invalidate();
+        }
+        setupOicSession(request.getSession(true));
+
+        return onSuccess(code);
     }
 
     /**
