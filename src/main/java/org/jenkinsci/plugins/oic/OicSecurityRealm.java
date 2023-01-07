@@ -679,6 +679,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     this.setIdToken(response.getIdToken());
 
                     IdToken idToken = response.parseIdToken();
+                    validateNonce(idToken.getPayload().getNonce());
                     if(failedCheckOfTokenField(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
@@ -687,6 +688,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     if (!Strings.isNullOrEmpty(userInfoServerUrl)) {
                         userInfo = getUserInfo(flow, response.getAccessToken());
                     }
+
                     String username = determineStringField(userNameField, idToken, userInfo);
                     if(username == null) {
                         return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the UserInfo or the IdToken payload to be used as the username");

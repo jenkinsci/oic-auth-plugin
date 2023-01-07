@@ -1037,8 +1037,7 @@ public class PluginTest {
             .setIssuer("issuer")
             .setSubject(TEST_USER_USERNAME)
             .setAudience(Collections.singletonList("clientId"))
-            .setAudience(System.currentTimeMillis() / 60 + 5)
-            .setIssuedAtTimeSeconds(System.currentTimeMillis() / 60);
+            .setNonce("nonce");
         for(Map.Entry<String, Object> keyValue : keyValues.entrySet()) {
             payload.set(keyValue.getKey(), keyValue.getValue());
         }

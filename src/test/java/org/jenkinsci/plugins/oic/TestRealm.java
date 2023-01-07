@@ -151,9 +151,12 @@ public class TestRealm extends OicSecurityRealm {
     @Override
     public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
         try {
-            Field field = OicSession.class.getDeclaredField("state");
-            field.setAccessible(true);
-            field.set(OicSession.getCurrent(), "state");
+            Field stateField = OicSession.class.getDeclaredField("state");
+            stateField.setAccessible(true);
+            stateField.set(OicSession.getCurrent(), "state");
+            Field nonceField = OicSession.class.getDeclaredField("nonce");
+            nonceField.setAccessible(true);
+            nonceField.set(OicSession.getCurrent(), "nonce");           
         } catch (Exception e) {
             throw new RuntimeException("can't fudge state",e);
         }
