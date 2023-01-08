@@ -154,9 +154,12 @@ public class TestRealm extends OicSecurityRealm {
             Field stateField = OicSession.class.getDeclaredField("state");
             stateField.setAccessible(true);
             stateField.set(OicSession.getCurrent(), "state");
-            Field nonceField = OicSession.class.getDeclaredField("nonce");
-            nonceField.setAccessible(true);
-            nonceField.set(OicSession.getCurrent(), "nonce");           
+            if(!isNonceDisabled())
+            {
+                Field nonceField = OicSession.class.getDeclaredField("nonce");
+                nonceField.setAccessible(true);
+                nonceField.set(OicSession.getCurrent(), "nonce");
+            }
         } catch (Exception e) {
             throw new RuntimeException("can't fudge state",e);
         }

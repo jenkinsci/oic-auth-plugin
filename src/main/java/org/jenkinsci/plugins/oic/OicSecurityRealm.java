@@ -169,6 +169,10 @@ public class OicSecurityRealm extends SecurityRealm {
      */
     private boolean pkceEnabled = false;
 
+    /** Flag to disable nonce security
+     */
+    private boolean nonceDisabled = false;
+
     /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
      * but it's still needed for backwards compatibility */
@@ -402,6 +406,10 @@ public class OicSecurityRealm extends SecurityRealm {
         return pkceEnabled;
     }
 
+    public boolean isNonceDisabled() {
+        return nonceDisabled;
+    }
+
     public boolean isAutoConfigure() {
         return "auto".equals(this.automanualconfigure);
     }
@@ -549,6 +557,11 @@ public class OicSecurityRealm extends SecurityRealm {
         this.pkceEnabled = pkceEnabled;
     }
 
+    @DataBoundSetter
+    public void setNonceDisabled(boolean nonceDisabled) {
+        this.nonceDisabled = nonceDisabled;
+    }
+
     @Override
     public String getLoginUrl() {
         //Login begins with our doCommenceLogin(String,String) method
@@ -676,13 +689,16 @@ public class OicSecurityRealm extends SecurityRealm {
 
                     OicTokenResponse response = (OicTokenResponse) tokenRequest.execute();
 
-                    this.setIdToken(response.getIdToken());
-
                     IdToken idToken = response.parseIdToken();
-                    validateNonce(idToken.getPayload().getNonce());
+                    if (!isNonceDisabled() && !validateNonce(idToken)) {
+                        return HttpResponses.errorWithoutStack(401, "Unauthorized");
+                    }
+
                     if(failedCheckOfTokenField(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
+
+                    this.setIdToken(response.getIdToken());
 
                     GenericJson userInfo = null;
                     if (!Strings.isNullOrEmpty(userInfoServerUrl)) {
@@ -705,7 +721,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 }
 
             }
-        }.doCommenceLogin();
+        }.doCommenceLogin(isNonceDisabled());
     }
 
     @SuppressFBWarnings(

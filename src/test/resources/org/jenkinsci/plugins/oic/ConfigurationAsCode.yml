@@ -20,3 +20,4 @@ jenkins:
       rootURLFromRequest: true
       sendScopesInTokenRequest: true
       pkceEnabled: true
+      nonceDisabled: true

@@ -7,6 +7,7 @@ escapeHatchGroup: "escapeHatchGroup"
 escapeHatchUsername: "escapeHatchUsername"
 fullNameFieldName: "fullNameFieldName"
 groupsFieldName: "groupsFieldName"
+nonceDisabled: true
 pkceEnabled: true
 rootURLFromRequest: true
 scopes: "scopes"
