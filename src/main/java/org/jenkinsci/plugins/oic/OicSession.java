@@ -26,8 +26,8 @@ package org.jenkinsci.plugins.oic;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
+import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.common.annotations.VisibleForTesting;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Failure;
 import hudson.remoting.Base64;
@@ -100,10 +100,14 @@ abstract class OicSession {
      * @return an {@link HttpResponse}
      */
     @Restricted(DoNotUse.class)
-    public HttpResponse doCommenceLogin() {
+    public HttpResponse doCommenceLogin(boolean disableNonce) {
         setupOicSession(Stapler.getCurrentRequest().getSession());
         AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
-        authorizationCodeRequestUrl.set("nonce", nonce); // no @Key field defined in AuthorizationRequestUrl
+        if (disableNonce) {
+            this.nonce = null;
+        } else {
+            authorizationCodeRequestUrl.set("nonce", this.nonce); // no @Key field defined in AuthorizationRequestUrl
+        }
         return new HttpRedirect(authorizationCodeRequestUrl.toString());
     }
 
@@ -156,10 +160,12 @@ abstract class OicSession {
 
     protected abstract HttpResponse onSuccess(String authorizationCode);
 
-    protected final void validateNonce(String nonce) {
-        if (!this.nonce.equals(nonce)) {
-            throw new Failure("Nonce is invalid");
+    protected final boolean validateNonce(IdToken idToken) {
+        if (idToken == null || this.nonce == null) {
+            // validation impossible or disabled
+            return true;
         }
+        return this.nonce.equals(idToken.getPayload().getNonce());
     }
 
     /**
