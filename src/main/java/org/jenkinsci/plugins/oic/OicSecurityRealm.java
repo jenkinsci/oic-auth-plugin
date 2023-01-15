@@ -33,6 +33,7 @@ import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.http.BasicAuthentication;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpExecuteInterceptor;
+import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -65,6 +66,9 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -176,6 +180,10 @@ public class OicSecurityRealm extends SecurityRealm {
      */
     private boolean nonceDisabled = false;
 
+    /** Date of wellknown configuration expiration
+     */
+    private transient LocalDateTime wellKnownExpires = null;
+
     /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
      * but it's still needed for backwards compatibility */
@@ -199,35 +207,23 @@ public class OicSecurityRealm extends SecurityRealm {
         this.clientId = clientId;
         this.clientSecret = clientSecret != null &&
             !clientSecret.toLowerCase().equals(NO_SECRET) ? Secret.fromString(clientSecret) : null;
+        // last known config
+        this.authorizationServerUrl = authorizationServerUrl;
+        this.tokenServerUrl = tokenServerUrl;
+        this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
+        this.userInfoServerUrl = userInfoServerUrl;
+        this.setScopes(scopes);
+        this.endSessionEndpoint = endSessionEndpoint;
+
         if("auto".equals(automanualconfigure) ||
            (Util.fixNull(automanualconfigure).isEmpty() &&
            !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
-            // Get the well-known configuration from the specified URL
             this.wellKnownOpenIDConfigurationUrl = Util.fixEmpty(wellKnownOpenIDConfigurationUrl);
-            URL url = new URL(wellKnownOpenIDConfigurationUrl);
-            HttpRequest request = httpTransport.createRequestFactory().buildGetRequest(new GenericUrl(url));
-            com.google.api.client.http.HttpResponse response = request.execute();
-
-            WellKnownOpenIDConfigurationResponse config = OicSecurityRealm.JSON_FACTORY
-                    .fromInputStream(response.getContent(), Charset.defaultCharset(),
-                            WellKnownOpenIDConfigurationResponse.class);
-
-            this.authorizationServerUrl = config.getAuthorizationEndpoint();
-            this.tokenServerUrl = config.getTokenEndpoint();
-            this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
-            this.userInfoServerUrl = config.getUserinfoEndpoint();
-            this.setScopes(config.getScopesSupported() != null ? StringUtils.join(config.getScopesSupported(), " ") : null);
-            this.endSessionEndpoint = config.getEndSessionEndpoint();
+            this.loadWellKnownOpenIDConfigurationUrl();
         } else {
             this.automanualconfigure = "manual";
-            this.authorizationServerUrl = authorizationServerUrl;
-            this.tokenServerUrl = tokenServerUrl;
-            this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
-            this.userInfoServerUrl = userInfoServerUrl;
-            this.setScopes(scopes);
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
-            this.endSessionEndpoint = endSessionEndpoint;
         }
 
         this.tokenFieldToCheckKey = Util.fixEmpty(tokenFieldToCheckKey);
@@ -417,29 +413,77 @@ public class OicSecurityRealm extends SecurityRealm {
         return "auto".equals(this.automanualconfigure);
     }
 
+    /** request wellknown config of provider and update it (if required)
+     */
+    private void loadWellKnownOpenIDConfigurationUrl() {
+        if (!isAutoConfigure() || this.wellKnownOpenIDConfigurationUrl == null) {
+            // not configured
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (this.wellKnownExpires != null && this.wellKnownExpires.isBefore(now)) {
+            // configuration is still fresh
+            return;
+        }
+
+        // Get the well-known configuration from the specified URL
+        try {
+            URL url = new URL(wellKnownOpenIDConfigurationUrl);
+            HttpRequest request = httpTransport
+                .createRequestFactory().buildGetRequest(new GenericUrl(url));
+
+            com.google.api.client.http.HttpResponse response = request.execute();
+            WellKnownOpenIDConfigurationResponse config = OicSecurityRealm.JSON_FACTORY
+                .fromInputStream(response.getContent(), Charset.defaultCharset(),
+                        WellKnownOpenIDConfigurationResponse.class);
+
+            this.authorizationServerUrl = Util.fixNull(config.getAuthorizationEndpoint(), this.authorizationServerUrl);
+            this.tokenServerUrl = Util.fixNull(config.getTokenEndpoint(), this.tokenServerUrl);
+            this.tokenAuthMethod = Util.fixNull(config.getPreferredTokenAuthMethod(), this.tokenAuthMethod);
+            this.userInfoServerUrl = Util.fixNull(config.getUserinfoEndpoint(), this.userInfoServerUrl);
+            if (config.getScopesSupported() != null) {
+                this.setScopes(StringUtils.join(config.getScopesSupported(), " "));
+            }
+            this.applyOverrideScopes();
+            this.endSessionEndpoint = Util.fixNull(config.getEndSessionEndpoint(), this.endSessionEndpoint);
+
+            setWellKnownExpires(response.getHeaders());
+        } catch (MalformedURLException e) {
+            LOGGER.log(Level.SEVERE, "Invalid WellKnown OpenID Configuration URL", e);
+        } catch (HttpResponseException e) {
+            LOGGER.log(Level.SEVERE, "Could not get wellknown OpenID Configuration", e);
+        } catch (JsonParseException e) {
+            LOGGER.log(Level.SEVERE, "Could not parse wellknown OpenID Configuration", e);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error while loading wellknown OpenID Configuration", e);
+        }
+    }
+
+    /** Parse headers to determine expiration date
+     */
+    private void setWellKnownExpires(HttpHeaders headers) {
+        String expires = Util.fixEmpty(headers.getExpires());
+        if (expires != null) {
+            ZonedDateTime zdt = ZonedDateTime.parse(expires, DateTimeFormatter.RFC_1123_DATE_TIME);
+            if (zdt != null) {
+                this.wellKnownExpires = zdt.toLocalDateTime();
+                return;
+            }
+        }
+
+        // default to 1 hour refresh
+        this.wellKnownExpires = LocalDateTime.now().plusSeconds(3600);
+    }
+
     @DataBoundSetter
-    public void setWellKnownOpenIDConfigurationUrl(String wellKnownOpenIDConfigurationUrl) throws IOException {
+    public void setWellKnownOpenIDConfigurationUrl(String wellKnownOpenIDConfigurationUrl) {
         if( this.isAutoConfigure() ||
            (this.automanualconfigure.isEmpty() &&
            !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
             this.wellKnownOpenIDConfigurationUrl = wellKnownOpenIDConfigurationUrl;
-            // Get the well-known configuration from the specified URL
-            URL url = new URL(wellKnownOpenIDConfigurationUrl);
-            HttpRequest request = httpTransport.createRequestFactory().buildGetRequest(new GenericUrl(url));
-            com.google.api.client.http.HttpResponse response = request.execute();
-
-            WellKnownOpenIDConfigurationResponse config = OicSecurityRealm.JSON_FACTORY
-                    .fromInputStream(response.getContent(), Charset.defaultCharset(),
-                            WellKnownOpenIDConfigurationResponse.class);
-
-            this.authorizationServerUrl = config.getAuthorizationEndpoint();
-            this.tokenServerUrl = config.getTokenEndpoint();
-            this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
-            this.userInfoServerUrl = config.getUserinfoEndpoint();
-            this.setScopes(config.getScopesSupported() != null ? StringUtils.join(config.getScopesSupported(), " ") : null);
-            this.applyOverrideScopes();
-            this.endSessionEndpoint = config.getEndSessionEndpoint();
+            this.loadWellKnownOpenIDConfigurationUrl();
         } else {
             this.automanualconfigure = "manual";
             this.wellKnownOpenIDConfigurationUrl = null;
@@ -691,6 +735,9 @@ public class OicSecurityRealm extends SecurityRealm {
     */
     @Restricted(DoNotUse.class) // stapler only
     public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) {
+        // reload config if needed
+        loadWellKnownOpenIDConfigurationUrl();
+
         final String redirectOnFinish = determineRedirectTarget(from, referer);
 
         final AuthorizationCodeFlow flow = this.buildAuthorizationCodeFlow();
