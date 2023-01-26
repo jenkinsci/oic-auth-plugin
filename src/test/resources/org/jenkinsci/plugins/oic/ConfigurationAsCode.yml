@@ -12,6 +12,7 @@ jenkins:
       escapeHatchUsername: escapeHatchUsername
       fullNameFieldName: fullNameFieldName
       groupsFieldName: groupsFieldName
+      nestedGroupFieldName: nestedGroupFieldName
       logoutFromOpenidProvider: true
       scopes: scopes
       tokenAuthMethod: client_secret_post

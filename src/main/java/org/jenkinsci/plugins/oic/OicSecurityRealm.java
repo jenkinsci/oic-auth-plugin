@@ -45,6 +45,7 @@ import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.util.Data;
+import com.google.api.client.util.ArrayMap;
 import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
@@ -136,6 +137,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private String fullNameFieldName = null;
     private String emailFieldName = null;
     private String groupsFieldName = null;
+    private String nestedGroupFieldName = "name";
     private String scopes = null;
     private final boolean disableSslVerification;
     private boolean logoutFromOpenidProvider = true;
@@ -187,7 +189,7 @@ public class OicSecurityRealm extends SecurityRealm {
     @Deprecated
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String tokenAuthMethod, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
-                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, Boolean disableSslVerification,
+                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, String nestedGroupFieldName, Boolean disableSslVerification,
                             Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, Boolean escapeHatchEnabled,
                             String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
@@ -233,6 +235,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
+        this.nestedGroupFieldName = Util.fixEmptyAndTrim(nestedGroupFieldName) == null ? "name" : nestedGroupFieldName;
         this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
         this.escapeHatchEnabled = Util.fixNull(escapeHatchEnabled, Boolean.FALSE);
@@ -344,6 +347,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public String getGroupsFieldName() {
         return groupsFieldName;
+    }
+
+    public String getNestedGroupFieldName() {
+        return nestedGroupFieldName;
     }
 
     public String getScopes() {
@@ -486,6 +493,11 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
+    }
+
+    @DataBoundSetter
+    public void setNestedGroupFieldName(String nestedGroupFieldName) {
+        this.nestedGroupFieldName = Util.fixEmpty(nestedGroupFieldName);
     }
 
     // Not a DataBoundSetter - set in constructor
@@ -887,6 +899,21 @@ public class OicSecurityRealm extends SecurityRealm {
                 }
             }
             return result;
+        } else if (field instanceof ArrayList) {
+            List<String> result = new ArrayList<>();
+            List<Object> groups = (List<Object>) field;
+            for (Object group : groups) {
+              if (group instanceof String) {
+                result.add(group.toString());
+              } else if (group instanceof ArrayMap) {
+                // if its a Map, we use the nestedGroupFieldName to grab the groups
+                Map<String, String> groupMap = (Map<String, String>) group;
+                if (groupMap.keySet().contains(nestedGroupFieldName)) {
+                    result.add(groupMap.get(nestedGroupFieldName));
+                }
+              }
+            }
+            return result;
         } else {
             try {
                 return (List<String>) field;
@@ -1241,6 +1268,14 @@ public class OicSecurityRealm extends SecurityRealm {
                 }
             }
 
+            return FormValidation.ok();
+        }
+        @RequirePOST
+        public FormValidation doCheckNestedGroupFieldNameField(@QueryParameter String nestedGroupFieldName) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(nestedGroupFieldName) == null) {
+                return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultNestedGroupFieldName());
+            }
             return FormValidation.ok();
         }
     }

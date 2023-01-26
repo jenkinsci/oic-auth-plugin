@@ -71,6 +71,9 @@
     <f:entry title="${%Groups field name}" field="groupsFieldName">
       <f:textbox/>
     </f:entry>
+    <f:entry title="${%Nested group field name}" field="nestedGroupFieldName">
+      <f:textbox/>
+    </f:entry>
     <f:entry title="${%Token Field Key To Check}" field="tokenFieldToCheckKey">
       <f:textbox/>
     </f:entry>

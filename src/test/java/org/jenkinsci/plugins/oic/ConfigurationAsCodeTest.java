@@ -55,6 +55,7 @@ public class ConfigurationAsCodeTest {
         assertEquals("escapeHatchUsername", oicSecurityRealm.getEscapeHatchUsername());
         assertEquals("fullNameFieldName", oicSecurityRealm.getFullNameFieldName());
         assertEquals("groupsFieldName", oicSecurityRealm.getGroupsFieldName());
+        assertEquals("nestedGroupFieldName", oicSecurityRealm.getNestedGroupFieldName());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertEquals("scopes", oicSecurityRealm.getScopes());
         assertEquals("http://localhost", oicSecurityRealm.getTokenServerUrl());

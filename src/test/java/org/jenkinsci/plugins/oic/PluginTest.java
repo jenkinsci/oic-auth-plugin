@@ -7,6 +7,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.json.webtoken.JsonWebToken;
+import com.google.api.client.util.ArrayMap;
 import com.google.gson.JsonElement;
 import hudson.model.User;
 import hudson.tasks.Mailer;
@@ -14,13 +15,16 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -61,6 +65,7 @@ public class PluginTest {
     private static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
     private static final String TEST_USER_FULL_NAME = "Oic Test User";
     private static final String[] TEST_USER_GROUPS = new String[]{"group1", "group2"};
+    private static final List<Map<String,String>> TEST_USER_GROUPS_MAP = new ArrayList<>(); 
     private static final String OPENID_CONNECT_USER_PROPERTY = "OpenID Connect user property";
 
     @Rule public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(),true);
@@ -68,6 +73,12 @@ public class PluginTest {
 
     private JenkinsRule.WebClient webClient;
     private Jenkins jenkins;
+
+    @BeforeClass
+    public static void oneTimeSetUp() {
+        TEST_USER_GROUPS_MAP.add(ArrayMap.<String,String>of("id", "id1", "name", "group1" ));
+        TEST_USER_GROUPS_MAP.add(ArrayMap.<String,String>of("id", "id2", "name", "group2" ));
+    }
 
     @Before
     public void setUp() {
@@ -239,6 +250,57 @@ public class PluginTest {
 
         verify(getRequestedFor(urlPathEqualTo("/authorization"))
                 .withQueryParam("nonce", absent()));
+    }
+
+    @Test public void testLoginUsingUserInfoEndpointWithGroupsMap() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization")).willReturn(
+                aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader("Location", jenkins.getRootUrl()+"securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")
+        ));
+        wireMockRule.stubFor(post(urlPathEqualTo("/token")).willReturn(
+                aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{" +
+                                "\"id_token\": \""+createIdToken(keyPair.getPrivate(),Collections.<String,Object>emptyMap())+"\"," +
+                                "\"access_token\":\"AcCeSs_ToKeN\"," +
+                                "\"token_type\":\"example\"," +
+                                "\"expires_in\":3600," +
+                                "\"refresh_token\":\"ReFrEsH_ToKeN\"," +
+                                "\"example_parameter\":\"example_value\"" +
+                                "}")
+        ));
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo")).willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\n" +
+                            "   \"sub\": \""+TEST_USER_USERNAME+"\",\n" +
+                            "   \""+FULL_NAME_FIELD+"\": \""+TEST_USER_FULL_NAME+"\",\n" +
+                            "   \""+EMAIL_FIELD+"\": \""+TEST_USER_EMAIL_ADDRESS+"\",\n" +
+                            "   \""+GROUPS_FIELD+"\": "+toJsonArray(TEST_USER_GROUPS_MAP)+"\n" +
+                            "  }")
+        ));
+
+        System.out.println("jsonarray : " + toJsonArray(TEST_USER_GROUPS_MAP ));
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo"));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as "+ TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+        User user = User.get(String.valueOf(authentication.getPrincipal()));
+        assertEquals("Full name should be "+TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        assertEquals("Email should be "+ TEST_USER_EMAIL_ADDRESS, TEST_USER_EMAIL_ADDRESS, user.getProperty(Mailer.UserProperty.class).getAddress());
+        assertTrue("User should be part of group "+ TEST_USER_GROUPS_MAP.get(0).get("name"), user.getAuthorities().contains(TEST_USER_GROUPS_MAP.get(0).get("name")));
+        assertTrue("User should be part of group "+ TEST_USER_GROUPS_MAP.get(1).get("name"), user.getAuthorities().contains(TEST_USER_GROUPS_MAP.get(1).get("name")));
     }
 
     @Test public void testLoginWithMinimalConfiguration() throws Exception {
@@ -1055,6 +1117,28 @@ public class PluginTest {
         builder.append("[");
         for(String entry : array) {
             builder.append("\"").append(entry).append("\",");
+        }
+        if(builder.lastIndexOf(",") != -1) {
+            builder.deleteCharAt(builder.length()-1);
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    private String toJsonArray(List<Map<String,String>> list) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("[");
+
+        for(Map<String,String> entry : list) {
+            builder.append("{");
+            for ( String key :entry.keySet() ) {
+                builder.append("\"").append(key).append("\": ");
+                builder.append("\"").append(entry.get(key)).append("\",");
+            }
+            if(builder.lastIndexOf(",") != -1) {
+                builder.deleteCharAt(builder.length()-1);
+            }
+            builder.append("},");
         }
         if(builder.lastIndexOf(",") != -1) {
             builder.deleteCharAt(builder.length()-1);
