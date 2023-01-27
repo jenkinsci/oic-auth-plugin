@@ -65,7 +65,7 @@ public class PluginTest {
     private static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
     private static final String TEST_USER_FULL_NAME = "Oic Test User";
     private static final String[] TEST_USER_GROUPS = new String[]{"group1", "group2"};
-    private static final List<Map<String,String>> TEST_USER_GROUPS_MAP = new ArrayList<>(); 
+    private static final List<Map<String,String>> TEST_USER_GROUPS_MAP = new ArrayList<>();
     private static final String OPENID_CONNECT_USER_PROPERTY = "OpenID Connect user property";
 
     @Rule public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(),true);

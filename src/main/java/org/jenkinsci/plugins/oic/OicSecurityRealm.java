@@ -44,8 +44,8 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
-import com.google.api.client.util.Data;
 import com.google.api.client.util.ArrayMap;
+import com.google.api.client.util.Data;
 import com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
@@ -906,6 +906,7 @@ public class OicSecurityRealm extends SecurityRealm {
               if (group instanceof String) {
                 result.add(group.toString());
               } else if (group instanceof ArrayMap) {
+                // some idcs return groups field as Array of Maps.
                 // if its a Map, we use the nestedGroupFieldName to grab the groups
                 Map<String, String> groupMap = (Map<String, String>) group;
                 if (groupMap.keySet().contains(nestedGroupFieldName)) {
