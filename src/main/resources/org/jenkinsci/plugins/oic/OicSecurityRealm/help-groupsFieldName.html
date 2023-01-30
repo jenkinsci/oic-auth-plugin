@@ -3,6 +3,6 @@
     This allows groups based authorization in Jenkins. The SSO server will need to add the field with the list of groups in 
     the token. For example in Keycloak, this can be done with a 'Group Membership' mapper in the configuration of the client.
 
-    If the SSO server adds the groups as an array of maps instead, then also use the Nested Group Name field below to specify
-    which element of the map is the group name. 
+    If the SSO server adds the groups as an array of maps instead, then specify the group field as "groups[].name" where "groups"
+    is the field containing the array of maps, and "name" it the name of the key in the map that holds the group name.
 </div>

@@ -32,7 +32,6 @@ public class TestRealm extends OicSecurityRealm {
         public String emailFieldName = null;
         public String scopes = null;
         public String groupsFieldName = null;
-        public String nestedGroupFieldName = null;
         public boolean disableSslVerification = false;
         public Boolean logoutFromOpenidProvider = false;
         public String endSessionEndpoint = null;
@@ -56,7 +55,6 @@ public class TestRealm extends OicSecurityRealm {
         public Builder WithUserInfoServerUrl(String userInfoServerUrl) { this.userInfoServerUrl = userInfoServerUrl; return this; }
         public Builder WithEmailFieldName(String emailFieldName) { this.emailFieldName = emailFieldName; return this; }
         public Builder WithGroupsFieldName(String groupsFieldName) { this.groupsFieldName = groupsFieldName; return this; }
-        public Builder WithNestedGroupFieldName(String nestedGroupFieldName) { this.nestedGroupFieldName = nestedGroupFieldName; return this; }
         public Builder WithPostLogoutRedirectUrl(String postLogoutRedirectUrl) { this.postLogoutRedirectUrl = postLogoutRedirectUrl; return this; }
     public Builder WithAutomanualconfigure(String automanualconfigure) { this.automanualconfigure = automanualconfigure; return this; }
     public Builder WithScopes(String scopes) { this.scopes = scopes; return this; }
@@ -96,7 +94,6 @@ public class TestRealm extends OicSecurityRealm {
              builder.emailFieldName,
              builder.scopes,
              builder.groupsFieldName,
-             builder.nestedGroupFieldName,
              builder.disableSslVerification,
              builder.logoutFromOpenidProvider,
              builder.endSessionEndpoint,

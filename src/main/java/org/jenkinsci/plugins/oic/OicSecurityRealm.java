@@ -189,7 +189,7 @@ public class OicSecurityRealm extends SecurityRealm {
     @Deprecated
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String tokenAuthMethod, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
-                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, String nestedGroupFieldName, Boolean disableSslVerification,
+                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, Boolean disableSslVerification,
                             Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, Boolean escapeHatchEnabled,
                             String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
@@ -235,7 +235,6 @@ public class OicSecurityRealm extends SecurityRealm {
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
-        this.nestedGroupFieldName = Util.fixEmptyAndTrim(nestedGroupFieldName) == null ? "name" : nestedGroupFieldName;
         this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
         this.escapeHatchEnabled = Util.fixNull(escapeHatchEnabled, Boolean.FALSE);
@@ -347,10 +346,6 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public String getGroupsFieldName() {
         return groupsFieldName;
-    }
-
-    public String getNestedGroupFieldName() {
-        return nestedGroupFieldName;
     }
 
     public String getScopes() {
@@ -493,11 +488,6 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
-    }
-
-    @DataBoundSetter
-    public void setNestedGroupFieldName(String nestedGroupFieldName) {
-        this.nestedGroupFieldName = Util.fixEmpty(nestedGroupFieldName);
     }
 
     // Not a DataBoundSetter - set in constructor
@@ -850,11 +840,18 @@ public class OicSecurityRealm extends SecurityRealm {
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
 
         if (isNotBlank(groupsFieldName)) {
-            if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, groupsFieldName)) {
-                LOGGER.fine("UserInfo contains group field name: " + groupsFieldName + " with value class:" + getField(userInfo, groupsFieldName).getClass());
-                List<String> groupNames = ensureString(getField(userInfo, groupsFieldName));
+            // if groupsFieldName contains []., then groupsFieldName
+            // is first portion, and nestedGroupFieldName is
+            // second portion
+            String[] parts = groupsFieldName.split("\\[\\]\\.");
+            // don't modify groupsFieldName
+            String localGroupsFieldName = parts.length > 1 ? parts[0] : groupsFieldName;
+            nestedGroupFieldName = parts.length > 1 ? parts[1] : nestedGroupFieldName;
+            if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, localGroupsFieldName)) {
+                LOGGER.fine("UserInfo contains group field name: " + localGroupsFieldName + " with value class:" + getField(userInfo, localGroupsFieldName).getClass());
+                List<String> groupNames = ensureString(getField(userInfo, localGroupsFieldName));
                 if(groupNames.isEmpty()){
-                    LOGGER.warning("UserInfo does not contains groups in " + groupsFieldName);
+                    LOGGER.warning("UserInfo does not contains groups in " + localGroupsFieldName);
                 } else {
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                 }
@@ -862,16 +859,16 @@ public class OicSecurityRealm extends SecurityRealm {
                     LOGGER.fine("Adding group from UserInfo: " + groupName);
                     grantedAuthorities.add(new SimpleGrantedAuthority(groupName));
                 }
-            } else if (containsField(idToken.getPayload(), groupsFieldName)) {
-                LOGGER.fine("idToken contains group field name: " + groupsFieldName + " with value class:" + getField(idToken.getPayload(), groupsFieldName).getClass());
-                List<String> groupNames = ensureString(getField(idToken.getPayload(), groupsFieldName));
+            } else if (containsField(idToken.getPayload(), localGroupsFieldName)) {
+                LOGGER.fine("idToken contains group field name: " + localGroupsFieldName + " with value class:" + getField(idToken.getPayload(), localGroupsFieldName).getClass());
+                List<String> groupNames = ensureString(getField(idToken.getPayload(), localGroupsFieldName));
                 LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                 for (String groupName : groupNames) {
                     LOGGER.fine("Adding group from idToken: " + groupName);
                     grantedAuthorities.add(new SimpleGrantedAuthority(groupName));
                 }
             } else {
-                LOGGER.warning("idToken and userInfo did not contain group field name: " + groupsFieldName);
+                LOGGER.warning("idToken and userInfo did not contain group field name: " + localGroupsFieldName);
             }
         } else {
             LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
@@ -906,7 +903,6 @@ public class OicSecurityRealm extends SecurityRealm {
               if (group instanceof String) {
                 result.add(group.toString());
               } else if (group instanceof ArrayMap) {
-                // some idcs return groups field as Array of Maps.
                 // if its a Map, we use the nestedGroupFieldName to grab the groups
                 Map<String, String> groupMap = (Map<String, String>) group;
                 if (groupMap.keySet().contains(nestedGroupFieldName)) {
@@ -1269,14 +1265,6 @@ public class OicSecurityRealm extends SecurityRealm {
                 }
             }
 
-            return FormValidation.ok();
-        }
-        @RequirePOST
-        public FormValidation doCheckNestedGroupFieldNameField(@QueryParameter String nestedGroupFieldName) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(nestedGroupFieldName) == null) {
-                return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultNestedGroupFieldName());
-            }
             return FormValidation.ok();
         }
     }

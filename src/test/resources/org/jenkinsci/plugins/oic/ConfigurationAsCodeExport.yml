@@ -7,7 +7,6 @@ escapeHatchGroup: "escapeHatchGroup"
 escapeHatchUsername: "escapeHatchUsername"
 fullNameFieldName: "fullNameFieldName"
 groupsFieldName: "groupsFieldName"
-nestedGroupFieldName: "nestedGroupFieldName"
 nonceDisabled: true
 pkceEnabled: true
 rootURLFromRequest: true
