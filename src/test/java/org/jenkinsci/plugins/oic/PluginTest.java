@@ -288,8 +288,7 @@ public class PluginTest {
         ));
 
         System.out.println("jsonarray : " + toJsonArray(TEST_USER_GROUPS_MAP ));
-        jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo"));
-
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo", "email", "groups[].name"));
         assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
 
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());

@@ -137,7 +137,8 @@ public class OicSecurityRealm extends SecurityRealm {
     private String fullNameFieldName = null;
     private String emailFieldName = null;
     private String groupsFieldName = null;
-    private String nestedGroupFieldName = "name";
+    private String simpleGroupsFieldName = null;
+    private String nestedGroupFieldName = null;
     private String scopes = null;
     private final boolean disableSslVerification;
     private boolean logoutFromOpenidProvider = true;
@@ -234,7 +235,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
         this.emailFieldName = Util.fixEmpty(emailFieldName);
-        this.groupsFieldName = Util.fixEmpty(groupsFieldName);
+        this.setGroupsFieldName(Util.fixEmpty(groupsFieldName));
         this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
         this.escapeHatchEnabled = Util.fixNull(escapeHatchEnabled, Boolean.FALSE);
@@ -488,6 +489,22 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
+        // if groupsFieldName contains []., then groupsFieldName
+        // is first portion, and nestedGroupFieldName is
+        // second portion
+        // split on "[]." and only split on first occurrence
+        if (this.groupsFieldName != null) {
+            String[] parts = this.groupsFieldName.split("\\[\\]\\.", 2);
+            this.simpleGroupsFieldName = Util.fixEmpty(parts[0]);
+            this.nestedGroupFieldName = parts.length > 1 ? Util.fixEmpty(parts[1]) : null;
+            if (this.groupsFieldName.split("\\[\\]\\.").length > 2) {
+                LOGGER.warning("nestedGroupFieldName contains more than one []., this is not supported");
+            }
+            LOGGER.fine(
+                    "in setGroupsFieldName,  groupsFieldName is " + this.groupsFieldName + " simpleGroupsFieldName is "
+                            + this.simpleGroupsFieldName + " nestedGroupFieldName is " + this.nestedGroupFieldName);
+        }
+
     }
 
     // Not a DataBoundSetter - set in constructor
@@ -838,20 +855,12 @@ public class OicSecurityRealm extends SecurityRealm {
     private List<GrantedAuthority> determineAuthorities(IdToken idToken, GenericJson userInfo) {
         List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
-
-        if (isNotBlank(groupsFieldName)) {
-            // if groupsFieldName contains []., then groupsFieldName
-            // is first portion, and nestedGroupFieldName is
-            // second portion
-            String[] parts = groupsFieldName.split("\\[\\]\\.");
-            // don't modify groupsFieldName
-            String localGroupsFieldName = parts.length > 1 ? parts[0] : groupsFieldName;
-            nestedGroupFieldName = parts.length > 1 ? parts[1] : nestedGroupFieldName;
-            if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, localGroupsFieldName)) {
-                LOGGER.fine("UserInfo contains group field name: " + localGroupsFieldName + " with value class:" + getField(userInfo, localGroupsFieldName).getClass());
-                List<String> groupNames = ensureString(getField(userInfo, localGroupsFieldName));
+        if (isNotBlank(simpleGroupsFieldName)) {
+            if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, simpleGroupsFieldName)) {
+                LOGGER.fine("UserInfo contains group field name: " + simpleGroupsFieldName + " with value class:" + getField(userInfo, simpleGroupsFieldName).getClass());
+                List<String> groupNames = ensureString(getField(userInfo, simpleGroupsFieldName));
                 if(groupNames.isEmpty()){
-                    LOGGER.warning("UserInfo does not contains groups in " + localGroupsFieldName);
+                    LOGGER.warning("UserInfo does not contains groups in " + simpleGroupsFieldName);
                 } else {
                     LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                 }
@@ -859,16 +868,16 @@ public class OicSecurityRealm extends SecurityRealm {
                     LOGGER.fine("Adding group from UserInfo: " + groupName);
                     grantedAuthorities.add(new SimpleGrantedAuthority(groupName));
                 }
-            } else if (containsField(idToken.getPayload(), localGroupsFieldName)) {
-                LOGGER.fine("idToken contains group field name: " + localGroupsFieldName + " with value class:" + getField(idToken.getPayload(), localGroupsFieldName).getClass());
-                List<String> groupNames = ensureString(getField(idToken.getPayload(), localGroupsFieldName));
+            } else if (containsField(idToken.getPayload(), simpleGroupsFieldName)) {
+                LOGGER.fine("idToken contains group field name: " + simpleGroupsFieldName + " with value class:" + getField(idToken.getPayload(), simpleGroupsFieldName).getClass());
+                List<String> groupNames = ensureString(getField(idToken.getPayload(), simpleGroupsFieldName));
                 LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
                 for (String groupName : groupNames) {
                     LOGGER.fine("Adding group from idToken: " + groupName);
                     grantedAuthorities.add(new SimpleGrantedAuthority(groupName));
                 }
             } else {
-                LOGGER.warning("idToken and userInfo did not contain group field name: " + localGroupsFieldName);
+                LOGGER.warning("idToken and userInfo did not contain group field name: " + simpleGroupsFieldName);
             }
         } else {
             LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
@@ -905,7 +914,7 @@ public class OicSecurityRealm extends SecurityRealm {
               } else if (group instanceof ArrayMap) {
                 // if its a Map, we use the nestedGroupFieldName to grab the groups
                 Map<String, String> groupMap = (Map<String, String>) group;
-                if (groupMap.keySet().contains(nestedGroupFieldName)) {
+                if (nestedGroupFieldName != null &&  groupMap.keySet().contains(nestedGroupFieldName)) {
                     result.add(groupMap.get(nestedGroupFieldName));
                 }
               }
@@ -1265,6 +1274,22 @@ public class OicSecurityRealm extends SecurityRealm {
                 }
             }
 
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
+        // method to check groupsFieldName matches the required format
+        // can contain the substring "[]." at most once.
+        // e.g. "groups", "groups[].name" are valid
+        // groups[].name[].id is not valid
+        public FormValidation doCheckGroupsFieldName(@QueryParameter String groupsFieldName) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(groupsFieldName) == null) {
+                return FormValidation.ok();
+            }
+            if (groupsFieldName.split("\\[\\]\\.").length > 2) {
+                return FormValidation.error(Messages.OicSecurityRealm_InvalidGroupsFieldName());
+            }
             return FormValidation.ok();
         }
     }
