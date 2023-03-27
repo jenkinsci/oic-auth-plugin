@@ -113,7 +113,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.3</version>
+        <version>3.0.0</version>
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
