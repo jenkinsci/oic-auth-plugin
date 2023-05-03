@@ -464,7 +464,10 @@ public class OicSecurityRealm extends SecurityRealm {
      */
     private void setWellKnownExpires(HttpHeaders headers) {
         String expires = Util.fixEmpty(headers.getExpires());
-        if (expires != null) {
+        // expires 0 means no cache
+        // we could (should?) have a look at Cache-Control header and max-age but for simplicity
+        // we can just leave it default TTL 1h refresh which sounds reasonable for such file
+        if (expires != null && !"0".equals(expires)) {
             ZonedDateTime zdt = ZonedDateTime.parse(expires, DateTimeFormatter.RFC_1123_DATE_TIME);
             if (zdt != null) {
                 this.wellKnownExpires = zdt.toLocalDateTime();
