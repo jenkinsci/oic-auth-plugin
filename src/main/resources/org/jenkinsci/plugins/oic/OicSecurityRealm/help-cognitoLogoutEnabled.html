@@ -1,0 +1,9 @@
+<div>
+    AWS Cognito does not follow the OpenID Connect RP-Initiated Logout specification.<br>
+    Ticking this box extends the "End session URL for OpenID Provider", e.g., <code>COGNITO_DOMAIN/logout</code>
+    by automatically adding
+    <ul>
+        <li>the <code>client_id</code> query parameter</li>
+        <li>the <code>logout_uri</code> query parameter containing the "Post logout redirect URL"</li>
+    </ul>
+</div>

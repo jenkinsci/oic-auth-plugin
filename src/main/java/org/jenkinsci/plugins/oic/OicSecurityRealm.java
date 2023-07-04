@@ -148,6 +148,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private boolean logoutFromOpenidProvider = true;
     private String endSessionEndpoint = null;
     private String postLogoutRedirectUrl;
+    private boolean cognitoLogoutEnabled;
     private boolean escapeHatchEnabled = false;
     private String escapeHatchUsername = null;
     private Secret escapeHatchSecret = null;
@@ -199,7 +200,7 @@ public class OicSecurityRealm extends SecurityRealm {
     public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String tokenAuthMethod, String authorizationServerUrl,
                             String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
                             String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, Boolean disableSslVerification,
-                            Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, Boolean escapeHatchEnabled,
+                            Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, Boolean cognitoLogoutEnabled, Boolean escapeHatchEnabled,
                             String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
         this.httpTransport = constructHttpTransport(this.disableSslVerification);
@@ -234,6 +235,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.setGroupsFieldName(Util.fixEmpty(groupsFieldName));
         this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
+        this.cognitoLogoutEnabled = Util.fixNull(cognitoLogoutEnabled, Boolean.FALSE);
         this.escapeHatchEnabled = Util.fixNull(escapeHatchEnabled, Boolean.FALSE);
         this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
         this.escapeHatchSecret = Secret.fromString(escapeHatchSecret);
@@ -363,6 +365,10 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public String getPostLogoutRedirectUrl() {
         return postLogoutRedirectUrl;
+    }
+
+    public boolean isCognitoLogoutEnabled() {
+        return cognitoLogoutEnabled;
     }
 
     public boolean isEscapeHatchEnabled() {
@@ -567,6 +573,11 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundSetter
     public void setPostLogoutRedirectUrl(String postLogoutRedirectUrl) {
         this.postLogoutRedirectUrl = Util.fixEmpty(postLogoutRedirectUrl);
+    }
+
+    @DataBoundSetter
+    public void setCognitoLogoutEnabled(boolean cognitoLogoutEnabled) {
+        this.cognitoLogoutEnabled = cognitoLogoutEnabled;
     }
 
     @DataBoundSetter
@@ -1003,15 +1014,25 @@ public class OicSecurityRealm extends SecurityRealm {
     public String getPostLogOutUrl2(StaplerRequest req, Authentication auth) {
         if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(this.endSessionEndpoint)) {
             StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionEndpoint);
-            openidLogoutEndpoint.append("?id_token_hint=").append(req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE));
-            openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
-
-            if (this.postLogoutRedirectUrl != null) {
-        try {
-            openidLogoutEndpoint.append("&post_logout_redirect_uri=").append(URLEncoder.encode(this.postLogoutRedirectUrl, "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+            if (this.cognitoLogoutEnabled) {
+                openidLogoutEndpoint.append("?client_id=").append(this.clientId);
+                if (this.postLogoutRedirectUrl != null) {
+                    try {
+                        openidLogoutEndpoint.append("&logout_uri=").append(URLEncoder.encode(this.postLogoutRedirectUrl, "UTF-8"));
+                    } catch (UnsupportedEncodingException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            } else {
+                openidLogoutEndpoint.append("?id_token_hint=").append(req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE));
+                openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
+                if (this.postLogoutRedirectUrl != null) {
+                    try {
+                        openidLogoutEndpoint.append("&post_logout_redirect_uri=").append(URLEncoder.encode(this.postLogoutRedirectUrl, "UTF-8"));
+                    } catch (UnsupportedEncodingException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             }
             return openidLogoutEndpoint.toString();
         }

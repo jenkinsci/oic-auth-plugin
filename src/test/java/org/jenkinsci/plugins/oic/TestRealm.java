@@ -36,6 +36,7 @@ public class TestRealm extends OicSecurityRealm {
         public Boolean logoutFromOpenidProvider = false;
         public String endSessionEndpoint = null;
         public String postLogoutRedirectUrl = null;
+        public boolean cognitoLogoutEnabled = false;
         public boolean escapeHatchEnabled = false;
         public String escapeHatchUsername = null;
         public String escapeHatchSecret = null;
@@ -56,6 +57,7 @@ public class TestRealm extends OicSecurityRealm {
         public Builder WithEmailFieldName(String emailFieldName) { this.emailFieldName = emailFieldName; return this; }
         public Builder WithGroupsFieldName(String groupsFieldName) { this.groupsFieldName = groupsFieldName; return this; }
         public Builder WithPostLogoutRedirectUrl(String postLogoutRedirectUrl) { this.postLogoutRedirectUrl = postLogoutRedirectUrl; return this; }
+        public Builder WithCognitoLogoutEnabled(boolean cognitoLogoutEnabled) { this.cognitoLogoutEnabled = cognitoLogoutEnabled;return this; }
     public Builder WithAutomanualconfigure(String automanualconfigure) { this.automanualconfigure = automanualconfigure; return this; }
     public Builder WithScopes(String scopes) { this.scopes = scopes; return this; }
 
@@ -98,6 +100,7 @@ public class TestRealm extends OicSecurityRealm {
              builder.logoutFromOpenidProvider,
              builder.endSessionEndpoint,
              builder.postLogoutRedirectUrl,
+             builder.cognitoLogoutEnabled,
              builder.escapeHatchEnabled,
              builder.escapeHatchUsername,
              builder.escapeHatchSecret,
