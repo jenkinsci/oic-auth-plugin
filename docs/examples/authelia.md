@@ -32,6 +32,7 @@ identity_providers:
 ## Jenkins Configuration (JCasC)
 
 ```yaml
+jenkins:
   securityRealm:
     oic:
       automanualconfigure: auto
