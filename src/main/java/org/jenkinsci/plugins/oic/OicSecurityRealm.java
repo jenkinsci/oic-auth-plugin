@@ -730,6 +730,29 @@ public class OicSecurityRealm extends SecurityRealm {
         return builder.build();
     }
 
+    private String getValidRedirectUrl(String url) {
+        if (url != null && !url.isEmpty()) {
+            // Check if the URL is relative and starts with a slash
+            if (url.startsWith("/")) {
+                return getRootUrl() + url; // Convert to absolute URL
+            }
+            // If not relative, then check if it's a valid absolute URL
+            try {
+                URL parsedUrl = new URL(url);
+                String host = parsedUrl.getHost();
+                String expectedHost = new URL(getRootUrl()).getHost();
+                // Check if the host matches the Jenkins domain
+                if (host.equals(expectedHost)) {
+                    return url; // The URL is absolute and valid
+                }
+            } catch (MalformedURLException e) {
+                // Invalid absolute URL, will return root URL
+            }
+        }
+        // If the URL is null, empty, or invalid, return the root URL
+        return getRootUrl();
+    }
+
     /**
      * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
      * @param from the relative URL to the page that the user has just come from
@@ -741,7 +764,7 @@ public class OicSecurityRealm extends SecurityRealm {
         // reload config if needed
         loadWellKnownOpenIDConfigurationUrl();
 
-        final String redirectOnFinish = determineRedirectTarget(from, referer);
+        final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer);
 
         final AuthorizationCodeFlow flow = this.buildAuthorizationCodeFlow();
 
@@ -1032,18 +1055,6 @@ public class OicSecurityRealm extends SecurityRealm {
         } else {
             return Jenkins.get().getRootUrl();
         }
-    }
-
-    private String determineRedirectTarget(@QueryParameter String from, @Header("Referer") String referer) {
-        String target;
-        if (from != null) {
-            target = from;
-        } else if (referer != null) {
-            target = referer;
-        } else {
-            target = getRootUrl();
-        }
-        return target;
     }
 
     private String buildOAuthRedirectUrl() throws NullPointerException {
