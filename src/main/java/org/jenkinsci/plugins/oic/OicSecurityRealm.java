@@ -730,7 +730,7 @@ public class OicSecurityRealm extends SecurityRealm {
         return builder.build();
     }
 
-    private String getValidRedirectUrl(String url) {
+    protected String getValidRedirectUrl(String url) {
         if (url != null && !url.isEmpty()) {
             // Check if the URL is relative and starts with a slash
             if (url.startsWith("/")) {
