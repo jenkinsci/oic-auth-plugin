@@ -1,4 +1,11 @@
-buildPlugin(useContainerAgent: true,
-           // Opt-in to the Artifact Caching Proxy, to be removed when it will be in opt-out.
-            // See https://github.com/jenkins-infra/helpdesk/issues/2752 for more details and updates.
-            artifactCachingProxyEnabled: true)
+/*
+ See the documentation for more options:
+ https://github.com/jenkins-infra/pipeline-library/
+*/
+buildPlugin(
+  forkCount: '1C', // run this number of tests in parallel for faster feedback.  If the number terminates with a 'C', the value will be multiplied by the number of available CPU cores
+  useContainerAgent: true, // Set to `false` if you need to use Docker for containerized tests
+  configurations: [
+    [platform: 'linux', jdk: 21],
+    [platform: 'windows', jdk: 17],
+])
