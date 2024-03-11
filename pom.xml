@@ -69,7 +69,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>mailer</artifactId>
-      <version>1.34.2</version>
+      <version>470.vc91f60c5d8e2</version>
     </dependency>
 
     <dependency>
