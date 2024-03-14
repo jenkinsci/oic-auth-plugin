@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.51</version>
+    <version>4.78</version>
     <relativePath />
   </parent>
 
@@ -11,7 +11,7 @@
     <revision>2.7</revision>
     <changelist>-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/oic-auth-plugin</gitHubRepo>
-    <jenkins.version>2.346.1</jenkins.version>
+    <jenkins.version>2.361</jenkins.version>
     <spotbugs.failOnError>true</spotbugs.failOnError>
     <spotbugs.effort>Max</spotbugs.effort>
     <configuration-as-code.version>1569.vb_72405b_80249</configuration-as-code.version>

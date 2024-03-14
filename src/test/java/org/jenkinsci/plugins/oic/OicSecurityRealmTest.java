@@ -91,7 +91,7 @@ public class OicSecurityRealmTest {
     public void testGetValidRedirectUrl() throws IOException {
         String rootUrl = "http://localhost:" + wireMockRule.port() + "/jenkins/";
 
-        TestRealm realm = new TestRealm.Builder(wireMockRule)
+        TestRealm realm = new TestRealm.Builder(rootUrl)
                 .WithMinimalDefaults().build();
         assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("/foo"));
         assertEquals(rootUrl + "bar", realm.getValidRedirectUrl(rootUrl + "bar"));

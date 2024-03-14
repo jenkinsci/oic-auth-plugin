@@ -19,6 +19,16 @@ public class EscapeHatchCrumbExclusionTest {
 
     private FilterChain chain = null;
 
+	private Request newRequestWithPath(String requestPath) {
+        return new Request(null, null) {
+            @Override
+            public String getPathInfo() {
+                return requestPath;
+            }
+        };
+	}
+
+
     @Test
     public void process_WithNullPath() throws IOException, ServletException {
         Request request = new Request(null, null);
@@ -27,8 +37,7 @@ public class EscapeHatchCrumbExclusionTest {
 
     @Test
     public void process_WithWrongPath() throws IOException, ServletException {
-        Request request = new Request(null, null);
-        request.setPathInfo("fictionalPath");
+        Request request = newRequestWithPath("fictionalPath");
         assertFalse(crumb.process(request, response, chain));
     }
 
@@ -41,8 +50,7 @@ public class EscapeHatchCrumbExclusionTest {
             }
         };
 
-        Request request = new Request(null, null);
-        request.setPathInfo("/securityRealm/escapeHatch");
+        Request request = newRequestWithPath("/securityRealm/escapeHatch");
         assertTrue(crumb.process(request, response, chain));
     }
 }
