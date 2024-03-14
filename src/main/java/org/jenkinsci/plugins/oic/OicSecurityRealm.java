@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -734,7 +735,7 @@ public class OicSecurityRealm extends SecurityRealm {
         if (url != null && !url.isEmpty()) {
             // Check if the URL is relative and starts with a slash
             if (url.startsWith("/")) {
-                return getRootUrl() + url; // Convert to absolute URL
+                return URI.create(getRootUrl() + url).normalize().toString();
             }
             // If not relative, then check if it's a valid absolute URL
             try {
