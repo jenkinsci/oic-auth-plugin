@@ -19,15 +19,14 @@ public class EscapeHatchCrumbExclusionTest {
 
     private FilterChain chain = null;
 
-	private Request newRequestWithPath(String requestPath) {
+    private Request newRequestWithPath(String requestPath) {
         return new Request(null, null) {
             @Override
             public String getPathInfo() {
                 return requestPath;
             }
         };
-	}
-
+    }
 
     @Test
     public void process_WithNullPath() throws IOException, ServletException {
