@@ -735,7 +735,7 @@ public class OicSecurityRealm extends SecurityRealm {
         if (url != null && !url.isEmpty()) {
             // Check if the URL is relative and starts with a slash
             if (url.startsWith("/")) {
-				return URI.create(getRootUrl() + url).normalize().toString();
+                return URI.create(getRootUrl() + url).normalize().toString();
             }
             // If not relative, then check if it's a valid absolute URL
             try {

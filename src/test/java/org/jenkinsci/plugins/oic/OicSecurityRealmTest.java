@@ -4,7 +4,6 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.util.Secret;
 import java.io.IOException;
-import java.net.MalformedURLException;
 
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
@@ -18,7 +17,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
 
 public class OicSecurityRealmTest {
 
