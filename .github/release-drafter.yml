@@ -1,2 +1,0 @@
-_extends: .github
-tag-template: oic-auth-$NEXT_MINOR_VERSION

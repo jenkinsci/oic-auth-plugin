@@ -8,8 +8,8 @@
   </parent>
 
   <properties>
-    <revision>3.1</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <revision>3</revision>
+    <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/oic-auth-plugin</gitHubRepo>
     <jenkins.version>2.361</jenkins.version>
     <spotbugs.failOnError>true</spotbugs.failOnError>
@@ -18,7 +18,7 @@
   </properties>
 
   <artifactId>oic-auth</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${revision}.${changelist}</version>
   <packaging>hpi</packaging>
 
   <scm>
