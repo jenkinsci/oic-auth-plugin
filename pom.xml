@@ -8,7 +8,7 @@
   </parent>
 
   <properties>
-    <revision>3</revision>
+    <revision>4</revision>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/oic-auth-plugin</gitHubRepo>
     <jenkins.version>2.361</jenkins.version>
