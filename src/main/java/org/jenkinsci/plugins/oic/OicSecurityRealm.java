@@ -23,7 +23,7 @@
 */
 package org.jenkinsci.plugins.oic;
 
-import com.fasterxml.jackson.core.JsonParseException;
+import com.google.gson.JsonParseException;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
 import com.google.api.client.auth.oauth2.BearerToken;
@@ -41,9 +41,8 @@ import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.GenericJson;
-import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Data;
@@ -123,11 +122,9 @@ public class OicSecurityRealm extends SecurityRealm {
     private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
     public static enum TokenAuthMethod { client_secret_basic, client_secret_post };
 
-    private static final JsonFactory JSON_FACTORY = new JacksonFactory();
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
     private static final String NO_SECRET = "none";
-
 
     private final String clientId;
     private final Secret clientSecret;
@@ -142,8 +139,8 @@ public class OicSecurityRealm extends SecurityRealm {
     private String fullNameFieldName = null;
     private String emailFieldName = null;
     private String groupsFieldName = null;
-    private String simpleGroupsFieldName = null;
-    private String nestedGroupFieldName = null;
+    private transient String simpleGroupsFieldName = null;
+    private transient String nestedGroupFieldName = null;
     private String scopes = null;
     private final boolean disableSslVerification;
     private boolean logoutFromOpenidProvider = true;
@@ -191,6 +188,9 @@ public class OicSecurityRealm extends SecurityRealm {
     private transient String endSessionUrl;
 
     private transient HttpTransport httpTransport;
+
+    /** Random generator needed for robust random wait
+     */
     private static final Random RANDOM = new Random();
 
     /**
@@ -227,11 +227,11 @@ public class OicSecurityRealm extends SecurityRealm {
             this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
         }
 
-        this.tokenFieldToCheckKey = Util.fixEmpty(tokenFieldToCheckKey);
-        this.tokenFieldToCheckValue = Util.fixEmpty(tokenFieldToCheckValue);
-        this.userNameField = Util.fixEmpty(userNameField) == null ? "sub" : userNameField;
-        this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
-        this.emailFieldName = Util.fixEmpty(emailFieldName);
+        this.setTokenFieldToCheckKey(Util.fixEmpty(tokenFieldToCheckKey));
+        this.setTokenFieldToCheckValue(Util.fixEmpty(tokenFieldToCheckValue));
+        this.setUserNameField(Util.fixEmpty(userNameField) == null ? "sub" : userNameField);
+        this.setFullNameFieldName(Util.fixEmpty(fullNameFieldName));
+        this.setEmailFieldName(Util.fixEmpty(emailFieldName));
         this.setGroupsFieldName(Util.fixEmpty(groupsFieldName));
         this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
@@ -275,6 +275,17 @@ public class OicSecurityRealm extends SecurityRealm {
             } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
                 LOGGER.log(Level.SEVERE, "Can't set endSessionEndpoint from old value", e);
             }
+        }
+
+        // backward compatibility with wrong groupsFieldName split
+        if(Strings.isNullOrEmpty(this.groupsFieldName) && !Strings.isNullOrEmpty(this.simpleGroupsFieldName)) {
+            String originalGroupFieldName = this.simpleGroupsFieldName;
+            if(!Strings.isNullOrEmpty(this.nestedGroupFieldName)) {
+                originalGroupFieldName += "[]." + this.nestedGroupFieldName;
+            }
+            this.setGroupsFieldName(originalGroupFieldName);
+        } else {
+            this.setGroupsFieldName(this.groupsFieldName);
         }
         return this;
     }
@@ -435,7 +446,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 .createRequestFactory().buildGetRequest(new GenericUrl(url));
 
             com.google.api.client.http.HttpResponse response = request.execute();
-            WellKnownOpenIDConfigurationResponse config = OicSecurityRealm.JSON_FACTORY
+            WellKnownOpenIDConfigurationResponse config = GsonFactory.getDefaultInstance()
                 .fromInputStream(response.getContent(), Charset.defaultCharset(),
                         WellKnownOpenIDConfigurationResponse.class);
 
@@ -716,7 +727,7 @@ public class OicSecurityRealm extends SecurityRealm {
         AuthorizationCodeFlow.Builder builder = new AuthorizationCodeFlow.Builder(
                 tokenAccessMethod,
                 httpTransport,
-                JSON_FACTORY,
+                GsonFactory.getDefaultInstance(),
                 new GenericUrl(tokenServerUrl),
                 authInterceptor,
                 clientId,
@@ -1220,7 +1231,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
                 // Try to parse the response. If it's not valid, a JsonParseException will be thrown indicating
                 // that it's not a valid JSON describing an OpenID Connect endpoint
-                WellKnownOpenIDConfigurationResponse config = OicSecurityRealm.JSON_FACTORY
+                WellKnownOpenIDConfigurationResponse config = GsonFactory.getDefaultInstance()
                         .fromInputStream(response.getContent(), Charset.defaultCharset(),
                                 WellKnownOpenIDConfigurationResponse.class);
                 if(config.getAuthorizationEndpoint() == null || config.getTokenEndpoint() == null) {
