@@ -33,19 +33,12 @@ public class FieldTest {
 
         TestRealm realm = new TestRealm(wireMockRule);
 
-        assertEquals("myemail@example.com", realm.getField(payload, "email"));
-        assertEquals("100", realm.getField(payload, "user.id"));
-        assertNull(realm.getField(payload, "unknown"));
-        assertNull(realm.getField(payload, "user"));
-        assertNull(realm.getField(payload, "user.invalid"));
-        assertNull(realm.getField(payload, "none"));
-
-        assertTrue(realm.containsField(payload, "email"));
-        assertTrue(realm.containsField(payload, "user.id"));
-        assertFalse(realm.containsField(payload, "unknown"));
-        assertFalse(realm.containsField(payload, "user"));
-        assertFalse(realm.containsField(payload, "user.invalid"));
-        assertTrue(realm.containsField(payload, "none"));
+        assertEquals("myemail@example.com", realm.getStringFieldFromJMESPath(payload, "email"));
+        assertEquals("100", realm.getStringFieldFromJMESPath(payload, "user.id"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "unknown"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "user"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "user.invalid"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "none"));
     }
 
     @Test
@@ -61,18 +54,11 @@ public class FieldTest {
 
         TestRealm realm = new TestRealm(wireMockRule);
 
-        assertEquals("myemail@example.com", realm.getField(payload, "email"));
-        assertNull(realm.getField(payload, "unknown"));
-        assertNull(realm.getField(payload, "user"));
-        assertNull(realm.getField(payload, "user.invalid"));
-        assertEquals("myusername", realm.getField(payload, "user.name"));
-        assertNull(realm.getField(payload, "none"));
-
-        assertTrue(realm.containsField(payload, "email"));
-        assertFalse(realm.containsField(payload, "unknown"));
-        assertFalse(realm.containsField(payload, "user"));
-        assertFalse(realm.containsField(payload, "user.invalid"));
-        assertTrue(realm.containsField(payload, "none"));
-        assertTrue(realm.containsField(payload, "user.name"));
+        assertEquals("myemail@example.com", realm.getStringFieldFromJMESPath(payload, "email"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "unknown"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "user"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "user.invalid"));
+        assertEquals("myusername", realm.getStringFieldFromJMESPath(payload, "\"user.name\""));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "none"));
     }
 }

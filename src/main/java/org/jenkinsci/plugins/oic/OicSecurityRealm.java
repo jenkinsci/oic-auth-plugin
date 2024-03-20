@@ -57,6 +57,10 @@ import hudson.tasks.Mailer;
 import hudson.util.FormValidation;
 import hudson.util.HttpResponses;
 import hudson.util.Secret;
+import io.burt.jmespath.Expression;
+import io.burt.jmespath.JmesPath;
+import io.burt.jmespath.RuntimeConfiguration;
+import io.burt.jmespath.jcf.JcfRuntime;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
@@ -107,7 +111,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
-import static org.jenkinsci.plugins.oic.OicSecurityRealm.PlaceHolder.ABSENT;
 
 
 /**
@@ -134,11 +137,16 @@ public class OicSecurityRealm extends SecurityRealm {
     private String authorizationServerUrl = null;
     private String userInfoServerUrl = null;
     private String userNameField = "sub";
+    private transient Expression<Object> userNameFieldExpr = null;
     private String tokenFieldToCheckKey = null;
+    private transient Expression<Object> tokenFieldToCheckExpr = null;
     private String tokenFieldToCheckValue = null;
     private String fullNameFieldName = null;
+    private transient Expression<Object> fullNameFieldExpr = null;
     private String emailFieldName = null;
+    private transient Expression<Object> emailFieldExpr = null;
     private String groupsFieldName = null;
+    private transient Expression<Object> groupsFieldExpr = null;
     private transient String simpleGroupsFieldName = null;
     private transient String nestedGroupFieldName = null;
     private String scopes = null;
@@ -192,6 +200,14 @@ public class OicSecurityRealm extends SecurityRealm {
     /** Random generator needed for robust random wait
      */
     private static final Random RANDOM = new Random();
+
+    /** Runtime context to compile JMESPath
+     */
+    private static final JmesPath<Object> JMESPATH = new JcfRuntime(
+            new RuntimeConfiguration.Builder()
+                .withSilentTypeErrors(true)
+                .build());
+
 
     /**
      * @deprecated retained for backwards binary compatibility.
@@ -287,6 +303,11 @@ public class OicSecurityRealm extends SecurityRealm {
         } else {
             this.setGroupsFieldName(this.groupsFieldName);
         }
+        // ensure Field JMESPath are computed
+        this.setUserNameField(this.userNameField);
+        this.setEmailFieldName(this.emailFieldName);
+        this.setFullNameFieldName(this.fullNameFieldName);
+        this.setTokenFieldToCheckKey(this.tokenFieldToCheckKey);
         return this;
     }
 
@@ -523,11 +544,13 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundSetter
     public void setUserNameField(String userNameField) {
         this.userNameField = Util.fixEmpty(userNameField);
+        this.userNameFieldExpr = compileJMESPath(this.userNameField, "user name field");
     }
 
     @DataBoundSetter
     public void setTokenFieldToCheckKey(String tokenFieldToCheckKey) {
         this.tokenFieldToCheckKey = Util.fixEmpty(tokenFieldToCheckKey);
+        this.tokenFieldToCheckExpr = compileJMESPath(this.tokenFieldToCheckKey, "token field to check");
     }
 
     @DataBoundSetter
@@ -538,32 +561,37 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundSetter
     public void setFullNameFieldName(String fullNameFieldName) {
         this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
+        this.fullNameFieldExpr = compileJMESPath(this.fullNameFieldName, "full name field");
     }
 
     @DataBoundSetter
     public void setEmailFieldName(String emailFieldName) {
         this.emailFieldName = Util.fixEmpty(emailFieldName);
+        this.emailFieldExpr = compileJMESPath(this.emailFieldName, "email field");
+    }
+
+    static
+    protected Expression<Object> compileJMESPath(String str, String logComment) {
+        if (str == null) {
+            return null;
+        }
+
+        Expression<Object> expr = JMESPATH.compile(str);
+        if (expr == null && logComment != null) {
+            LOGGER.warning(logComment + " with config '" + str + "' is an invalid JMESPath expression ");
+        }
+
+        return expr;
+    }
+
+    private Object applyJMESPath(Expression<Object> expression, GenericJson json) {
+        return expression.search(json);
     }
 
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmpty(groupsFieldName);
-        // if groupsFieldName contains []., then groupsFieldName
-        // is first portion, and nestedGroupFieldName is
-        // second portion
-        // split on "[]." and only split on first occurrence
-        if (this.groupsFieldName != null) {
-            String[] parts = this.groupsFieldName.split("\\[\\]\\.", 2);
-            this.simpleGroupsFieldName = Util.fixEmpty(parts[0]);
-            this.nestedGroupFieldName = parts.length > 1 ? Util.fixEmpty(parts[1]) : null;
-            if (this.groupsFieldName.split("\\[\\]\\.").length > 2) {
-                LOGGER.warning("nestedGroupFieldName contains more than one []., this is not supported");
-            }
-            LOGGER.fine(
-                    "in setGroupsFieldName,  groupsFieldName is " + this.groupsFieldName + " simpleGroupsFieldName is "
-                            + this.simpleGroupsFieldName + " nestedGroupFieldName is " + this.nestedGroupFieldName);
-        }
-
+        this.groupsFieldExpr = this.compileJMESPath(groupsFieldName, "groups field");
     }
 
     // Not a DataBoundSetter - set in constructor
@@ -809,7 +837,7 @@ public class OicSecurityRealm extends SecurityRealm {
                         userInfo = getUserInfo(flow, response.getAccessToken());
                     }
 
-                    String username = determineStringField(userNameField, idToken, userInfo);
+                    String username = determineStringField(userNameFieldExpr, idToken, userInfo);
                     if(username == null) {
                         return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the UserInfo or the IdToken payload to be used as the username");
                     }
@@ -864,23 +892,29 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     private boolean failedCheckOfTokenField(IdToken idToken) {
-        if(tokenFieldToCheckKey == null || tokenFieldToCheckValue == null) {
+        if( tokenFieldToCheckKey == null ||
+			tokenFieldToCheckValue == null) {
             return false;
         }
 
-        Object value = getField(idToken.getPayload(), tokenFieldToCheckKey);
+		if(idToken == null) {
+            return true;
+		}
+
+        String value = getStringField(idToken.getPayload(), tokenFieldToCheckExpr);
         if(value == null) {
             return true;
         }
 
-        return !tokenFieldToCheckValue.equals(String.valueOf(value));
+        return !tokenFieldToCheckValue.equals(value);
     }
 
     private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, IdToken idToken, GenericJson userInfo) throws IOException {
 
         List<GrantedAuthority> grantedAuthorities = determineAuthorities(idToken, userInfo);
         if(LOGGER.isLoggable(Level.FINEST)) {
-            StringBuilder grantedAuthoritiesAsString = new StringBuilder("(");
+            StringBuilder grantedAuthoritiesAsString = new StringBuilder(userName);
+            grantedAuthoritiesAsString.append(" (");
             for(GrantedAuthority grantedAuthority : grantedAuthorities) {
                 grantedAuthoritiesAsString.append(" ").append(grantedAuthority.getAuthority());
             }
@@ -900,12 +934,12 @@ public class OicSecurityRealm extends SecurityRealm {
         // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
         user.addProperty(new OicUserProperty(userName, grantedAuthorities));
 
-        String email = determineStringField(emailFieldName, idToken, userInfo);
+        String email = determineStringField(emailFieldExpr, idToken, userInfo);
         if (email != null) {
             user.addProperty(new Mailer.UserProperty(email));
         }
 
-        String fullName = determineStringField(fullNameFieldName, idToken, userInfo);
+        String fullName = determineStringField(fullNameFieldExpr, idToken, userInfo);
         if (fullName != null) {
             user.setFullName(fullName);
         }
@@ -916,10 +950,10 @@ public class OicSecurityRealm extends SecurityRealm {
         return token;
     }
 
-    private String determineStringField(String fieldName, IdToken idToken, GenericJson userInfo) {
-        if (fieldName != null) {
+    private String determineStringField(Expression<Object> fieldExpr, IdToken idToken, GenericJson userInfo) {
+        if (fieldExpr != null) {
             if (userInfo != null) {
-                Object field = getField(userInfo, fieldName);
+                Object field = fieldExpr.search(userInfo);
                 if (field != null && field instanceof String) {
                     String fieldValue = Util.fixEmptyAndTrim((String) field);
                     if (fieldValue != null) {
@@ -928,7 +962,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 }
             }
             if (idToken != null) {
-                String fieldValue = Util.fixEmptyAndTrim(getField(idToken, fieldName));
+                String fieldValue = Util.fixEmptyAndTrim(getStringField(idToken.getPayload(), fieldExpr));
                 if (fieldValue != null) {
                     return fieldValue;
                 }
@@ -937,35 +971,55 @@ public class OicSecurityRealm extends SecurityRealm {
         return null;
     }
 
+    protected String getStringField(Object object, Expression<Object> fieldExpr) {
+        if( object != null && fieldExpr != null) {
+            Object value = fieldExpr.search(object);
+            if( (value != null) &&
+				!(value instanceof Map) &&
+				!(value instanceof List)) {
+                return String.valueOf(value);
+            }
+        }
+        return null;
+    }
+
+
     private List<GrantedAuthority> determineAuthorities(IdToken idToken, GenericJson userInfo) {
         List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
-        if (isNotBlank(simpleGroupsFieldName)) {
-            if (!Strings.isNullOrEmpty(userInfoServerUrl) && containsField(userInfo, simpleGroupsFieldName)) {
-                LOGGER.fine("UserInfo contains group field name: " + simpleGroupsFieldName + " with value class:" + getField(userInfo, simpleGroupsFieldName).getClass());
-                List<String> groupNames = ensureString(getField(userInfo, simpleGroupsFieldName));
-                if(groupNames.isEmpty()){
-                    LOGGER.warning("UserInfo does not contains groups in " + simpleGroupsFieldName);
-                } else {
-                    LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
-                }
-                for (String groupName : groupNames) {
-                    LOGGER.fine("Adding group from UserInfo: " + groupName);
-                    grantedAuthorities.add(new SimpleGrantedAuthority(groupName));
-                }
-            } else if (containsField(idToken.getPayload(), simpleGroupsFieldName)) {
-                LOGGER.fine("idToken contains group field name: " + simpleGroupsFieldName + " with value class:" + getField(idToken.getPayload(), simpleGroupsFieldName).getClass());
-                List<String> groupNames = ensureString(getField(idToken.getPayload(), simpleGroupsFieldName));
-                LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
-                for (String groupName : groupNames) {
-                    LOGGER.fine("Adding group from idToken: " + groupName);
-                    grantedAuthorities.add(new SimpleGrantedAuthority(groupName));
-                }
+        if (this.groupsFieldExpr == null) {
+            if(this.groupsFieldName == null) {
+                LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
             } else {
-                LOGGER.warning("idToken and userInfo did not contain group field name: " + simpleGroupsFieldName);
+                LOGGER.fine("Not adding groups because groupsFieldName is invalid. groupsFieldName=" + groupsFieldName);
             }
-        } else {
-            LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
+            return grantedAuthorities;
+        }
+
+        Object groupsObject = null;
+
+        // userInfo has precedence when available
+        if(userInfo != null) {
+            groupsObject = this.groupsFieldExpr.search(userInfo);
+        }
+        if(groupsObject == null && idToken != null) {
+            groupsObject = this.groupsFieldExpr.search(idToken.getPayload());
+        }
+        if(groupsObject == null) {
+            LOGGER.warning("idToken and userInfo did not contain group field name: " + this.groupsFieldName);
+            return grantedAuthorities;
+        }
+
+        List<String> groupNames = ensureString(groupsObject);
+        if(groupNames.isEmpty()){
+            LOGGER.warning("Could not identify groups in " + groupsFieldName + "=" + groupsObject.toString());
+            return grantedAuthorities;
+        }
+        LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
+
+        for (String groupName : groupNames) {
+            LOGGER.fine("Adding group from UserInfo: " + groupName);
+            grantedAuthorities.add(new SimpleGrantedAuthority(groupName));
         }
 
         return grantedAuthorities;
@@ -1013,14 +1067,6 @@ public class OicSecurityRealm extends SecurityRealm {
                 return Collections.<String>emptyList();
             }
         }
-    }
-
-    private String getField(IdToken idToken, String fullNameFieldName) {
-        Object value = getField(idToken.getPayload(), fullNameFieldName);
-        if(value != null) {
-            return String.valueOf(value);
-        }
-        return null;
     }
 
     @Restricted(DoNotUse.class) // stapler only
@@ -1091,100 +1137,6 @@ public class OicSecurityRealm extends SecurityRealm {
         }
         return currentSession.doFinishLogin(request);
     }
-
-    /**
-     * Looks up the value of a field by it's key based on some json.
-     * keys with dot notation allow to denote nested structures.
-     *
-     * Keys containing dot's take precedence over nested values, by using "
-     * one can denote (partly) nested structures. dot notation feels more natural but
-     * '"' is the only illegal character in json strings
-     *
-     * given:
-     * {@code
-     * {
-     *     "do": {
-     *         "re.mi": "a"
-     *     },
-     *     "do": {
-     *         "re": {
-     *             "mi": "b"
-     *         }
-     *     },
-     *     "do.re": {
-     *         "mi": "c"
-     *     }
-     *     "do.re.mi": "d",
-     * }
-     * }
-     * {@literal
-     *  'do.re.mi' -&gt; 'd'
-     *  'do"re.mi' -> 'a'
-     *  'do"re"mi' -> 'b'
-     *  'do.re"mi' -> 'c'
-     * }
-     *
-     * @param payload   json payload to search
-     * @param field     field key
-     * @return value or null
-     */
-    public Object getField(GenericJson payload, String field) {
-        Object value = lookup(payload, field);
-        if(value == ABSENT) {
-            return null;
-        }
-        return value;
-    }
-
-    /**
-     * @see #getField(GenericJson, String)
-     * @param payload parsed json
-     * @param field to lookup a value
-     * @return true if there is a value associated with the field
-     */
-    public boolean containsField(GenericJson payload, String field) {
-        return lookup(payload, field) != ABSENT;
-    }
-
-    enum PlaceHolder {
-        ABSENT
-    }
-
-    @SuppressWarnings("rawtypes")
-    private Object lookup(Map parsedJson, String key) {
-        if(key.contains("\"")) {
-            int indexMarker = key.indexOf('\"');
-            Object nested = parsedJson.get(key.substring(0,indexMarker));
-            if(nested == null || !(nested instanceof Map)) {
-                return parsedJson.containsKey(key.substring(0,indexMarker)) ? null : ABSENT;
-            }
-            return lookup((Map) nested, key.substring(indexMarker));
-        }
-
-        String firstPart = key;
-        int lastPos = key.length();
-        do {
-            firstPart = firstPart.substring(0, lastPos);
-            Object value = parsedJson.get(firstPart);
-            if (value != null) {
-                if(firstPart.length() == key.length()) {
-                    if(value instanceof Map) {
-                        return ABSENT;
-                    }
-                    return value;
-                }
-                if(value instanceof Map) {
-                    Object nested = lookup((Map) value, key.substring(firstPart.length()+1,key.length()));
-                    if(nested != null) {
-                        return nested;
-                    }
-                }
-            }
-            lastPos = firstPart.lastIndexOf('.');
-        } while (lastPos!=-1);
-        return parsedJson.containsKey(firstPart) ? null : ABSENT;
-    }
-
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<SecurityRealm> {

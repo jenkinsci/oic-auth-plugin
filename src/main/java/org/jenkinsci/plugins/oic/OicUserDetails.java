@@ -52,5 +52,4 @@ public class OicUserDetails implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-
 }

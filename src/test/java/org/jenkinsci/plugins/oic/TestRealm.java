@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.oic;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.model.Descriptor;
 import hudson.security.SecurityRealm;
+import io.burt.jmespath.Expression;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import org.kohsuke.stapler.HttpResponse;
@@ -165,6 +166,14 @@ public class TestRealm extends OicSecurityRealm {
         }
         return super.doFinishLogin(request);
     }
+
+	public String getStringFieldFromJMESPath(Object object, String jmespathField) {
+		Expression<Object> expr = super.compileJMESPath(jmespathField, "test field");
+		if (expr == null) {
+			return null;
+		}
+		return super.getStringField(object, expr);
+	}
 
     @Override
     public Object readResolve() {
