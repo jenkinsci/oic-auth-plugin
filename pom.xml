@@ -23,7 +23,7 @@
 
   <scm>
     <connection>scm:git:ssh://github.com/${gitHubRepo}.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/${gitHubRepo}.git</developerConnection>
+    <developerConnection>scm:git:git@github.com/${gitHubRepo}.git</developerConnection>
     <url>https://github.com/${gitHubRepo}</url>
     <tag>oic-auth-3.0</tag>
   </scm>
@@ -58,7 +58,7 @@
     </dependency>
     <dependency>
       <groupId>com.google.http-client</groupId>
-      <artifactId>google-http-client-jackson2</artifactId>
+      <artifactId>google-http-client-gson</artifactId>
       <version>1.44.1</version>
     </dependency>
     <dependency>

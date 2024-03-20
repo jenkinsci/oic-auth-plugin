@@ -3,8 +3,7 @@ package org.jenkinsci.plugins.oic;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.api.client.auth.openidconnect.IdToken;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.json.webtoken.JsonWebToken;
 import com.google.api.client.util.ArrayMap;
@@ -59,8 +58,6 @@ import static org.junit.Assert.assertTrue;
  */
 @Url("https://jenkins.io/blog/2018/01/13/jep-200/")
 public class PluginTest {
-    private static final JsonFactory JSON_FACTORY = new JacksonFactory();
-
     private static final String TEST_USER_USERNAME = "testUser";
     private static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
     private static final String TEST_USER_FULL_NAME = "Oic Test User";
@@ -1164,7 +1161,7 @@ public class PluginTest {
             payload.set(keyValue.getKey(), keyValue.getValue());
         }
 
-        return JsonWebSignature.signUsingRsaSha256(privateKey, JSON_FACTORY, header, payload);
+        return JsonWebSignature.signUsingRsaSha256(privateKey, GsonFactory.getDefaultInstance(), header, payload);
     }
 
     private String createUserInfoJWT(PrivateKey privateKey, String userInfo) throws Exception {
@@ -1177,7 +1174,7 @@ public class PluginTest {
             payload.set(keyValue.getKey(), keyValue.getValue().getAsString());
         }
 
-        return JsonWebSignature.signUsingRsaSha256(privateKey, JSON_FACTORY, header, payload);
+        return JsonWebSignature.signUsingRsaSha256(privateKey, GsonFactory.getDefaultInstance(), header, payload);
     }
 
     /**

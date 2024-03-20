@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import java.io.IOException;
 import org.junit.Test;
 
@@ -12,8 +11,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 public class WellKnownOpenIDConfigurationResponseTest {
-
-    private final JsonFactory jsonFactory = new JacksonFactory();
 
     private static final String JSON_FROM_GOOGLE = "{"
            + " \"issuer\": \"https://accounts.google.com\","
@@ -69,7 +66,7 @@ public class WellKnownOpenIDConfigurationResponseTest {
 
     @Test
     public void parseExplicitKeys() throws IOException {
-        WellKnownOpenIDConfigurationResponse response = jsonFactory.fromString(JSON_FROM_GOOGLE, WellKnownOpenIDConfigurationResponse.class);
+        WellKnownOpenIDConfigurationResponse response = GsonFactory.getDefaultInstance().fromString(JSON_FROM_GOOGLE, WellKnownOpenIDConfigurationResponse.class);
 
         assertThat(response.getAuthorizationEndpoint(), is("https://accounts.google.com/o/oauth2/v2/auth"));
         assertThat(response.getTokenEndpoint(), is("https://www.googleapis.com/oauth2/v4/token"));
@@ -81,7 +78,7 @@ public class WellKnownOpenIDConfigurationResponseTest {
 
     @Test
     public void parseWellKnownKeys() throws IOException {
-        WellKnownOpenIDConfigurationResponse response = jsonFactory.fromString(JSON_FROM_GOOGLE, WellKnownOpenIDConfigurationResponse.class);
+        WellKnownOpenIDConfigurationResponse response = GsonFactory.getDefaultInstance().fromString(JSON_FROM_GOOGLE, WellKnownOpenIDConfigurationResponse.class);
         assertThat(response.getKnownKeys().keySet(), containsInAnyOrder(
             "authorization_endpoint",
             "token_endpoint",

@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import java.io.IOException;
 import org.junit.Test;
 
@@ -31,8 +30,7 @@ public class OicTokenResponseTest {
 
     @Test
     public void parseLongLiteral() throws IOException {
-        JsonFactory jsonFactory = new JacksonFactory();
-        OicTokenResponse response = jsonFactory.fromString(JSON_WITH_LONG_LITERAL, OicTokenResponse.class);
+        OicTokenResponse response = GsonFactory.getDefaultInstance().fromString(JSON_WITH_LONG_LITERAL, OicTokenResponse.class);
         assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
         assertEquals("example", response.getTokenType());
         assertEquals(3600L, response.getExpiresInSeconds().longValue());
@@ -42,8 +40,7 @@ public class OicTokenResponseTest {
 
     @Test
     public void parseStringWithLong() throws IOException {
-        JsonFactory jsonFactory = new JacksonFactory();
-        OicTokenResponse response = jsonFactory.fromString(JSON_WITH_LONG_AS_STRING, OicTokenResponse.class);
+        OicTokenResponse response = GsonFactory.getDefaultInstance().fromString(JSON_WITH_LONG_AS_STRING, OicTokenResponse.class);
         assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
         assertEquals("example", response.getTokenType());
         assertEquals(3600L, response.getExpiresInSeconds().longValue());
@@ -81,8 +78,7 @@ public class OicTokenResponseTest {
 
     @Test
     public void parseAbsent() throws IOException {
-        JsonFactory jsonFactory = new JacksonFactory();
-        OicTokenResponse response = jsonFactory.fromString(JSON_WITH_ABSENT, OicTokenResponse.class);
+        OicTokenResponse response = GsonFactory.getDefaultInstance().fromString(JSON_WITH_ABSENT, OicTokenResponse.class);
         assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
         assertEquals("example", response.getTokenType());
         assertEquals(null, response.getExpiresInSeconds());
