@@ -23,7 +23,6 @@
 */
 package org.jenkinsci.plugins.oic;
 
-import com.google.gson.JsonParseException;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
 import com.google.api.client.auth.oauth2.BearerToken;
@@ -47,6 +46,7 @@ import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Data;
 import com.google.common.base.Strings;
+import com.google.gson.JsonParseException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
