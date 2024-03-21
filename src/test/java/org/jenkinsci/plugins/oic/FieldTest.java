@@ -61,4 +61,19 @@ public class FieldTest {
         assertEquals("myusername", realm.getStringFieldFromJMESPath(payload, "\"user.name\""));
         assertNull(realm.getStringFieldFromJMESPath(payload, "none"));
     }
+
+    @Test
+    public void testFieldProcessing() throws Exception {
+        HashMap<String, Object> user = new HashMap<>();
+        user.put("id", "100");
+        user.put("name", "john");
+        user.put("surname", "dow");
+
+        GenericJson payload = new GenericJson();
+        payload.put("user", user);
+
+        TestRealm realm = new TestRealm(wireMockRule);
+
+        assertEquals("john dow", realm.getStringFieldFromJMESPath(payload, "[user.name, user.surname] | join(' ', @)"));
+    }
 }

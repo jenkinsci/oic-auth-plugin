@@ -893,13 +893,13 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private boolean failedCheckOfTokenField(IdToken idToken) {
         if( tokenFieldToCheckKey == null ||
-			tokenFieldToCheckValue == null) {
+            tokenFieldToCheckValue == null) {
             return false;
         }
 
-		if(idToken == null) {
+        if(idToken == null) {
             return true;
-		}
+        }
 
         String value = getStringField(idToken.getPayload(), tokenFieldToCheckExpr);
         if(value == null) {
@@ -975,8 +975,8 @@ public class OicSecurityRealm extends SecurityRealm {
         if( object != null && fieldExpr != null) {
             Object value = fieldExpr.search(object);
             if( (value != null) &&
-				!(value instanceof Map) &&
-				!(value instanceof List)) {
+                !(value instanceof Map) &&
+                !(value instanceof List)) {
                 return String.valueOf(value);
             }
         }

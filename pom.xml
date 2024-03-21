@@ -71,9 +71,9 @@
       <artifactId>mailer</artifactId>
       <version>1.34.2</version>
     </dependency>
-	<dependency>
-	  <groupId>io.burt</groupId>
-	  <artifactId>jmespath-core</artifactId>
+    <dependency>
+      <groupId>io.burt</groupId>
+      <artifactId>jmespath-core</artifactId>
       <version>0.6.0</version>
     </dependency>
 
