@@ -8,8 +8,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
@@ -33,19 +31,12 @@ public class FieldTest {
 
         TestRealm realm = new TestRealm(wireMockRule);
 
-        assertEquals("myemail@example.com", realm.getField(payload, "email"));
-        assertEquals("100", realm.getField(payload, "user.id"));
-        assertNull(realm.getField(payload, "unknown"));
-        assertNull(realm.getField(payload, "user"));
-        assertNull(realm.getField(payload, "user.invalid"));
-        assertNull(realm.getField(payload, "none"));
-
-        assertTrue(realm.containsField(payload, "email"));
-        assertTrue(realm.containsField(payload, "user.id"));
-        assertFalse(realm.containsField(payload, "unknown"));
-        assertFalse(realm.containsField(payload, "user"));
-        assertFalse(realm.containsField(payload, "user.invalid"));
-        assertTrue(realm.containsField(payload, "none"));
+        assertEquals("myemail@example.com", realm.getStringFieldFromJMESPath(payload, "email"));
+        assertEquals("100", realm.getStringFieldFromJMESPath(payload, "user.id"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "unknown"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "user"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "user.invalid"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "none"));
     }
 
     @Test
@@ -61,18 +52,36 @@ public class FieldTest {
 
         TestRealm realm = new TestRealm(wireMockRule);
 
-        assertEquals("myemail@example.com", realm.getField(payload, "email"));
-        assertNull(realm.getField(payload, "unknown"));
-        assertNull(realm.getField(payload, "user"));
-        assertNull(realm.getField(payload, "user.invalid"));
-        assertEquals("myusername", realm.getField(payload, "user.name"));
-        assertNull(realm.getField(payload, "none"));
+        assertEquals("myemail@example.com", realm.getStringFieldFromJMESPath(payload, "email"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "unknown"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "user"));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "user.invalid"));
+        assertEquals("myusername", realm.getStringFieldFromJMESPath(payload, "\"user.name\""));
+        assertNull(realm.getStringFieldFromJMESPath(payload, "none"));
+    }
 
-        assertTrue(realm.containsField(payload, "email"));
-        assertFalse(realm.containsField(payload, "unknown"));
-        assertFalse(realm.containsField(payload, "user"));
-        assertFalse(realm.containsField(payload, "user.invalid"));
-        assertTrue(realm.containsField(payload, "none"));
-        assertTrue(realm.containsField(payload, "user.name"));
+    @Test
+    public void testFieldProcessing() throws Exception {
+        HashMap<String, Object> user = new HashMap<>();
+        user.put("id", "100");
+        user.put("name", "john");
+        user.put("surname", "dow");
+
+        GenericJson payload = new GenericJson();
+        payload.put("user", user);
+
+        TestRealm realm = new TestRealm(wireMockRule);
+
+        assertEquals("john dow", realm.getStringFieldFromJMESPath(payload, "[user.name, user.surname] | join(' ', @)"));
+    }
+
+    @Test
+    public void testInvalidFieldName() throws Exception {
+        GenericJson payload = new GenericJson();
+        payload.put("user", "john");
+
+        TestRealm realm = new TestRealm(wireMockRule);
+
+        assertNull(realm.getStringFieldFromJMESPath(payload, "[user)"));
     }
 }

@@ -126,12 +126,64 @@ public class DescriptorImplTest {
         TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
 
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-
         assertNotNull(descriptor);
+
         assertEquals(FormValidation.ok("Using 'sub'.").getMessage(),
             descriptor.doCheckUserNameField(null).getMessage());
         assertEquals(FormValidation.ok("Using 'sub'.").getMessage(), descriptor.doCheckUserNameField("").getMessage());
-        assertEquals(FormValidation.ok(), descriptor.doCheckUserNameField("http://localhost"));
+        assertEquals(FormValidation.ok(), descriptor.doCheckUserNameField("subfield"));
+    }
+
+    @Test
+    public void doCheckFullNameFieldName() throws IOException {
+        configureWellKnown();
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+
+        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
+        assertNotNull(descriptor);
+
+        assertEquals(FormValidation.ok(), descriptor.doCheckFullNameFieldName(""));
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckFullNameFieldName("]not valid").kind);
+        assertEquals(FormValidation.ok(), descriptor.doCheckFullNameFieldName("myname"));
+    }
+
+    @Test
+    public void doCheckEmailFieldName() throws IOException {
+        configureWellKnown();
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+
+        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
+        assertNotNull(descriptor);
+
+        assertEquals(FormValidation.ok(), descriptor.doCheckEmailFieldName(""));
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckEmailFieldName("]not valid").kind);
+        assertEquals(FormValidation.ok(), descriptor.doCheckEmailFieldName("myemail"));
+    }
+
+    @Test
+    public void doCheckGroupsFieldName() throws IOException {
+        configureWellKnown();
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+
+        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
+        assertNotNull(descriptor);
+
+        assertEquals(FormValidation.ok(), descriptor.doCheckGroupsFieldName(""));
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckGroupsFieldName("]not valid").kind);
+        assertEquals(FormValidation.ok(), descriptor.doCheckGroupsFieldName("mygroups"));
+    }
+
+    @Test
+    public void doCheckTokenFieldToCheckKey() throws IOException {
+        configureWellKnown();
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+
+        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
+        assertNotNull(descriptor);
+
+        assertEquals(FormValidation.ok(), descriptor.doCheckTokenFieldToCheckKey(""));
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckTokenFieldToCheckKey("]not valid").kind);
+        assertEquals(FormValidation.ok(), descriptor.doCheckTokenFieldToCheckKey("akey"));
     }
 
     @Test
@@ -140,8 +192,8 @@ public class DescriptorImplTest {
         TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
 
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-
         assertNotNull(descriptor);
+
         assertEquals(FormValidation.ok("Using 'openid email'.").getMessage(),
             descriptor.doCheckScopes(null).getMessage());
         assertEquals(FormValidation.ok("Using 'openid email'.").getMessage(),
@@ -160,8 +212,8 @@ public class DescriptorImplTest {
         TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
 
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-
         assertNotNull(descriptor);
+
         assertEquals("End Session URL Key is required.",
             descriptor.doCheckEndSessionEndpoint(null).getMessage());
         assertEquals("End Session URL Key is required.",
@@ -176,8 +228,8 @@ public class DescriptorImplTest {
         TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
 
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-
         assertNotNull(descriptor);
+
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(null));
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(""));
         assertTrue(descriptor.doCheckPostLogoutRedirectUrl("not a url").getMessage().contains("Not a valid url."));

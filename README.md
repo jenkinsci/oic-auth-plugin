@@ -75,6 +75,9 @@ for a minimal configuration example: 
 
 ![global-config](/docs/images/global-config.png)
 
+All of the fields can be configured as a [JMES Path](https://jmespath.org/) specification.
+Most of the time, the name of the field in the idtoken or userinfo is enough.
+
 #### Using g-suite / google
 
 Obtain the client id and secret from the developer console:

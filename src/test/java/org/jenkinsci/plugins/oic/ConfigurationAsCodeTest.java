@@ -60,7 +60,7 @@ public class ConfigurationAsCodeTest {
         assertEquals("http://localhost", oicSecurityRealm.getTokenServerUrl());
         assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
-    assertTrue(oicSecurityRealm.isRootURLFromRequest());
+        assertTrue(oicSecurityRealm.isRootURLFromRequest());
     }
 
     @Test
