@@ -8,8 +8,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
@@ -75,5 +73,15 @@ public class FieldTest {
         TestRealm realm = new TestRealm(wireMockRule);
 
         assertEquals("john dow", realm.getStringFieldFromJMESPath(payload, "[user.name, user.surname] | join(' ', @)"));
+    }
+
+    @Test
+    public void testInvalidFieldName() throws Exception {
+        GenericJson payload = new GenericJson();
+        payload.put("user", "john");
+
+        TestRealm realm = new TestRealm(wireMockRule);
+
+        assertNull(realm.getStringFieldFromJMESPath(payload, "[user)"));
     }
 }

@@ -167,13 +167,13 @@ public class TestRealm extends OicSecurityRealm {
         return super.doFinishLogin(request);
     }
 
-	public String getStringFieldFromJMESPath(Object object, String jmespathField) {
-		Expression<Object> expr = super.compileJMESPath(jmespathField, "test field");
-		if (expr == null) {
-			return null;
-		}
-		return super.getStringField(object, expr);
-	}
+    public String getStringFieldFromJMESPath(Object object, String jmespathField) {
+        Expression<Object> expr = super.compileJMESPath(jmespathField, "test field");
+        if (expr == null) {
+            return null;
+        }
+        return super.getStringField(object, expr);
+    }
 
     @Override
     public Object readResolve() {

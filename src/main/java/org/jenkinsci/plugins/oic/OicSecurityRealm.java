@@ -232,7 +232,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.setScopes(scopes);
         this.endSessionEndpoint = endSessionEndpoint;
 
-        if("auto".equals(automanualconfigure) ||
+        if ("auto".equals(automanualconfigure) ||
            (Util.fixNull(automanualconfigure).isEmpty() &&
            !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
@@ -280,10 +280,10 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     protected Object readResolve() {
-        if(httpTransport==null) {
+        if (httpTransport==null) {
             httpTransport = constructHttpTransport(isDisableSslVerification());
         }
-        if(!Strings.isNullOrEmpty(endSessionUrl)) {
+        if (!Strings.isNullOrEmpty(endSessionUrl)) {
             try {
                 Field field = getClass().getDeclaredField("endSessionEndpoint");
                 field.setAccessible(true);
@@ -294,9 +294,9 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         // backward compatibility with wrong groupsFieldName split
-        if(Strings.isNullOrEmpty(this.groupsFieldName) && !Strings.isNullOrEmpty(this.simpleGroupsFieldName)) {
+        if (Strings.isNullOrEmpty(this.groupsFieldName) && !Strings.isNullOrEmpty(this.simpleGroupsFieldName)) {
             String originalGroupFieldName = this.simpleGroupsFieldName;
-            if(!Strings.isNullOrEmpty(this.nestedGroupFieldName)) {
+            if (!Strings.isNullOrEmpty(this.nestedGroupFieldName)) {
                 originalGroupFieldName += "[]." + this.nestedGroupFieldName;
             }
             this.setGroupsFieldName(originalGroupFieldName);
@@ -514,7 +514,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     @DataBoundSetter
     public void setWellKnownOpenIDConfigurationUrl(String wellKnownOpenIDConfigurationUrl) {
-        if( this.isAutoConfigure() ||
+        if ( this.isAutoConfigure() ||
            (this.automanualconfigure.isEmpty() &&
            !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
@@ -527,11 +527,11 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     private void applyOverrideScopes() {
-        if(!"auto".equals(this.automanualconfigure) || this.overrideScopes == null) {
+        if (!"auto".equals(this.automanualconfigure) || this.overrideScopes == null) {
             // only applies in "auto" mode when overrideScopes defined
             return;
         }
-        if(this.scopes == null) {
+        if (this.scopes == null) {
             this.scopes = overrideScopes;
             return;
         }
@@ -570,18 +570,23 @@ public class OicSecurityRealm extends SecurityRealm {
         this.emailFieldExpr = compileJMESPath(this.emailFieldName, "email field");
     }
 
-    static
-    protected Expression<Object> compileJMESPath(String str, String logComment) {
+    protected static Expression<Object> compileJMESPath(String str, String logComment) {
         if (str == null) {
             return null;
         }
 
-        Expression<Object> expr = JMESPATH.compile(str);
-        if (expr == null && logComment != null) {
-            LOGGER.warning(logComment + " with config '" + str + "' is an invalid JMESPath expression ");
+        try {
+            Expression<Object> expr = JMESPATH.compile(str);
+            if (expr == null && logComment != null) {
+                LOGGER.warning(logComment + " with config '" + str + "' is an invalid JMESPath expression ");
+            }
+            return expr;
+        } catch (RuntimeException e) {
+            if (logComment != null) {
+                LOGGER.warning(logComment + " config failed " + e.toString());
+            }
         }
-
-        return expr;
+        return null;
     }
 
     private Object applyJMESPath(Expression<Object> expression, GenericJson json) {
@@ -631,7 +636,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     @DataBoundSetter
     public void setOverrideScopesDefined(boolean overrideScopesDefined) {
-        if(overrideScopesDefined) {
+        if (overrideScopesDefined) {
             this.overrideScopesDefined = Boolean.TRUE;
         } else {
             this.overrideScopesDefined = Boolean.FALSE;
@@ -642,7 +647,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     @DataBoundSetter
     public void setOverrideScopes(String overrideScopes) {
-        if(this.overrideScopesDefined == null || this.overrideScopesDefined) {
+        if (this.overrideScopesDefined == null || this.overrideScopesDefined) {
             this.overrideScopes = Util.fixEmptyAndTrim(overrideScopes);
             this.applyOverrideScopes();
         }
@@ -696,11 +701,11 @@ public class OicSecurityRealm extends SecurityRealm {
 
                         if (authentication instanceof UsernamePasswordAuthenticationToken && escapeHatchEnabled) {
                             randomWait(); // to slowdown brute forcing
-                            if( authentication.getPrincipal().toString().equals(escapeHatchUsername) &&
+                            if ( authentication.getPrincipal().toString().equals(escapeHatchUsername) &&
                                 authentication.getCredentials().toString().equals(Secret.toString(escapeHatchSecret))) {
                                     List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
                                     grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
-                                    if(isNotBlank(escapeHatchGroup)) {
+                                    if (isNotBlank(escapeHatchGroup)) {
                                         grantedAuthorities.add(new SimpleGrantedAuthority(escapeHatchGroup));
                                     }
                                     UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
@@ -763,7 +768,7 @@ public class OicSecurityRealm extends SecurityRealm {
         )
             .setScopes(Arrays.asList(this.getScopes()));
 
-        if(pkceEnabled) {
+        if (pkceEnabled) {
             builder.enablePKCE();
         }
 
@@ -826,7 +831,7 @@ public class OicSecurityRealm extends SecurityRealm {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
 
-                    if(failedCheckOfTokenField(idToken)) {
+                    if (failedCheckOfTokenField(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
 
@@ -838,7 +843,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     }
 
                     String username = determineStringField(userNameFieldExpr, idToken, userInfo);
-                    if(username == null) {
+                    if (username == null) {
                         return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the UserInfo or the IdToken payload to be used as the username");
                     }
 
@@ -892,17 +897,17 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     private boolean failedCheckOfTokenField(IdToken idToken) {
-        if( tokenFieldToCheckKey == null ||
+        if ( tokenFieldToCheckKey == null ||
             tokenFieldToCheckValue == null) {
             return false;
         }
 
-        if(idToken == null) {
+        if (idToken == null) {
             return true;
         }
 
         String value = getStringField(idToken.getPayload(), tokenFieldToCheckExpr);
-        if(value == null) {
+        if (value == null) {
             return true;
         }
 
@@ -912,7 +917,7 @@ public class OicSecurityRealm extends SecurityRealm {
     private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, IdToken idToken, GenericJson userInfo) throws IOException {
 
         List<GrantedAuthority> grantedAuthorities = determineAuthorities(idToken, userInfo);
-        if(LOGGER.isLoggable(Level.FINEST)) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
             StringBuilder grantedAuthoritiesAsString = new StringBuilder(userName);
             grantedAuthoritiesAsString.append(" (");
             for(GrantedAuthority grantedAuthority : grantedAuthorities) {
@@ -927,7 +932,7 @@ public class OicSecurityRealm extends SecurityRealm {
         SecurityContextHolder.getContext().setAuthentication(token);
 
         User user = User.get2(token);
-        if(user == null){
+        if (user == null){
             // should not happen
             throw new IOException("Cannot set OIDC property on anonymous user");
         }
@@ -972,9 +977,9 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     protected String getStringField(Object object, Expression<Object> fieldExpr) {
-        if( object != null && fieldExpr != null) {
+        if ( object != null && fieldExpr != null) {
             Object value = fieldExpr.search(object);
-            if( (value != null) &&
+            if ( (value != null) &&
                 !(value instanceof Map) &&
                 !(value instanceof List)) {
                 return String.valueOf(value);
@@ -988,7 +993,7 @@ public class OicSecurityRealm extends SecurityRealm {
         List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
         if (this.groupsFieldExpr == null) {
-            if(this.groupsFieldName == null) {
+            if (this.groupsFieldName == null) {
                 LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
             } else {
                 LOGGER.fine("Not adding groups because groupsFieldName is invalid. groupsFieldName=" + groupsFieldName);
@@ -999,19 +1004,19 @@ public class OicSecurityRealm extends SecurityRealm {
         Object groupsObject = null;
 
         // userInfo has precedence when available
-        if(userInfo != null) {
+        if (userInfo != null) {
             groupsObject = this.groupsFieldExpr.search(userInfo);
         }
-        if(groupsObject == null && idToken != null) {
+        if (groupsObject == null && idToken != null) {
             groupsObject = this.groupsFieldExpr.search(idToken.getPayload());
         }
-        if(groupsObject == null) {
+        if (groupsObject == null) {
             LOGGER.warning("idToken and userInfo did not contain group field name: " + this.groupsFieldName);
             return grantedAuthorities;
         }
 
         List<String> groupNames = ensureString(groupsObject);
-        if(groupNames.isEmpty()){
+        if (groupNames.isEmpty()){
             LOGGER.warning("Could not identify groups in " + groupsFieldName + "=" + groupsObject.toString());
             return grantedAuthorities;
         }
@@ -1072,7 +1077,7 @@ public class OicSecurityRealm extends SecurityRealm {
     @Restricted(DoNotUse.class) // stapler only
     public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         OicSession oicSession = OicSession.getCurrent();
-        if(oicSession!=null) {
+        if (oicSession!=null) {
             // session will be invalidated but we still need this data for our redirect.
             req.setAttribute(ID_TOKEN_REQUEST_ATTRIBUTE, oicSession.getIdToken());
             req.setAttribute(STATE_REQUEST_ATTRIBUTE, oicSession.getState());
@@ -1131,7 +1136,7 @@ public class OicSecurityRealm extends SecurityRealm {
     */
     public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
         OicSession currentSession = OicSession.getCurrent();
-        if(currentSession==null) {
+        if (currentSession==null) {
             LOGGER.fine("No session to resume (perhaps jenkins was restarted?)");
             return HttpResponses.errorWithoutStack(401, "Unauthorized");
         }
@@ -1186,7 +1191,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 WellKnownOpenIDConfigurationResponse config = GsonFactory.getDefaultInstance()
                         .fromInputStream(response.getContent(), Charset.defaultCharset(),
                                 WellKnownOpenIDConfigurationResponse.class);
-                if(config.getAuthorizationEndpoint() == null || config.getTokenEndpoint() == null) {
+                if (config.getAuthorizationEndpoint() == null || config.getTokenEndpoint() == null) {
                     return FormValidation.warning(Messages.OicSecurityRealm_URLNotAOpenIdEnpoint());
                 }
 
@@ -1241,21 +1246,12 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         @RequirePOST
-        public FormValidation doCheckUserNameField(@QueryParameter String userNameField) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(userNameField) == null) {
-                return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultUsername());
-            }
-            return FormValidation.ok();
-        }
-
-        @RequirePOST
         public FormValidation doCheckScopes(@QueryParameter String scopes) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (Util.fixEmptyAndTrim(scopes) == null) {
                 return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultScopes());
             }
-            if(!scopes.toLowerCase().contains("openid")) {
+            if (!scopes.toLowerCase().contains("openid")) {
                 return FormValidation.warning(Messages.OicSecurityRealm_RUSureOpenIdNotInScope());
             }
             return FormValidation.ok();
@@ -1267,7 +1263,7 @@ public class OicSecurityRealm extends SecurityRealm {
             if (Util.fixEmptyAndTrim(overrideScopes) == null) {
                 return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultScopes());
             }
-            if(!overrideScopes.toLowerCase().contains("openid")) {
+            if (!overrideScopes.toLowerCase().contains("openid")) {
                 return FormValidation.warning(Messages.OicSecurityRealm_RUSureOpenIdNotInScope());
             }
             return FormValidation.ok();
@@ -1303,17 +1299,38 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         @RequirePOST
-        // method to check groupsFieldName matches the required format
-        // can contain the substring "[]." at most once.
-        // e.g. "groups", "groups[].name" are valid
-        // groups[].name[].id is not valid
+        public FormValidation doCheckUserNameField(@QueryParameter String userNameField) {
+            return this.doCheckFieldName(userNameField, FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultUsername()));
+        }
+
+        @RequirePOST
+        public FormValidation doCheckFullNameFieldName(@QueryParameter String fullNameFieldName) {
+            return this.doCheckFieldName(fullNameFieldName, FormValidation.ok());
+        }
+
+        @RequirePOST
+        public FormValidation doCheckEmailFieldName(@QueryParameter String emailFieldName) {
+            return this.doCheckFieldName(emailFieldName, FormValidation.ok());
+        }
+
+        @RequirePOST
         public FormValidation doCheckGroupsFieldName(@QueryParameter String groupsFieldName) {
+            return this.doCheckFieldName(groupsFieldName, FormValidation.ok());
+        }
+
+        @RequirePOST
+        public FormValidation doCheckTokenFieldToCheckKey(@QueryParameter String tokenFieldToCheckKey) {
+            return this.doCheckFieldName(tokenFieldToCheckKey, FormValidation.ok());
+        }
+
+        // method to check fieldName matches JMESPath format
+        private FormValidation doCheckFieldName(String fieldName, FormValidation validIfNull) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(groupsFieldName) == null) {
-                return FormValidation.ok();
+            if (Util.fixEmptyAndTrim(fieldName) == null) {
+                return validIfNull;
             }
-            if (groupsFieldName.split("\\[\\]\\.").length > 2) {
-                return FormValidation.error(Messages.OicSecurityRealm_InvalidGroupsFieldName());
+            if (OicSecurityRealm.compileJMESPath(fieldName, null) == null) {
+                return FormValidation.error(Messages.OicSecurityRealm_InvalidFieldName());
             }
             return FormValidation.ok();
         }
