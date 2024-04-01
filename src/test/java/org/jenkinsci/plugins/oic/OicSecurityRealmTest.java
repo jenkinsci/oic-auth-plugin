@@ -86,24 +86,31 @@ public class OicSecurityRealmTest {
 
     @Test
     public void testGetValidRedirectUrl() throws IOException {
-        String rootUrl = jenkinsRule.jenkins.getRootUrl();
+        // root url is http://localhost:????/jenkins/
+        final String rootUrl = jenkinsRule.jenkins.getRootUrl();
 
         TestRealm realm = new TestRealm.Builder(wireMockRule)
                 .WithMinimalDefaults().build();
-        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("/foo"));
-        assertEquals(rootUrl + "bar", realm.getValidRedirectUrl(rootUrl + "bar"));
+
+        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("foo"));
+        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("/jenkins/foo"));
+        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl(rootUrl + "foo"));
         assertEquals(rootUrl, realm.getValidRedirectUrl(null));
         assertEquals(rootUrl, realm.getValidRedirectUrl(""));
-        assertEquals(rootUrl, realm.getValidRedirectUrl("foobar"));
     }
 
     @Test
     public void testShouldReturnRootUrlWhenRedirectUrlIsInvalid() throws IOException {
+        // root url is http://localhost:????/jenkins/
         String rootUrl = jenkinsRule.jenkins.getRootUrl();
 
         TestRealm realm = new TestRealm.Builder(wireMockRule)
                 .WithMinimalDefaults().build();
-        assertEquals(rootUrl, realm.getValidRedirectUrl("foobar"));
-        assertEquals(rootUrl, realm.getValidRedirectUrl("https://another-host/"));
+
+        assertEquals(rootUrl, realm.getValidRedirectUrl("/bar"));
+        assertEquals(rootUrl, realm.getValidRedirectUrl("../bar"));
+        assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/"));
+        assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/bar/"));
+        assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/jenkins/../bar/"));
     }
 }
