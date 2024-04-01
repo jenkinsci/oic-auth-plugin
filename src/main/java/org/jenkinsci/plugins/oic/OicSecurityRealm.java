@@ -65,7 +65,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
@@ -776,26 +775,19 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     protected String getValidRedirectUrl(String url) {
+        final String rootUrl = getRootUrl();
         if (url != null && !url.isEmpty()) {
-            // Check if the URL is relative and starts with a slash
-            if (url.startsWith("/")) {
-                return URI.create(getRootUrl() + url).normalize().toString();
-            }
-            // If not relative, then check if it's a valid absolute URL
             try {
-                URL parsedUrl = new URL(url);
-                String host = parsedUrl.getHost();
-                String expectedHost = new URL(getRootUrl()).getHost();
-                // Check if the host matches the Jenkins domain
-                if (host.equals(expectedHost)) {
-                    return url; // The URL is absolute and valid
+                final String redirectUrl = new URL(new URL(rootUrl), url).toString();
+                // check redirect url stays within rootUrl
+                if (redirectUrl.startsWith(rootUrl)) {
+                    return redirectUrl;
                 }
             } catch (MalformedURLException e) {
-                // Invalid absolute URL, will return root URL
+                // Invalid URL, will return root URL
             }
         }
-        // If the URL is null, empty, or invalid, return the root URL
-        return getRootUrl();
+        return rootUrl;
     }
 
     /**
