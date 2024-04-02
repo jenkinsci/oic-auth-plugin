@@ -13,9 +13,13 @@ import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class OicSecurityRealmTest {
 
@@ -112,5 +116,40 @@ public class OicSecurityRealmTest {
         assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/"));
         assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/bar/"));
         assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/jenkins/../bar/"));
+    }
+
+    @Test
+    public void testShouldCheckEscapeHatchWithPlainPassword() throws IOException {
+        final String escapeHatchUsername = "aUsername";
+        final String escapeHatchPassword = "aSecretPassword";
+
+        TestRealm realm = new TestRealm.Builder(wireMockRule)
+                .WithMinimalDefaults()
+                .WithEscapeHatch(true, escapeHatchUsername, escapeHatchPassword, "Group")
+                .build();
+
+        assertEquals(escapeHatchUsername, realm.getEscapeHatchUsername());
+        assertNotEquals(escapeHatchPassword, Secret.toString(realm.getEscapeHatchSecret()));
+        assertTrue(realm.doCheckEscapeHatch(escapeHatchUsername, escapeHatchPassword));
+        assertFalse(realm.doCheckEscapeHatch("otherUsername", escapeHatchPassword));
+        assertFalse(realm.doCheckEscapeHatch(escapeHatchUsername, "wrongPassword"));
+    }
+
+    @Test
+    public void testShouldCheckEscapeHatchWithHashedPassword() throws IOException {
+        final String escapeHatchUsername = "aUsername";
+        final String escapeHatchPassword = "aSecretPassword";
+        final String escapeHatchCryptedPassword = BCrypt.hashpw(escapeHatchPassword, BCrypt.gensalt());
+
+        TestRealm realm = new TestRealm.Builder(wireMockRule)
+                .WithMinimalDefaults()
+                .WithEscapeHatch(true, escapeHatchUsername, escapeHatchCryptedPassword, "Group")
+                .build();
+
+        assertEquals(escapeHatchUsername, realm.getEscapeHatchUsername());
+        assertEquals(escapeHatchCryptedPassword, Secret.toString(realm.getEscapeHatchSecret()));
+        assertTrue(realm.doCheckEscapeHatch(escapeHatchUsername, escapeHatchPassword));
+        assertFalse(realm.doCheckEscapeHatch("otherUsername", escapeHatchPassword));
+        assertFalse(realm.doCheckEscapeHatch(escapeHatchUsername, "wrongPassword"));
     }
 }

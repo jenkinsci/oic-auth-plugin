@@ -82,6 +82,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
@@ -109,6 +110,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
@@ -254,7 +256,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
         this.escapeHatchEnabled = Util.fixNull(escapeHatchEnabled, Boolean.FALSE);
         this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
-        this.escapeHatchSecret = Secret.fromString(escapeHatchSecret);
+        this.setEscapeHatchSecret(Secret.fromString(escapeHatchSecret));
         this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
     }
 
@@ -309,6 +311,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.setEmailFieldName(this.emailFieldName);
         this.setFullNameFieldName(this.fullNameFieldName);
         this.setTokenFieldToCheckKey(this.tokenFieldToCheckKey);
+        // ensure escapeHatchSecret is encrypted
+        this.setEscapeHatchSecret(this.escapeHatchSecret);
         return this;
     }
 
@@ -627,7 +631,23 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @DataBoundSetter
     public void setEscapeHatchSecret(Secret escapeHatchSecret) {
+        if (escapeHatchSecret != null) {
+            // ensure escapeHatchSecret is BCrypt hash
+            String escapeHatchString = Secret.toString(escapeHatchSecret);
+
+            final Pattern BCryptPattern = Pattern.compile("\\A\\$[^$]+\\$\\d+\\$[./0-9A-Za-z]{53}");
+            if (!BCryptPattern.matcher(escapeHatchString).matches()) {
+                this.escapeHatchSecret = Secret.fromString(BCrypt.hashpw(escapeHatchString, BCrypt.gensalt()));
+                return;
+            }
+        }
         this.escapeHatchSecret = escapeHatchSecret;
+    }
+
+    protected boolean checkEscapeHatch(String username, String password) {
+        final boolean isUsernameMatch = username.equals(this.escapeHatchUsername);
+        final boolean isPasswordMatch = BCrypt.checkpw(password, Secret.toString(this.escapeHatchSecret));
+        return isUsernameMatch & isPasswordMatch;
     }
 
     @DataBoundSetter
@@ -702,8 +722,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
                         if (authentication instanceof UsernamePasswordAuthenticationToken && escapeHatchEnabled) {
                             randomWait(); // to slowdown brute forcing
-                            if ( authentication.getPrincipal().toString().equals(escapeHatchUsername) &&
-                                authentication.getCredentials().toString().equals(Secret.toString(escapeHatchSecret))) {
+                            if (checkEscapeHatch(authentication.getPrincipal().toString(),
+                                                 authentication.getCredentials().toString())) {
                                     List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
                                     grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
                                     if (isNotBlank(escapeHatchGroup)) {
