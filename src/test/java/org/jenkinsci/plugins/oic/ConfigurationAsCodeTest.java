@@ -51,7 +51,7 @@ public class ConfigurationAsCodeTest {
         assertEquals("emailFieldName", oicSecurityRealm.getEmailFieldName());
         assertTrue(oicSecurityRealm.isEscapeHatchEnabled());
         assertEquals("escapeHatchGroup", oicSecurityRealm.getEscapeHatchGroup());
-        assertEquals("escapeHatchSecret", Secret.toString(oicSecurityRealm.getEscapeHatchSecret()));
+        assertEquals("$2a$10$fxteEkfDqwqkmUelZmTxlu9WESjVDKQhp6jsqB1AgsLQ2dC6jikga", Secret.toString(oicSecurityRealm.getEscapeHatchSecret()));
         assertEquals("escapeHatchUsername", oicSecurityRealm.getEscapeHatchUsername());
         assertEquals("fullNameFieldName", oicSecurityRealm.getFullNameFieldName());
         assertEquals("groupsFieldName", oicSecurityRealm.getGroupsFieldName());

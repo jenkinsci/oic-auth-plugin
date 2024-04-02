@@ -8,7 +8,7 @@ jenkins:
       emailFieldName: emailFieldName
       escapeHatchEnabled: true
       escapeHatchGroup: escapeHatchGroup
-      escapeHatchSecret: escapeHatchSecret
+      escapeHatchSecret: "$2a$10$fxteEkfDqwqkmUelZmTxlu9WESjVDKQhp6jsqB1AgsLQ2dC6jikga"
       escapeHatchUsername: escapeHatchUsername
       fullNameFieldName: fullNameFieldName
       groupsFieldName: groupsFieldName

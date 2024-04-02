@@ -179,4 +179,8 @@ public class TestRealm extends OicSecurityRealm {
     public Object readResolve() {
         return super.readResolve();
     }
+
+    public boolean doCheckEscapeHatch(String username, String password) {
+        return super.checkEscapeHatch(username, password);
+    }
 }
