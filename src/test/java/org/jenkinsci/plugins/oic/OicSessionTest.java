@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
+import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import java.io.IOException;
 import jenkins.model.Jenkins;
 import org.junit.Before;
@@ -28,9 +29,9 @@ public class OicSessionTest {
         .WithMinimalDefaults().WithScopes("openid")
         .build();
 
-    session = new OicSession(realm.buildAuthorizationCodeFlow(), from, buildOAuthRedirectUrl()) {
+    session = new OicSession(from, buildOAuthRedirectUrl()) {
             @Override
-            public HttpResponse onSuccess(String authorizationCode) {
+            public HttpResponse onSuccess(String authorizationCode, AuthorizationCodeFlow flow) {
                 return null;
             }
         };
