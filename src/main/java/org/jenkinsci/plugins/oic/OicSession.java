@@ -32,6 +32,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Failure;
 import hudson.remoting.Base64;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import javax.servlet.http.HttpSession;
@@ -52,9 +53,8 @@ import org.kohsuke.stapler.StaplerRequest;
  * @author Michael Bischoff - adoptation
  */
 @SuppressWarnings("deprecation")
-abstract class OicSession {
-
-    private final AuthorizationCodeFlow flow;
+abstract class OicSession implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     /**
      * An opaque value used by the client to maintain state between the request and callback.
@@ -79,8 +79,7 @@ abstract class OicSession {
      */
     private String idToken;
 
-    OicSession(AuthorizationCodeFlow flow, String from, String redirectUrl) {
-        this.flow = flow;
+    OicSession(String from, String redirectUrl) {
         this.from = from;
         this.redirectUrl = redirectUrl;
     }
@@ -100,7 +99,7 @@ abstract class OicSession {
      * @return an {@link HttpResponse}
      */
     @Restricted(DoNotUse.class)
-    public HttpResponse doCommenceLogin(boolean disableNonce) {
+    public HttpResponse commenceLogin(boolean disableNonce, AuthorizationCodeFlow flow) {
         setupOicSession(Stapler.getCurrentRequest().getSession());
         AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
         if (disableNonce) {
@@ -115,7 +114,7 @@ abstract class OicSession {
      * When the identity provider is done with its thing, the user comes back here.
      * @return an {@link HttpResponse}
      */
-    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
+    public HttpResponse finishLogin(StaplerRequest request, AuthorizationCodeFlow flow) throws IOException {
         StringBuffer buf = request.getRequestURL();
         if (request.getQueryString() != null) {
             buf.append('?').append(request.getQueryString());
@@ -142,7 +141,7 @@ abstract class OicSession {
         }
         setupOicSession(request.getSession(true));
 
-        return onSuccess(code);
+        return onSuccess(code, flow);
     }
 
     /**
@@ -158,7 +157,7 @@ abstract class OicSession {
         return this.state;
     }
 
-    protected abstract HttpResponse onSuccess(String authorizationCode);
+    protected abstract HttpResponse onSuccess(String authorizationCode, AuthorizationCodeFlow flow);
 
     protected final boolean validateNonce(IdToken idToken) {
         if (idToken == null || this.nonce == null) {

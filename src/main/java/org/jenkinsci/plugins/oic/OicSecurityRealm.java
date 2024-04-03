@@ -62,6 +62,7 @@ import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.RuntimeConfiguration;
 import io.burt.jmespath.jcf.JcfRuntime;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
@@ -119,7 +120,8 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 * @author Steve Arch
 */
 @SuppressWarnings("deprecation")
-public class OicSecurityRealm extends SecurityRealm {
+public class OicSecurityRealm extends SecurityRealm implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
     public static enum TokenAuthMethod { client_secret_basic, client_secret_post };
@@ -803,17 +805,15 @@ public class OicSecurityRealm extends SecurityRealm {
 
         final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer);
 
-        final AuthorizationCodeFlow flow = this.buildAuthorizationCodeFlow();
-
-        return new OicSession(flow, from, buildOAuthRedirectUrl()) {
+        return new OicSession(from, buildOAuthRedirectUrl()) {
             @Override
-            public HttpResponse onSuccess(String authorizationCode) {
+            public HttpResponse onSuccess(String authorizationCode, AuthorizationCodeFlow flow) {
                 try {
                     AuthorizationCodeTokenRequest tokenRequest = flow.newTokenRequest(authorizationCode)
                         .setRedirectUri(buildOAuthRedirectUrl())
                         .setResponseClass(OicTokenResponse.class);
                     if (!sendScopesInTokenRequest) {
-                        tokenRequest.setScopes(Collections.<String>emptyList());
+                        tokenRequest.setScopes(Collections.emptyList());
                     }
 
                     OicTokenResponse response = (OicTokenResponse) tokenRequest.execute();
@@ -850,7 +850,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 }
 
             }
-        }.doCommenceLogin(isNonceDisabled());
+        }.commenceLogin(isNonceDisabled(), buildAuthorizationCodeFlow());
     }
 
     @SuppressFBWarnings(
@@ -1132,7 +1132,7 @@ public class OicSecurityRealm extends SecurityRealm {
             LOGGER.fine("No session to resume (perhaps jenkins was restarted?)");
             return HttpResponses.errorWithoutStack(401, "Unauthorized");
         }
-        return currentSession.doFinishLogin(request);
+        return currentSession.finishLogin(request, buildAuthorizationCodeFlow());
     }
 
     @Extension
