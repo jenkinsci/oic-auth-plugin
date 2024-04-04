@@ -52,5 +52,4 @@ public class OicLogoutAction implements UnprotectedRootAction {
     public String getUrlName() {
         return POST_LOGOUT_URL;
     }
-
 }

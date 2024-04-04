@@ -1,27 +1,29 @@
 /*
-* The MIT License
-*
-* Copyright (c) 2016  Michael Bischoff & GeriMedica - www.gerimedica.nl
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
+ * The MIT License
+ *
+ * Copyright (c) 2016  Michael Bischoff & GeriMedica - www.gerimedica.nl
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package org.jenkinsci.plugins.oic;
+
+import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
@@ -112,21 +114,22 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
-import static org.apache.commons.lang.StringUtils.isNotBlank;
-
-
 /**
-* Login with OpenID Connect / OAuth 2
-*
-* @author Michael Bischoff
-* @author Steve Arch
-*/
+ * Login with OpenID Connect / OAuth 2
+ *
+ * @author Michael Bischoff
+ * @author Steve Arch
+ */
 @SuppressWarnings("deprecation")
 public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
-    public static enum TokenAuthMethod { client_secret_basic, client_secret_post };
+
+    public static enum TokenAuthMethod {
+        client_secret_basic,
+        client_secret_post
+    };
 
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
@@ -207,43 +210,62 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /** Runtime context to compile JMESPath
      */
     private static final JmesPath<Object> JMESPATH = new JcfRuntime(
-            new RuntimeConfiguration.Builder()
-                .withSilentTypeErrors(true)
-                .build());
-
+            new RuntimeConfiguration.Builder().withSilentTypeErrors(true).build());
 
     /**
      * @deprecated retained for backwards binary compatibility.
      */
     @Deprecated
-    public OicSecurityRealm(String clientId, String clientSecret, String wellKnownOpenIDConfigurationUrl, String tokenServerUrl, String tokenAuthMethod, String authorizationServerUrl,
-                            String userInfoServerUrl, String userNameField, String tokenFieldToCheckKey, String tokenFieldToCheckValue,
-                            String fullNameFieldName, String emailFieldName, String scopes, String groupsFieldName, Boolean disableSslVerification,
-                            Boolean logoutFromOpenidProvider, String endSessionEndpoint, String postLogoutRedirectUrl, Boolean escapeHatchEnabled,
-                            String escapeHatchUsername, String escapeHatchSecret, String escapeHatchGroup, String automanualconfigure) throws IOException {
+    public OicSecurityRealm(
+            String clientId,
+            String clientSecret,
+            String wellKnownOpenIDConfigurationUrl,
+            String tokenServerUrl,
+            String tokenAuthMethod,
+            String authorizationServerUrl,
+            String userInfoServerUrl,
+            String userNameField,
+            String tokenFieldToCheckKey,
+            String tokenFieldToCheckValue,
+            String fullNameFieldName,
+            String emailFieldName,
+            String scopes,
+            String groupsFieldName,
+            Boolean disableSslVerification,
+            Boolean logoutFromOpenidProvider,
+            String endSessionEndpoint,
+            String postLogoutRedirectUrl,
+            Boolean escapeHatchEnabled,
+            String escapeHatchUsername,
+            String escapeHatchSecret,
+            String escapeHatchGroup,
+            String automanualconfigure)
+            throws IOException {
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
         this.httpTransport = constructHttpTransport(this.disableSslVerification);
 
         this.clientId = clientId;
-        this.clientSecret = clientSecret != null &&
-            !clientSecret.toLowerCase().equals(NO_SECRET) ? Secret.fromString(clientSecret) : null;
+        this.clientSecret = clientSecret != null && !clientSecret.toLowerCase().equals(NO_SECRET)
+                ? Secret.fromString(clientSecret)
+                : null;
         // last known config
         this.authorizationServerUrl = authorizationServerUrl;
         this.tokenServerUrl = tokenServerUrl;
-        this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
+        this.tokenAuthMethod =
+                TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
         this.userInfoServerUrl = userInfoServerUrl;
         this.setScopes(scopes);
         this.endSessionEndpoint = endSessionEndpoint;
 
-        if ("auto".equals(automanualconfigure) ||
-           (Util.fixNull(automanualconfigure).isEmpty() &&
-           !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
+        if ("auto".equals(automanualconfigure)
+                || (Util.fixNull(automanualconfigure).isEmpty()
+                        && !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
             this.wellKnownOpenIDConfigurationUrl = Util.fixEmpty(wellKnownOpenIDConfigurationUrl);
             this.loadWellKnownOpenIDConfigurationUrl();
         } else {
             this.automanualconfigure = "manual";
-            this.wellKnownOpenIDConfigurationUrl = null;  // Remove the autoconfig URL
+            this.wellKnownOpenIDConfigurationUrl = null; // Remove the autoconfig URL
         }
 
         this.setTokenFieldToCheckKey(Util.fixEmpty(tokenFieldToCheckKey));
@@ -261,29 +283,39 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundConstructor
-    public OicSecurityRealm(String clientId, String clientSecret, String authorizationServerUrl,
-                            String tokenServerUrl, String tokenAuthMethod, String userInfoServerUrl,
-                            String endSessionEndpoint, String scopes, String automanualconfigure,
-                            Boolean disableSslVerification) throws IOException {
+    public OicSecurityRealm(
+            String clientId,
+            String clientSecret,
+            String authorizationServerUrl,
+            String tokenServerUrl,
+            String tokenAuthMethod,
+            String userInfoServerUrl,
+            String endSessionEndpoint,
+            String scopes,
+            String automanualconfigure,
+            Boolean disableSslVerification)
+            throws IOException {
         // Needed in DataBoundSetter
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
         this.httpTransport = constructHttpTransport(this.disableSslVerification);
         this.clientId = clientId;
-        this.clientSecret = clientSecret != null &&
-            !clientSecret.toLowerCase().equals(NO_SECRET) ? Secret.fromString(clientSecret) : null;
+        this.clientSecret = clientSecret != null && !clientSecret.toLowerCase().equals(NO_SECRET)
+                ? Secret.fromString(clientSecret)
+                : null;
         // auto/manual configuration as set in jcasc/config
         this.automanualconfigure = Util.fixNull(automanualconfigure);
         // previous values of OpenIDConnect configuration
         this.authorizationServerUrl = authorizationServerUrl;
         this.tokenServerUrl = tokenServerUrl;
-        this.tokenAuthMethod = TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
+        this.tokenAuthMethod =
+                TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
         this.userInfoServerUrl = userInfoServerUrl;
         this.endSessionEndpoint = endSessionEndpoint;
         this.setScopes(scopes);
     }
 
     protected Object readResolve() {
-        if (httpTransport==null) {
+        if (httpTransport == null) {
             httpTransport = constructHttpTransport(isDisableSslVerification());
         }
         if (!Strings.isNullOrEmpty(endSessionUrl)) {
@@ -468,13 +500,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // Get the well-known configuration from the specified URL
         try {
             URL url = new URL(wellKnownOpenIDConfigurationUrl);
-            HttpRequest request = httpTransport
-                .createRequestFactory().buildGetRequest(new GenericUrl(url));
+            HttpRequest request = httpTransport.createRequestFactory().buildGetRequest(new GenericUrl(url));
 
             com.google.api.client.http.HttpResponse response = request.execute();
             WellKnownOpenIDConfigurationResponse config = GsonFactory.getDefaultInstance()
-                .fromInputStream(response.getContent(), Charset.defaultCharset(),
-                        WellKnownOpenIDConfigurationResponse.class);
+                    .fromInputStream(
+                            response.getContent(),
+                            Charset.defaultCharset(),
+                            WellKnownOpenIDConfigurationResponse.class);
 
             this.authorizationServerUrl = Util.fixNull(config.getAuthorizationEndpoint(), this.authorizationServerUrl);
             this.tokenServerUrl = Util.fixNull(config.getTokenEndpoint(), this.tokenServerUrl);
@@ -519,9 +552,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @DataBoundSetter
     public void setWellKnownOpenIDConfigurationUrl(String wellKnownOpenIDConfigurationUrl) {
-        if ( this.isAutoConfigure() ||
-           (this.automanualconfigure.isEmpty() &&
-           !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
+        if (this.isAutoConfigure()
+                || (this.automanualconfigure.isEmpty()
+                        && !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
             this.wellKnownOpenIDConfigurationUrl = wellKnownOpenIDConfigurationUrl;
             this.loadWellKnownOpenIDConfigurationUrl();
@@ -541,9 +574,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             return;
         }
         // keep only scopes that are in overrideScopes
-        HashSet<String> scopesSet = new HashSet<>(Arrays.asList(this.scopes.trim().split("\\s+")));
+        HashSet<String> scopesSet =
+                new HashSet<>(Arrays.asList(this.scopes.trim().split("\\s+")));
         scopesSet.retainAll(Arrays.asList(this.overrideScopes.trim().split("\\s+")));
-        this.setScopes(StringUtils.join(scopesSet," "));
+        this.setScopes(StringUtils.join(scopesSet, " "));
     }
 
     @DataBoundSetter
@@ -696,7 +730,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @Override
     public String getLoginUrl() {
-        //Login begins with our doCommenceLogin(String,String) method
+        // Login begins with our doCommenceLogin(String,String) method
         return "securityRealm/commenceLogin";
     }
 
@@ -706,38 +740,36 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     /*
-    * Acegi has this notion that first an {@link org.acegisecurity.Authentication} object is created
-    * by collecting user information and then the act of authentication is done
-    * later (by {@link org.acegisecurity.AuthenticationManager}) to verify it. But in case of OpenID,
-    * we create an {@link org.acegisecurity.Authentication} only after we verified the user identity,
-    * so {@link org.acegisecurity.AuthenticationManager} becomes no-op.
-    */
+     * Acegi has this notion that first an {@link org.acegisecurity.Authentication} object is created
+     * by collecting user information and then the act of authentication is done
+     * later (by {@link org.acegisecurity.AuthenticationManager}) to verify it. But in case of OpenID,
+     * we create an {@link org.acegisecurity.Authentication} only after we verified the user identity,
+     * so {@link org.acegisecurity.AuthenticationManager} becomes no-op.
+     */
     @Override
     public SecurityComponents createSecurityComponents() {
         return new SecurityComponents(
                 new AuthenticationManager() {
                     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-                        if (authentication instanceof AnonymousAuthenticationToken)
-                            return authentication;
+                        if (authentication instanceof AnonymousAuthenticationToken) return authentication;
 
                         if (authentication instanceof UsernamePasswordAuthenticationToken && escapeHatchEnabled) {
                             randomWait(); // to slowdown brute forcing
-                            if (checkEscapeHatch(authentication.getPrincipal().toString(),
-                                                 authentication.getCredentials().toString())) {
-                                    List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
-                                    grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
-                                    if (isNotBlank(escapeHatchGroup)) {
-                                        grantedAuthorities.add(new SimpleGrantedAuthority(escapeHatchGroup));
-                                    }
-                                    UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                                            escapeHatchUsername,
-                                            "",
-                                            grantedAuthorities
-                                    );
-                                    SecurityContextHolder.getContext().setAuthentication(token);
-                                    OicUserDetails userDetails = new OicUserDetails(escapeHatchUsername, grantedAuthorities);
-                                    SecurityListener.fireAuthenticated2(userDetails);
-                                    return token;
+                            if (checkEscapeHatch(
+                                    authentication.getPrincipal().toString(),
+                                    authentication.getCredentials().toString())) {
+                                List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+                                grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
+                                if (isNotBlank(escapeHatchGroup)) {
+                                    grantedAuthorities.add(new SimpleGrantedAuthority(escapeHatchGroup));
+                                }
+                                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+                                        escapeHatchUsername, "", grantedAuthorities);
+                                SecurityContextHolder.getContext().setAuthentication(token);
+                                OicUserDetails userDetails =
+                                        new OicUserDetails(escapeHatchUsername, grantedAuthorities);
+                                SecurityListener.fireAuthenticated2(userDetails);
+                                return token;
                             } else {
                                 throw new BadCredentialsException("Wrong username and password: " + authentication);
                             }
@@ -749,11 +781,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
                     @Override
                     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-                        // Retrieve the OicUserProperty to get the list of groups that has to be set in the OicUserDetails object.
+                        // Retrieve the OicUserProperty to get the list of groups that has to be set in the
+                        // OicUserDetails object.
                         LOGGER.fine("loadUserByUsername in createSecurityComponents called, username: " + username);
                         User u = User.get(username, false, Collections.emptyMap());
                         if (u == null) {
-                            LOGGER.fine("loadUserByUsername in createSecurityComponents called, no user '" + username + "' found");
+                            LOGGER.fine("loadUserByUsername in createSecurityComponents called, no user '" + username
+                                    + "' found");
                             throw new UsernameNotFoundException(username);
                         }
                         LOGGER.fine("loadUserByUsername in createSecurityComponents called, user: " + u);
@@ -761,33 +795,34 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                         List<GrantedAuthority> auths = new ArrayList<>();
                         if (oicProp != null) {
                             auths = oicProp.getAuthoritiesAsGrantedAuthorities();
-                            LOGGER.fine("loadUserByUsername in createSecurityComponents called, oic prop found with username '" + oicProp.getUserName() + "', auths size: " + auths.size());
+                            LOGGER.fine(
+                                    "loadUserByUsername in createSecurityComponents called, oic prop found with username '"
+                                            + oicProp.getUserName() + "', auths size: " + auths.size());
                         }
                         return new OicUserDetails(username, auths);
                     }
-                }
-        );
+                });
     }
 
     /** Build authorization code flow
      */
     protected AuthorizationCodeFlow buildAuthorizationCodeFlow() {
         AccessMethod tokenAccessMethod = BearerToken.queryParameterAccessMethod();
-        HttpExecuteInterceptor authInterceptor = new ClientParametersAuthentication(clientId, Secret.toString(clientSecret));
+        HttpExecuteInterceptor authInterceptor =
+                new ClientParametersAuthentication(clientId, Secret.toString(clientSecret));
         if (TokenAuthMethod.client_secret_basic.equals(tokenAuthMethod)) {
             tokenAccessMethod = BearerToken.authorizationHeaderAccessMethod();
             authInterceptor = new BasicAuthentication(clientId, Secret.toString(clientSecret));
         }
         AuthorizationCodeFlow.Builder builder = new AuthorizationCodeFlow.Builder(
-                tokenAccessMethod,
-                httpTransport,
-                GsonFactory.getDefaultInstance(),
-                new GenericUrl(tokenServerUrl),
-                authInterceptor,
-                clientId,
-                authorizationServerUrl
-        )
-            .setScopes(Arrays.asList(this.getScopes()));
+                        tokenAccessMethod,
+                        httpTransport,
+                        GsonFactory.getDefaultInstance(),
+                        new GenericUrl(tokenServerUrl),
+                        authInterceptor,
+                        clientId,
+                        authorizationServerUrl)
+                .setScopes(Arrays.asList(this.getScopes()));
 
         if (pkceEnabled) {
             builder.enablePKCE();
@@ -817,7 +852,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * @param from the relative URL to the page that the user has just come from
      * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
      * @return an {@link HttpResponse} object
-    */
+     */
     @Restricted(DoNotUse.class) // stapler only
     public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) {
         // reload config if needed
@@ -830,8 +865,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             public HttpResponse onSuccess(String authorizationCode, AuthorizationCodeFlow flow) {
                 try {
                     AuthorizationCodeTokenRequest tokenRequest = flow.newTokenRequest(authorizationCode)
-                        .setRedirectUri(buildOAuthRedirectUrl())
-                        .setResponseClass(OicTokenResponse.class);
+                            .setRedirectUri(buildOAuthRedirectUrl())
+                            .setResponseClass(OicTokenResponse.class);
                     if (!sendScopesInTokenRequest) {
                         tokenRequest.setScopes(Collections.emptyList());
                     }
@@ -856,7 +891,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
                     String username = determineStringField(userNameFieldExpr, idToken, userInfo);
                     if (username == null) {
-                        return HttpResponses.error(500,"no field '" + userNameField + "' was supplied in the UserInfo or the IdToken payload to be used as the username");
+                        return HttpResponses.error(
+                                500,
+                                "no field '" + userNameField
+                                        + "' was supplied in the UserInfo or the IdToken payload to be used as the username");
                     }
 
                     flow.createAndStoreCredential(response, null);
@@ -866,16 +904,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     return new HttpRedirect(redirectOnFinish);
 
                 } catch (IOException e) {
-                    return HttpResponses.error(500,e);
+                    return HttpResponses.error(500, e);
                 }
-
             }
         }.commenceLogin(isNonceDisabled(), buildAuthorizationCodeFlow());
     }
 
     @SuppressFBWarnings(
-        value = "DMI_RANDOM_USED_ONLY_ONCE",
-    justification = "False positive in spotbug about DMI_RANDOM_USED_ONLY_ONCE")
+            value = "DMI_RANDOM_USED_ONLY_ONCE",
+            justification = "False positive in spotbug about DMI_RANDOM_USED_ONLY_ONCE")
     // see https://github.com/spotbugs/spotbugs/issues/1539
     private void randomWait() {
         try {
@@ -909,8 +946,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     private boolean failedCheckOfTokenField(IdToken idToken) {
-        if ( tokenFieldToCheckKey == null ||
-            tokenFieldToCheckValue == null) {
+        if (tokenFieldToCheckKey == null || tokenFieldToCheckValue == null) {
             return false;
         }
 
@@ -926,25 +962,27 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return !tokenFieldToCheckValue.equals(value);
     }
 
-    private UsernamePasswordAuthenticationToken loginAndSetUserData(String userName, IdToken idToken, GenericJson userInfo) throws IOException {
+    private UsernamePasswordAuthenticationToken loginAndSetUserData(
+            String userName, IdToken idToken, GenericJson userInfo) throws IOException {
 
         List<GrantedAuthority> grantedAuthorities = determineAuthorities(idToken, userInfo);
         if (LOGGER.isLoggable(Level.FINEST)) {
             StringBuilder grantedAuthoritiesAsString = new StringBuilder(userName);
             grantedAuthoritiesAsString.append(" (");
-            for(GrantedAuthority grantedAuthority : grantedAuthorities) {
+            for (GrantedAuthority grantedAuthority : grantedAuthorities) {
                 grantedAuthoritiesAsString.append(" ").append(grantedAuthority.getAuthority());
             }
             grantedAuthoritiesAsString.append(" )");
             LOGGER.finest("GrantedAuthorities:" + grantedAuthoritiesAsString);
         }
 
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(userName, "", grantedAuthorities);
+        UsernamePasswordAuthenticationToken token =
+                new UsernamePasswordAuthenticationToken(userName, "", grantedAuthorities);
 
         SecurityContextHolder.getContext().setAuthentication(token);
 
         User user = User.get2(token);
-        if (user == null){
+        if (user == null) {
             // should not happen
             throw new IOException("Cannot set OIDC property on anonymous user");
         }
@@ -989,17 +1027,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     protected String getStringField(Object object, Expression<Object> fieldExpr) {
-        if ( object != null && fieldExpr != null) {
+        if (object != null && fieldExpr != null) {
             Object value = fieldExpr.search(object);
-            if ( (value != null) &&
-                !(value instanceof Map) &&
-                !(value instanceof List)) {
+            if ((value != null) && !(value instanceof Map) && !(value instanceof List)) {
                 return String.valueOf(value);
             }
         }
         return null;
     }
-
 
     private List<GrantedAuthority> determineAuthorities(IdToken idToken, GenericJson userInfo) {
         List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
@@ -1028,7 +1063,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         List<String> groupNames = ensureString(groupsObject);
-        if (groupNames.isEmpty()){
+        if (groupNames.isEmpty()) {
             LOGGER.warning("Could not identify groups in " + groupsFieldName + "=" + groupsObject.toString());
             return grantedAuthorities;
         }
@@ -1045,14 +1080,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /** Ensure group field object returns is string or list of string
      */
     private List<String> ensureString(Object field) {
-        if (field == null || Data.isNull(field) ) {
+        if (field == null || Data.isNull(field)) {
             LOGGER.warning("userInfo did not contain a valid group field content, got null");
             return Collections.<String>emptyList();
         } else if (field instanceof String) {
             // if its a String, the original value was not a json array.
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
             // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
-            String sField= (String) field;
+            String sField = (String) field;
             String[] rawFields = sField.split("[\\s\\[\\],]");
             List<String> result = new ArrayList<>();
             for (String rawField : rawFields) {
@@ -1065,22 +1100,23 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             List<String> result = new ArrayList<>();
             List<Object> groups = (List<Object>) field;
             for (Object group : groups) {
-              if (group instanceof String) {
-                result.add(group.toString());
-              } else if (group instanceof ArrayMap) {
-                // if its a Map, we use the nestedGroupFieldName to grab the groups
-                Map<String, String> groupMap = (Map<String, String>) group;
-                if (nestedGroupFieldName != null &&  groupMap.keySet().contains(nestedGroupFieldName)) {
-                    result.add(groupMap.get(nestedGroupFieldName));
+                if (group instanceof String) {
+                    result.add(group.toString());
+                } else if (group instanceof ArrayMap) {
+                    // if its a Map, we use the nestedGroupFieldName to grab the groups
+                    Map<String, String> groupMap = (Map<String, String>) group;
+                    if (nestedGroupFieldName != null && groupMap.keySet().contains(nestedGroupFieldName)) {
+                        result.add(groupMap.get(nestedGroupFieldName));
+                    }
                 }
-              }
             }
             return result;
         } else {
             try {
                 return (List<String>) field;
-            } catch(ClassCastException e) {
-                LOGGER.warning("userInfo did not contain a valid group field content, got: " + field.getClass().getSimpleName());
+            } catch (ClassCastException e) {
+                LOGGER.warning("userInfo did not contain a valid group field content, got: "
+                        + field.getClass().getSimpleName());
                 return Collections.<String>emptyList();
             }
         }
@@ -1089,7 +1125,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @Restricted(DoNotUse.class) // stapler only
     public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
         OicSession oicSession = OicSession.getCurrent();
-        if (oicSession!=null) {
+        if (oicSession != null) {
             // session will be invalidated but we still need this data for our redirect.
             req.setAttribute(ID_TOKEN_REQUEST_ATTRIBUTE, oicSession.getIdToken());
             req.setAttribute(STATE_REQUEST_ATTRIBUTE, oicSession.getState());
@@ -1105,11 +1141,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
 
             if (this.postLogoutRedirectUrl != null) {
-        try {
-            openidLogoutEndpoint.append("&post_logout_redirect_uri=").append(URLEncoder.encode(this.postLogoutRedirectUrl, "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+                try {
+                    openidLogoutEndpoint
+                            .append("&post_logout_redirect_uri=")
+                            .append(URLEncoder.encode(this.postLogoutRedirectUrl, "UTF-8"));
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException(e);
+                }
             }
             return openidLogoutEndpoint.toString();
         }
@@ -1145,10 +1183,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * This is where the user comes back to at the end of the OpenID redirect ping-pong.
      * @param request The user's request
      * @return an HttpResponse
-    */
+     */
     public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
         OicSession currentSession = OicSession.getCurrent();
-        if (currentSession==null) {
+        if (currentSession == null) {
             LOGGER.fine("No session to resume (perhaps jenkins was restarted?)");
             return HttpResponses.errorWithoutStack(401, "Unauthorized");
         }
@@ -1159,8 +1197,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
         public boolean isAuto() {
             SecurityRealm realm = Jenkins.get().getSecurityRealm();
-            return realm instanceof OicSecurityRealm &&
-                   StringUtils.isNotBlank(((OicSecurityRealm)realm).getWellKnownOpenIDConfigurationUrl());
+            return realm instanceof OicSecurityRealm
+                    && StringUtils.isNotBlank(((OicSecurityRealm) realm).getWellKnownOpenIDConfigurationUrl());
         }
 
         public boolean isManual() {
@@ -1190,18 +1228,23 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         @RequirePOST
-        public FormValidation doCheckWellKnownOpenIDConfigurationUrl(@QueryParameter String wellKnownOpenIDConfigurationUrl, @QueryParameter boolean disableSslVerification) {
+        public FormValidation doCheckWellKnownOpenIDConfigurationUrl(
+                @QueryParameter String wellKnownOpenIDConfigurationUrl,
+                @QueryParameter boolean disableSslVerification) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             try {
                 URL url = new URL(wellKnownOpenIDConfigurationUrl);
-                HttpRequest request = constructHttpTransport(disableSslVerification).createRequestFactory()
-                                                                    .buildGetRequest(new GenericUrl(url));
+                HttpRequest request = constructHttpTransport(disableSslVerification)
+                        .createRequestFactory()
+                        .buildGetRequest(new GenericUrl(url));
                 com.google.api.client.http.HttpResponse response = request.execute();
 
                 // Try to parse the response. If it's not valid, a JsonParseException will be thrown indicating
                 // that it's not a valid JSON describing an OpenID Connect endpoint
                 WellKnownOpenIDConfigurationResponse config = GsonFactory.getDefaultInstance()
-                        .fromInputStream(response.getContent(), Charset.defaultCharset(),
+                        .fromInputStream(
+                                response.getContent(),
+                                Charset.defaultCharset(),
                                 WellKnownOpenIDConfigurationResponse.class);
                 if (config.getAuthorizationEndpoint() == null || config.getTokenEndpoint() == null) {
                     return FormValidation.warning(Messages.OicSecurityRealm_URLNotAOpenIdEnpoint());
@@ -1211,8 +1254,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             } catch (MalformedURLException e) {
                 return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
             } catch (HttpResponseException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_CouldNotRetreiveWellKnownConfig(
-                        e.getStatusCode(), e.getStatusMessage()));
+                return FormValidation.error(
+                        e,
+                        Messages.OicSecurityRealm_CouldNotRetreiveWellKnownConfig(
+                                e.getStatusCode(), e.getStatusMessage()));
             } catch (JsonParseException e) {
                 return FormValidation.error(e, Messages.OicSecurityRealm_CouldNotParseResponse());
             } catch (IOException e) {
@@ -1230,7 +1275,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 new URL(tokenServerUrl);
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
-                return FormValidation.error(e,Messages.OicSecurityRealm_NotAValidURL());
+                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
             }
         }
 
@@ -1253,7 +1298,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 new URL(authorizationServerUrl);
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
-                return FormValidation.error(e,Messages.OicSecurityRealm_NotAValidURL());
+                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
             }
         }
 
@@ -1291,7 +1336,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 new URL(endSessionEndpoint);
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
-                return FormValidation.error(e,Messages.OicSecurityRealm_NotAValidURL());
+                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
             }
         }
 
@@ -1303,7 +1348,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     new URL(postLogoutRedirectUrl);
                     return FormValidation.ok();
                 } catch (MalformedURLException e) {
-                    return FormValidation.error(e,Messages.OicSecurityRealm_NotAValidURL());
+                    return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
                 }
             }
 
@@ -1312,7 +1357,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
         @RequirePOST
         public FormValidation doCheckUserNameField(@QueryParameter String userNameField) {
-            return this.doCheckFieldName(userNameField, FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultUsername()));
+            return this.doCheckFieldName(
+                    userNameField, FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultUsername()));
         }
 
         @RequirePOST

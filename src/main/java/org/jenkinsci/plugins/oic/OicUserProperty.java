@@ -25,7 +25,6 @@ public class OicUserProperty extends UserProperty {
         public String getDisplayName() {
             return Messages.OicUserProperty_OpenIdConnectUserProperty();
         }
-
     }
 
     private static final Logger LOGGER = Logger.getLogger(OicUserProperty.class.getName());
@@ -35,7 +34,7 @@ public class OicUserProperty extends UserProperty {
 
     public OicUserProperty(String userName, Collection<? extends GrantedAuthority> authorities) {
         this.userName = userName;
-        for(GrantedAuthority authority : authorities) {
+        for (GrantedAuthority authority : authorities) {
             this.authorities.add(authority.getAuthority());
         }
     }
@@ -46,16 +45,18 @@ public class OicUserProperty extends UserProperty {
 
     public List<GrantedAuthority> getAuthoritiesAsGrantedAuthorities() {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        for(String auth : this.authorities)
-            authorities.add(new SimpleGrantedAuthority(auth));
+        for (String auth : this.authorities) authorities.add(new SimpleGrantedAuthority(auth));
 
         return authorities;
     }
 
     public String getAllGrantedAuthorities() {
         StringBuilder result = new StringBuilder();
-        result.append("Number of GrantedAuthorities in OicUserProperty for ").append(userName).append(": ").append(authorities.size());
-        for (String authority: authorities) {
+        result.append("Number of GrantedAuthorities in OicUserProperty for ")
+                .append(userName)
+                .append(": ")
+                .append(authorities.size());
+        for (String authority : authorities) {
             result.append("<br>\nAuthority: ").append(authority);
         }
         return result.toString();

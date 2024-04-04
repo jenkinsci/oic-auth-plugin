@@ -1,5 +1,18 @@
 package org.jenkinsci.plugins.oic;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static io.jenkins.plugins.casc.misc.Util.getJenkinsRoot;
+import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
+import static io.jenkins.plugins.casc.misc.Util.toYamlString;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.security.SecurityRealm;
@@ -16,25 +29,10 @@ import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
 import org.junit.Rule;
 import org.junit.Test;
 
-//import static io.jenkins.plugins.casc.misc.Util.*;
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static io.jenkins.plugins.casc.misc.Util.getJenkinsRoot;
-import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
-import static io.jenkins.plugins.casc.misc.Util.toYamlString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
 public class ConfigurationAsCodeTest {
 
     @Rule(order = 1)
-    final public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
-
+    public final JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
 
     @Test
     @ConfiguredWithCode("ConfigurationAsCode.yml")
@@ -51,7 +49,9 @@ public class ConfigurationAsCodeTest {
         assertEquals("emailFieldName", oicSecurityRealm.getEmailFieldName());
         assertTrue(oicSecurityRealm.isEscapeHatchEnabled());
         assertEquals("escapeHatchGroup", oicSecurityRealm.getEscapeHatchGroup());
-        assertEquals("$2a$10$fxteEkfDqwqkmUelZmTxlu9WESjVDKQhp6jsqB1AgsLQ2dC6jikga", Secret.toString(oicSecurityRealm.getEscapeHatchSecret()));
+        assertEquals(
+                "$2a$10$fxteEkfDqwqkmUelZmTxlu9WESjVDKQhp6jsqB1AgsLQ2dC6jikga",
+                Secret.toString(oicSecurityRealm.getEscapeHatchSecret()));
         assertEquals("escapeHatchUsername", oicSecurityRealm.getEscapeHatchUsername());
         assertEquals("fullNameFieldName", oicSecurityRealm.getFullNameFieldName());
         assertEquals("groupsFieldName", oicSecurityRealm.getGroupsFieldName());
@@ -68,7 +68,8 @@ public class ConfigurationAsCodeTest {
     public void testExport() throws Exception {
         ConfigurationContext context = new ConfigurationContext(ConfiguratorRegistry.get());
 
-        CNode yourAttribute = getJenkinsRoot(context).get("securityRealm").asMapping().get("oic");
+        CNode yourAttribute =
+                getJenkinsRoot(context).get("securityRealm").asMapping().get("oic");
 
         String exported = toYamlString(yourAttribute);
 
@@ -81,7 +82,8 @@ public class ConfigurationAsCodeTest {
             }
         }
         String cleanedExported = String.join("\n", lineList);
-        String expected = toStringFromYamlFile(this, "ConfigurationAsCodeExport.yml").trim();
+        String expected =
+                toStringFromYamlFile(this, "ConfigurationAsCodeExport.yml").trim();
 
         assertThat(cleanedExported, is(expected));
     }
@@ -111,13 +113,14 @@ public class ConfigurationAsCodeTest {
     }
 
     @Rule(order = 0)
-    final public WellKnownMockRule wellKnownMockRule = new WellKnownMockRule("MOCK_PORT",
-      "{\"authorization_endpoint\": \"http://localhost:%1$d/authorize\"," +
-       "\"token_endpoint\":\"http://localhost:%1$d/token\"," +
-       "\"userinfo_endpoint\":\"http://localhost:%1$d/user\","+
-       "\"jwks_uri\":\"http://localhost:%1$d/authorize/jwks\"," +
-       "\"scopes_supported\": null," +
-       "\"end_session_endpoint\":\"http://localhost:%1$d/logout\"}");
+    public final WellKnownMockRule wellKnownMockRule = new WellKnownMockRule(
+            "MOCK_PORT",
+            "{\"authorization_endpoint\": \"http://localhost:%1$d/authorize\","
+                    + "\"token_endpoint\":\"http://localhost:%1$d/token\","
+                    + "\"userinfo_endpoint\":\"http://localhost:%1$d/user\","
+                    + "\"jwks_uri\":\"http://localhost:%1$d/authorize/jwks\","
+                    + "\"scopes_supported\": null,"
+                    + "\"end_session_endpoint\":\"http://localhost:%1$d/logout\"}");
 
     @Test
     @ConfiguredWithCode("ConfigurationAsCodeMinimalWellKnown.yml")
@@ -129,9 +132,9 @@ public class ConfigurationAsCodeTest {
 
         String urlBase = String.format("http://localhost:%d", wellKnownMockRule.port());
 
-        assertEquals(urlBase+"/well.known", oicSecurityRealm.getWellKnownOpenIDConfigurationUrl());
-        assertEquals(urlBase+"/authorize", oicSecurityRealm.getAuthorizationServerUrl());
-        assertEquals(urlBase+"/token", oicSecurityRealm.getTokenServerUrl());
+        assertEquals(urlBase + "/well.known", oicSecurityRealm.getWellKnownOpenIDConfigurationUrl());
+        assertEquals(urlBase + "/authorize", oicSecurityRealm.getAuthorizationServerUrl());
+        assertEquals(urlBase + "/token", oicSecurityRealm.getTokenServerUrl());
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
@@ -140,16 +143,15 @@ public class ConfigurationAsCodeTest {
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
         assertEquals("openid email", oicSecurityRealm.getScopes());
-        assertEquals(urlBase+"/token", oicSecurityRealm.getTokenServerUrl());
+        assertEquals(urlBase + "/token", oicSecurityRealm.getTokenServerUrl());
         assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
     }
 
-
     /** Class to setup WireMockRule for well known with stub and setting port in env variable
      */
-    public class WellKnownMockRule extends  WireMockRule {
+    public class WellKnownMockRule extends WireMockRule {
         private final String mockPortEnvName;
         private final String wellKnownAnswer;
         private String previousEnvValue;
@@ -164,18 +166,17 @@ public class ConfigurationAsCodeTest {
         protected void before() {
             this.previousEnvValue = System.getProperty(this.mockPortEnvName);
             System.setProperty(this.mockPortEnvName, String.valueOf(port()));
-            stubFor(get(urlPathEqualTo("/well.known")).willReturn(
-                aResponse()
-                    .withHeader("Content-Type", "text/html; charset=utf-8")
-                    .withBody(String.format(this.wellKnownAnswer, port()))
-            ));
+            stubFor(get(urlPathEqualTo("/well.known"))
+                    .willReturn(aResponse()
+                            .withHeader("Content-Type", "text/html; charset=utf-8")
+                            .withBody(String.format(this.wellKnownAnswer, port()))));
             super.before();
         }
 
         @Override
         protected void after() {
             super.after();
-            if(this.previousEnvValue != null) {
+            if (this.previousEnvValue != null) {
                 System.setProperty(this.mockPortEnvName, this.previousEnvValue);
             } else {
                 System.clearProperty(this.mockPortEnvName);

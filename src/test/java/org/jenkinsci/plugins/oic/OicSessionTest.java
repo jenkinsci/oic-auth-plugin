@@ -1,5 +1,8 @@
 package org.jenkinsci.plugins.oic;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import java.io.IOException;
 import jenkins.model.Jenkins;
@@ -8,9 +11,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.kohsuke.stapler.HttpResponse;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 public class OicSessionTest {
 
@@ -26,10 +26,9 @@ public class OicSessionTest {
     @Before
     public void init() throws IOException {
         TestRealm realm = new TestRealm.Builder("http://localhost/")
-        .WithMinimalDefaults().WithScopes("openid")
-        .build();
+                .WithMinimalDefaults().WithScopes("openid").build();
 
-    session = new OicSession(from, buildOAuthRedirectUrl()) {
+        session = new OicSession(from, buildOAuthRedirectUrl()) {
             @Override
             public HttpResponse onSuccess(String authorizationCode, AuthorizationCodeFlow flow) {
                 return null;
@@ -37,7 +36,6 @@ public class OicSessionTest {
         };
         session.setIdToken(token);
     }
-
 
     private String buildOAuthRedirectUrl() throws NullPointerException {
         String rootUrl = Jenkins.get().getRootUrl();

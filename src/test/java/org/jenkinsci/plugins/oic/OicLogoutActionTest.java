@@ -1,11 +1,11 @@
 package org.jenkinsci.plugins.oic;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.jenkinsci.plugins.oic.OicLogoutAction.POST_LOGOUT_URL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+
+import org.junit.Before;
+import org.junit.Test;
 
 public class OicLogoutActionTest {
 
@@ -30,5 +30,4 @@ public class OicLogoutActionTest {
     public void getUrlName() {
         assertEquals(POST_LOGOUT_URL, action.getUrlName());
     }
-
 }

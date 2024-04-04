@@ -1,15 +1,15 @@
 package org.jenkinsci.plugins.oic;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class OicUserPropertyTest {
 
@@ -31,12 +31,14 @@ public class OicUserPropertyTest {
         userProp = new OicUserProperty(userName, authorities);
 
         StringBuilder result = new StringBuilder();
-        result.append("Number of GrantedAuthorities in OicUserProperty for ").append(userName).append(": ")
-            .append(authorities.size());
+        result.append("Number of GrantedAuthorities in OicUserProperty for ")
+                .append(userName)
+                .append(": ")
+                .append(authorities.size());
         for (GrantedAuthority authority : authorities) {
             result.append("<br>\nAuthority: ").append(authority.getAuthority());
         }
-        String expectedAuthString =  result.toString();
+        String expectedAuthString = result.toString();
 
         assertEquals(expectedAuthString, userProp.getAllGrantedAuthorities());
     }

@@ -1,5 +1,7 @@
 package org.jenkinsci.plugins.oic;
 
+import static org.junit.Assert.assertNotNull;
+
 import hudson.ProxyConfiguration;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -8,8 +10,6 @@ import jenkins.model.Jenkins;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import static org.junit.Assert.assertNotNull;
 
 public class JenkinsAwareConnectionFactoryTest {
 
@@ -34,4 +34,3 @@ public class JenkinsAwareConnectionFactoryTest {
         assertNotNull(conn);
     }
 }
-

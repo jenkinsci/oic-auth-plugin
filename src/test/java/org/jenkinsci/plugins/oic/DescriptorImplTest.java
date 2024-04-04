@@ -1,16 +1,5 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import hudson.util.FormValidation;
-import java.io.IOException;
-import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.oic.OicSecurityRealm.DescriptorImpl;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -21,6 +10,16 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import hudson.util.FormValidation;
+import java.io.IOException;
+import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.oic.OicSecurityRealm.DescriptorImpl;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
 
 public class DescriptorImplTest {
 
@@ -50,8 +49,11 @@ public class DescriptorImplTest {
         assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
         assertEquals("Client id is required.", descriptor.doCheckClientId("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
-        assertEquals("Client secret is required.", descriptor.doCheckClientSecret(null).getMessage());
-        assertEquals("Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
+        assertEquals(
+                "Client secret is required.",
+                descriptor.doCheckClientSecret(null).getMessage());
+        assertEquals(
+                "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
 
         assertFalse(descriptor.isAuto());
@@ -80,8 +82,11 @@ public class DescriptorImplTest {
         assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
         assertEquals("Client id is required.", descriptor.doCheckClientId("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
-        assertEquals("Client secret is required.", descriptor.doCheckClientSecret(null).getMessage());
-        assertEquals("Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
+        assertEquals(
+                "Client secret is required.",
+                descriptor.doCheckClientSecret(null).getMessage());
+        assertEquals(
+                "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
 
         jenkins.setSecurityRealm(realm);
@@ -102,7 +107,9 @@ public class DescriptorImplTest {
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
 
         assertNotNull(descriptor);
-        assertEquals("Token Server Url Key is required.", descriptor.doCheckTokenServerUrl(null).getMessage());
+        assertEquals(
+                "Token Server Url Key is required.",
+                descriptor.doCheckTokenServerUrl(null).getMessage());
         assertTrue(descriptor.doCheckTokenServerUrl("").getMessage().contains("is required."));
         assertEquals(FormValidation.ok(), descriptor.doCheckTokenServerUrl("http://localhost"));
     }
@@ -115,7 +122,9 @@ public class DescriptorImplTest {
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
 
         assertNotNull(descriptor);
-        assertEquals("Token Server Url Key is required.", descriptor.doCheckAuthorizationServerUrl(null).getMessage());
+        assertEquals(
+                "Token Server Url Key is required.",
+                descriptor.doCheckAuthorizationServerUrl(null).getMessage());
         assertTrue(descriptor.doCheckAuthorizationServerUrl("").getMessage().contains("Not a valid url."));
         assertEquals(FormValidation.ok(), descriptor.doCheckAuthorizationServerUrl("http://localhost"));
     }
@@ -128,9 +137,12 @@ public class DescriptorImplTest {
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
         assertNotNull(descriptor);
 
-        assertEquals(FormValidation.ok("Using 'sub'.").getMessage(),
-            descriptor.doCheckUserNameField(null).getMessage());
-        assertEquals(FormValidation.ok("Using 'sub'.").getMessage(), descriptor.doCheckUserNameField("").getMessage());
+        assertEquals(
+                FormValidation.ok("Using 'sub'.").getMessage(),
+                descriptor.doCheckUserNameField(null).getMessage());
+        assertEquals(
+                FormValidation.ok("Using 'sub'.").getMessage(),
+                descriptor.doCheckUserNameField("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckUserNameField("subfield"));
     }
 
@@ -194,14 +206,17 @@ public class DescriptorImplTest {
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
         assertNotNull(descriptor);
 
-        assertEquals(FormValidation.ok("Using 'openid email'.").getMessage(),
-            descriptor.doCheckScopes(null).getMessage());
-        assertEquals(FormValidation.ok("Using 'openid email'.").getMessage(),
-            descriptor.doCheckScopes("").getMessage());
+        assertEquals(
+                FormValidation.ok("Using 'openid email'.").getMessage(),
+                descriptor.doCheckScopes(null).getMessage());
+        assertEquals(
+                FormValidation.ok("Using 'openid email'.").getMessage(),
+                descriptor.doCheckScopes("").getMessage());
 
         assertEquals(
-            FormValidation.warning("Are you sure you don't want to include 'openid' as an scope?").getMessage(),
-            descriptor.doCheckScopes("email username").getMessage());
+                FormValidation.warning("Are you sure you don't want to include 'openid' as an scope?")
+                        .getMessage(),
+                descriptor.doCheckScopes("email username").getMessage());
 
         assertEquals(FormValidation.ok(), descriptor.doCheckScopes("openid"));
     }
@@ -214,11 +229,14 @@ public class DescriptorImplTest {
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
         assertNotNull(descriptor);
 
-        assertEquals("End Session URL Key is required.",
-            descriptor.doCheckEndSessionEndpoint(null).getMessage());
-        assertEquals("End Session URL Key is required.",
-            descriptor.doCheckEndSessionEndpoint("").getMessage());
-        assertTrue(descriptor.doCheckEndSessionEndpoint("not a url").getMessage().contains("Not a valid url."));
+        assertEquals(
+                "End Session URL Key is required.",
+                descriptor.doCheckEndSessionEndpoint(null).getMessage());
+        assertEquals(
+                "End Session URL Key is required.",
+                descriptor.doCheckEndSessionEndpoint("").getMessage());
+        assertTrue(
+                descriptor.doCheckEndSessionEndpoint("not a url").getMessage().contains("Not a valid url."));
         assertEquals(FormValidation.ok(), descriptor.doCheckEndSessionEndpoint("http://localhost"));
     }
 
@@ -232,7 +250,10 @@ public class DescriptorImplTest {
 
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(null));
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(""));
-        assertTrue(descriptor.doCheckPostLogoutRedirectUrl("not a url").getMessage().contains("Not a valid url."));
+        assertTrue(descriptor
+                .doCheckPostLogoutRedirectUrl("not a url")
+                .getMessage()
+                .contains("Not a valid url."));
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl("http://localhost"));
     }
 
@@ -243,10 +264,13 @@ public class DescriptorImplTest {
         String jwksUrl = "null";
         String endSessionUrl = "null";
 
-        wireMockRule.stubFor(get(urlPathEqualTo("/well.known")).willReturn(aResponse()
-            .withHeader("Content-Type", "text/html; charset=utf-8")
-            .withBody(String.format("{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
-                + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": null, "
-                + "\"end_session_endpoint\":\"%s\"}", authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))));
+        wireMockRule.stubFor(get(urlPathEqualTo("/well.known"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withBody(String.format(
+                                "{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
+                                        + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": null, "
+                                        + "\"end_session_endpoint\":\"%s\"}",
+                                authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))));
     }
 }
