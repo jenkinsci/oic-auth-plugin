@@ -60,7 +60,8 @@ abstract class OicSession implements Serializable {
      * An opaque value used by the client to maintain state between the request and callback.
      */
     @VisibleForTesting
-    String state = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)).substring(0,20);
+    String state = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8))
+            .substring(0, 20);
     /**
      * More random state, this time extending to the id token.
      */
@@ -93,7 +94,6 @@ abstract class OicSession implements Serializable {
         session.setAttribute(SESSION_NAME, this);
     }
 
-
     /**
      * Starts the login session.
      * @return an {@link HttpResponse}
@@ -101,7 +101,8 @@ abstract class OicSession implements Serializable {
     @Restricted(DoNotUse.class)
     public HttpResponse commenceLogin(boolean disableNonce, AuthorizationCodeFlow flow) {
         setupOicSession(Stapler.getCurrentRequest().getSession());
-        AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
+        AuthorizationCodeRequestUrl authorizationCodeRequestUrl =
+                flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
         if (disableNonce) {
             this.nonce = null;
         } else {
@@ -124,9 +125,8 @@ abstract class OicSession implements Serializable {
             return new Failure("State is invalid");
         }
         if (responseUrl.getError() != null) {
-            return new Failure(
-                    "Error from provider: " + responseUrl.getError() + ". Details: " + responseUrl.getErrorDescription()
-                    );
+            return new Failure("Error from provider: " + responseUrl.getError() + ". Details: "
+                    + responseUrl.getErrorDescription());
         }
 
         String code = responseUrl.getCode();
@@ -135,7 +135,7 @@ abstract class OicSession implements Serializable {
         }
 
         HttpSession session = request.getSession(false);
-        if(session != null){
+        if (session != null) {
             // avoid session fixation
             session.invalidate();
         }
@@ -178,8 +178,7 @@ abstract class OicSession implements Serializable {
         this.idToken = idToken;
     }
 
-    public String getIdToken()
-    {
+    public String getIdToken() {
         return this.idToken;
     }
 

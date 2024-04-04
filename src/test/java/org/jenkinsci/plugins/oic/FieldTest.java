@@ -11,11 +11,11 @@ import org.jvnet.hudson.test.JenkinsRule;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-
 public class FieldTest {
 
     @Rule
-    public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(),true);
+    public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(), true);
+
     @Rule
     public JenkinsRule jenkinsRule = new JenkinsRule();
 

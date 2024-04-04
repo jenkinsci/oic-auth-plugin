@@ -30,7 +30,8 @@ public class OicTokenResponseTest {
 
     @Test
     public void parseLongLiteral() throws IOException {
-        OicTokenResponse response = GsonFactory.getDefaultInstance().fromString(JSON_WITH_LONG_LITERAL, OicTokenResponse.class);
+        OicTokenResponse response =
+                GsonFactory.getDefaultInstance().fromString(JSON_WITH_LONG_LITERAL, OicTokenResponse.class);
         assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
         assertEquals("example", response.getTokenType());
         assertEquals(3600L, response.getExpiresInSeconds().longValue());
@@ -40,7 +41,8 @@ public class OicTokenResponseTest {
 
     @Test
     public void parseStringWithLong() throws IOException {
-        OicTokenResponse response = GsonFactory.getDefaultInstance().fromString(JSON_WITH_LONG_AS_STRING, OicTokenResponse.class);
+        OicTokenResponse response =
+                GsonFactory.getDefaultInstance().fromString(JSON_WITH_LONG_AS_STRING, OicTokenResponse.class);
         assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
         assertEquals("example", response.getTokenType());
         assertEquals(3600L, response.getExpiresInSeconds().longValue());
@@ -67,7 +69,9 @@ public class OicTokenResponseTest {
         OicTokenResponse cloned = response.clone();
         assertEquals(response.getAccessToken(), cloned.getAccessToken());
         assertEquals(response.getTokenType(), cloned.getTokenType());
-        assertEquals(response.getExpiresInSeconds().longValue(), cloned.getExpiresInSeconds().longValue());
+        assertEquals(
+                response.getExpiresInSeconds().longValue(),
+                cloned.getExpiresInSeconds().longValue());
         assertEquals(response.getRefreshToken(), cloned.getRefreshToken());
         assertEquals(response.get("example_parameter"), cloned.get("example_parameter"));
         assertEquals(response.getScope(), cloned.getScope());
@@ -78,7 +82,8 @@ public class OicTokenResponseTest {
 
     @Test
     public void parseAbsent() throws IOException {
-        OicTokenResponse response = GsonFactory.getDefaultInstance().fromString(JSON_WITH_ABSENT, OicTokenResponse.class);
+        OicTokenResponse response =
+                GsonFactory.getDefaultInstance().fromString(JSON_WITH_ABSENT, OicTokenResponse.class);
         assertEquals("2YotnFZFEjr1zCsicMWpAA", response.getAccessToken());
         assertEquals("example", response.getTokenType());
         assertEquals(null, response.getExpiresInSeconds());

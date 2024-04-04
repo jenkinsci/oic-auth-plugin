@@ -42,7 +42,7 @@ public class OicSecurityRealmTest {
 
         String key = "testKey";
         Object principal = "testUser";
-        GrantedAuthority[] authorities = new GrantedAuthority[]{GRANTED_AUTH1};
+        GrantedAuthority[] authorities = new GrantedAuthority[] {GRANTED_AUTH1};
         AnonymousAuthenticationToken token = new AnonymousAuthenticationToken(key, principal, authorities);
 
         assertEquals(token, manager.authenticate(token));
@@ -57,9 +57,9 @@ public class OicSecurityRealmTest {
 
         String key = "testKey";
         Object principal = "testUser";
-        GrantedAuthority[] authorities = new GrantedAuthority[]{GRANTED_AUTH1};
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(key, principal,
-            authorities);
+        GrantedAuthority[] authorities = new GrantedAuthority[] {GRANTED_AUTH1};
+        UsernamePasswordAuthenticationToken token =
+                new UsernamePasswordAuthenticationToken(key, principal, authorities);
 
         assertEquals(token, manager.authenticate(token));
     }
@@ -73,18 +73,14 @@ public class OicSecurityRealmTest {
     @Test
     public void testShouldSetNullClientSecretWhenSecretIsNull() throws IOException {
         TestRealm realm = new TestRealm.Builder(wireMockRule)
-            .WithMinimalDefaults()
-            .WithClient("id without secret", null)
-            .build();
+                .WithMinimalDefaults().WithClient("id without secret", null).build();
         assertEquals("none", Secret.toString(realm.getClientSecret()));
     }
 
     @Test
     public void testShouldSetNullClientSecretWhenSecretIsNone() throws IOException {
         TestRealm realm = new TestRealm.Builder(wireMockRule)
-            .WithMinimalDefaults()
-            .WithClient("id with none secret", "NoNE")
-            .build();
+                .WithMinimalDefaults().WithClient("id with none secret", "NoNE").build();
         assertEquals("none", Secret.toString(realm.getClientSecret()));
     }
 
@@ -93,8 +89,8 @@ public class OicSecurityRealmTest {
         // root url is http://localhost:????/jenkins/
         final String rootUrl = jenkinsRule.jenkins.getRootUrl();
 
-        TestRealm realm = new TestRealm.Builder(wireMockRule)
-                .WithMinimalDefaults().build();
+        TestRealm realm =
+                new TestRealm.Builder(wireMockRule).WithMinimalDefaults().build();
 
         assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("foo"));
         assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("/jenkins/foo"));
@@ -108,8 +104,8 @@ public class OicSecurityRealmTest {
         // root url is http://localhost:????/jenkins/
         String rootUrl = jenkinsRule.jenkins.getRootUrl();
 
-        TestRealm realm = new TestRealm.Builder(wireMockRule)
-                .WithMinimalDefaults().build();
+        TestRealm realm =
+                new TestRealm.Builder(wireMockRule).WithMinimalDefaults().build();
 
         assertEquals(rootUrl, realm.getValidRedirectUrl("/bar"));
         assertEquals(rootUrl, realm.getValidRedirectUrl("../bar"));
@@ -125,8 +121,8 @@ public class OicSecurityRealmTest {
 
         TestRealm realm = new TestRealm.Builder(wireMockRule)
                 .WithMinimalDefaults()
-                .WithEscapeHatch(true, escapeHatchUsername, escapeHatchPassword, "Group")
-                .build();
+                        .WithEscapeHatch(true, escapeHatchUsername, escapeHatchPassword, "Group")
+                        .build();
 
         assertEquals(escapeHatchUsername, realm.getEscapeHatchUsername());
         assertNotEquals(escapeHatchPassword, Secret.toString(realm.getEscapeHatchSecret()));
@@ -143,8 +139,8 @@ public class OicSecurityRealmTest {
 
         TestRealm realm = new TestRealm.Builder(wireMockRule)
                 .WithMinimalDefaults()
-                .WithEscapeHatch(true, escapeHatchUsername, escapeHatchCryptedPassword, "Group")
-                .build();
+                        .WithEscapeHatch(true, escapeHatchUsername, escapeHatchCryptedPassword, "Group")
+                        .build();
 
         assertEquals(escapeHatchUsername, realm.getEscapeHatchUsername());
         assertEquals(escapeHatchCryptedPassword, Secret.toString(realm.getEscapeHatchSecret()));

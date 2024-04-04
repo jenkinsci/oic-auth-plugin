@@ -1,26 +1,26 @@
 /*
-* The MIT License
-*
-* Copyright (c) 2022 Michael Doubez
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
+ * The MIT License
+ *
+ * Copyright (c) 2022 Michael Doubez
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package org.jenkinsci.plugins.oic;
 
 import com.google.api.client.auth.oauth2.TokenResponse;
@@ -31,10 +31,10 @@ import java.io.IOException;
 import java.util.Objects;
 
 /**  Custom TokenResponse with id_token capabilities
-*
-* Customisation includes:
-* - expires_in: can be Long or String of Long
-*/
+ *
+ * Customisation includes:
+ * - expires_in: can be Long or String of Long
+ */
 public class OicTokenResponse extends TokenResponse {
 
     @Key("id_token")
@@ -66,10 +66,12 @@ public class OicTokenResponse extends TokenResponse {
      */
     @Override
     public final Long getExpiresInSeconds() {
-    if(expiresInSeconds == null) {
-        return null;
-    }
-    return Long.class.isInstance(expiresInSeconds) ? (Long) expiresInSeconds : Long.valueOf(String.valueOf(expiresInSeconds));
+        if (expiresInSeconds == null) {
+            return null;
+        }
+        return Long.class.isInstance(expiresInSeconds)
+                ? (Long) expiresInSeconds
+                : Long.valueOf(String.valueOf(expiresInSeconds));
     }
 
     /**
@@ -83,14 +85,14 @@ public class OicTokenResponse extends TokenResponse {
      */
     @Override
     public OicTokenResponse setExpiresInSeconds(Long expiresInSeconds) {
-    this.expiresInSeconds = expiresInSeconds;
-    return this;
+        this.expiresInSeconds = expiresInSeconds;
+        return this;
     }
 
     /** clone */
     @Override
     public OicTokenResponse clone() {
-    return (OicTokenResponse) super.clone();
+        return (OicTokenResponse) super.clone();
     }
 
     /**
@@ -107,8 +109,7 @@ public class OicTokenResponse extends TokenResponse {
 
         OicTokenResponse oo = (OicTokenResponse) o;
 
-        return super.equals(o) &&
-            Objects.equals(getExpiresInSeconds(), oo.getExpiresInSeconds());
+        return super.equals(o) && Objects.equals(getExpiresInSeconds(), oo.getExpiresInSeconds());
     }
 
     /**
@@ -121,7 +122,8 @@ public class OicTokenResponse extends TokenResponse {
 
     // ---- override com.google.api.client.auth.oauth2.TokenResponse
 
-    @Override // com.google.api.client.auth.oauth2.TokenResponse, com.google.api.client.json.GenericJson, com.google.api.client.util.GenericData
+    @Override // com.google.api.client.auth.oauth2.TokenResponse, com.google.api.client.json.GenericJson,
+    // com.google.api.client.util.GenericData
     public OicTokenResponse set(String str, Object obj) {
         return (OicTokenResponse) super.set(str, obj);
     }

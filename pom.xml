@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
@@ -7,29 +8,19 @@
     <relativePath />
   </parent>
 
-  <properties>
-    <revision>4</revision>
-    <changelist>999999-SNAPSHOT</changelist>
-    <gitHubRepo>jenkinsci/oic-auth-plugin</gitHubRepo>
-    <jenkins.version>2.361</jenkins.version>
-    <spotbugs.failOnError>true</spotbugs.failOnError>
-    <spotbugs.effort>Max</spotbugs.effort>
-    <configuration-as-code.version>1569.vb_72405b_80249</configuration-as-code.version>
-  </properties>
-
   <artifactId>oic-auth</artifactId>
   <version>${revision}.${changelist}</version>
   <packaging>hpi</packaging>
 
-  <scm>
-    <connection>scm:git:ssh://github.com/${gitHubRepo}.git</connection>
-    <developerConnection>scm:git:git@github.com/${gitHubRepo}.git</developerConnection>
-    <url>https://github.com/${gitHubRepo}</url>
-    <tag>${revision}.${changelist}</tag>
-  </scm>
-
   <name>OpenId Connect Authentication Plugin</name>
   <url>https://github.com/jenkinsci/oic-auth-plugin</url>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+    </license>
+  </licenses>
   <developers>
     <developer>
       <id>mbischoff</id>
@@ -43,13 +34,34 @@
     </developer>
   </developers>
 
-  <licenses>
-    <license>
-      <name>MIT License</name>
-      <url>https://opensource.org/licenses/MIT</url>
-    </license>
-  </licenses>
+  <scm>
+    <connection>scm:git:ssh://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com/${gitHubRepo}.git</developerConnection>
+    <tag>${revision}.${changelist}</tag>
+    <url>https://github.com/${gitHubRepo}</url>
+  </scm>
+
+  <properties>
+    <revision>4</revision>
+    <changelist>999999-SNAPSHOT</changelist>
+    <gitHubRepo>jenkinsci/oic-auth-plugin</gitHubRepo>
+    <jenkins.version>2.361.4</jenkins.version>
+    <spotless.check.skip>false</spotless.check.skip>
+    <spotbugs.failOnError>true</spotbugs.failOnError>
+    <spotbugs.effort>Max</spotbugs.effort>
+    <configuration-as-code.version>1569.vb_72405b_80249</configuration-as-code.version>
+  </properties>
   <dependencies>
+    <dependency>
+      <groupId>com.google.http-client</groupId>
+      <artifactId>google-http-client</artifactId>
+      <version>1.44.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.http-client</groupId>
+      <artifactId>google-http-client-gson</artifactId>
+      <version>1.44.1</version>
+    </dependency>
     <!-- see build plugin unpack -->
     <dependency>
       <groupId>com.google.oauth-client</groupId>
@@ -57,31 +69,14 @@
       <version>1.35.0</version>
     </dependency>
     <dependency>
-      <groupId>com.google.http-client</groupId>
-      <artifactId>google-http-client-gson</artifactId>
-      <version>1.44.1</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.http-client</groupId>
-      <artifactId>google-http-client</artifactId>
-      <version>1.44.1</version>
+      <groupId>io.burt</groupId>
+      <artifactId>jmespath-core</artifactId>
+      <version>0.6.0</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>mailer</artifactId>
       <version>1.34.2</version>
-    </dependency>
-    <dependency>
-      <groupId>io.burt</groupId>
-      <artifactId>jmespath-core</artifactId>
-      <version>0.6.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>4.5.14</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.github.tomakehurst</groupId>
@@ -95,62 +90,14 @@
       <version>${configuration-as-code.version}</version>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.14</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
-
-
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>3.3.1</version>
-          <dependencies>
-            <dependency>
-              <groupId>com.puppycrawl.tools</groupId>
-              <artifactId>checkstyle</artifactId>
-              <version>10.4</version>
-            </dependency>
-          </dependencies>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-    <plugins>
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>3.0.1</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <dependencies>
-            <dependency>
-                <groupId>com.puppycrawl.tools</groupId>
-                <artifactId>checkstyle</artifactId>
-                <!-- versions 10.x and above are unsupported by java 8-->
-                <version>9.3</version>
-            </dependency>
-        </dependencies>
-        <configuration>
-          <configLocation>${maven.multiModuleProjectDirectory}/.mvn/checkstyle.xml</configLocation>
-          <suppressionsLocation>${maven.multiModuleProjectDirectory}/.mvn/checkstyle-suppressions.xml</suppressionsLocation>
-          <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <sourceDirectories>
-            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
-          </sourceDirectories>
-          <testSourceDirectories>
-            <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
-          </testSourceDirectories>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 
   <repositories>
     <repository>
@@ -165,5 +112,51 @@
       <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>3.0.1</version>
+      </plugin>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <configuration>
+          <java combine.self="override">
+            <importOrder>
+              <order>,\#</order>
+            </importOrder>
+          </java>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.3.1</version>
+        <configuration>
+          <configLocation>${maven.multiModuleProjectDirectory}/.mvn/checkstyle.xml</configLocation>
+          <suppressionsLocation>${maven.multiModuleProjectDirectory}/.mvn/checkstyle-suppressions.xml</suppressionsLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <excludeGeneratedSources>true</excludeGeneratedSources>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>10.15.0</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>validate</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>validate</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

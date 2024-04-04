@@ -30,5 +30,4 @@ public class OicLogoutActionTest {
     public void getUrlName() {
         assertEquals(POST_LOGOUT_URL, action.getUrlName());
     }
-
 }

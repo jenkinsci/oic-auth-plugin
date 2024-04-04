@@ -31,12 +31,14 @@ public class OicUserPropertyTest {
         userProp = new OicUserProperty(userName, authorities);
 
         StringBuilder result = new StringBuilder();
-        result.append("Number of GrantedAuthorities in OicUserProperty for ").append(userName).append(": ")
-            .append(authorities.size());
+        result.append("Number of GrantedAuthorities in OicUserProperty for ")
+                .append(userName)
+                .append(": ")
+                .append(authorities.size());
         for (GrantedAuthority authority : authorities) {
             result.append("<br>\nAuthority: ").append(authority.getAuthority());
         }
-        String expectedAuthString =  result.toString();
+        String expectedAuthString = result.toString();
 
         assertEquals(expectedAuthString, userProp.getAllGrantedAuthorities());
     }

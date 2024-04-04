@@ -54,12 +54,12 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
     public TokenAuthMethod getPreferredTokenAuthMethod() {
         if (tokenAuthMethods != null && !tokenAuthMethods.isEmpty()) {
             // Prefer post since that is what the original plugin implementation used
-            if(tokenAuthMethods.contains("client_secret_post")) {
+            if (tokenAuthMethods.contains("client_secret_post")) {
                 return TokenAuthMethod.client_secret_post;
-            // The RFC recommends basic, so that's our number two choice
-            } else if(tokenAuthMethods.contains("client_secret_basic")) {
+                // The RFC recommends basic, so that's our number two choice
+            } else if (tokenAuthMethods.contains("client_secret_basic")) {
                 return TokenAuthMethod.client_secret_basic;
-            // Default to post, again because that was the original implementation
+                // Default to post, again because that was the original implementation
             } else {
                 return TokenAuthMethod.client_secret_post;
             }
@@ -90,7 +90,7 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
      */
     public Map<String, Object> getKnownKeys() {
         Map<String, Object> clone = this.clone();
-        for(String key : this.getUnknownKeys().keySet()) {
+        for (String key : this.getUnknownKeys().keySet()) {
             clone.remove(key);
         }
         return clone;
@@ -137,7 +137,12 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
      */
     @Override
     public int hashCode() {
-        return (authorizationEndpoint + tokenEndpoint + userinfoEndpoint +
-            jwksUri + scopesSupported + endSessionEndpoint).hashCode();
+        return (authorizationEndpoint
+                        + tokenEndpoint
+                        + userinfoEndpoint
+                        + jwksUri
+                        + scopesSupported
+                        + endSessionEndpoint)
+                .hashCode();
     }
 }
