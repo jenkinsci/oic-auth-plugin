@@ -1,14 +1,14 @@
 package org.jenkinsci.plugins.oic;
 
+import com.google.api.client.json.gson.GsonFactory;
+import java.io.IOException;
+import org.junit.Test;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-
-import com.google.api.client.json.gson.GsonFactory;
-import java.io.IOException;
-import org.junit.Test;
 
 public class WellKnownOpenIDConfigurationResponseTest {
 

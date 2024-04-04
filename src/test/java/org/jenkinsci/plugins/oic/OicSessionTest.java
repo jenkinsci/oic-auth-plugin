@@ -1,8 +1,5 @@
 package org.jenkinsci.plugins.oic;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import java.io.IOException;
 import jenkins.model.Jenkins;
@@ -11,6 +8,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.kohsuke.stapler.HttpResponse;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class OicSessionTest {
 

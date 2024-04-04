@@ -1,11 +1,11 @@
 package org.jenkinsci.plugins.oic;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import com.google.api.client.json.gson.GsonFactory;
 import java.io.IOException;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * We'd like to be more permissive by allowing:

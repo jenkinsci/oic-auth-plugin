@@ -1,15 +1,5 @@
 package org.jenkinsci.plugins.oic;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.util.FormValidation;
@@ -20,6 +10,16 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
+import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class DescriptorImplTest {
 

@@ -1,26 +1,5 @@
 package org.jenkinsci.plugins.oic;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.absent;
-import static com.github.tomakehurst.wiremock.client.WireMock.containing;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.matching;
-import static com.github.tomakehurst.wiremock.client.WireMock.notMatching;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static com.google.gson.JsonParser.parseString;
-import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.api.client.auth.openidconnect.IdToken;
@@ -50,6 +29,27 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Url;
 import org.kohsuke.stapler.Stapler;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
+import static com.github.tomakehurst.wiremock.client.WireMock.notMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static com.google.gson.JsonParser.parseString;
+import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
+import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
+import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
+import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
+import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * goes trough a login scenario, the openid provider is mocked and always returns state. We aren't checking

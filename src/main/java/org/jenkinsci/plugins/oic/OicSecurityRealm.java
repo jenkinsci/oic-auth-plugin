@@ -23,8 +23,6 @@
  */
 package org.jenkinsci.plugins.oic;
 
-import static org.apache.commons.lang.StringUtils.isNotBlank;
-
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
 import com.google.api.client.auth.oauth2.BearerToken;
@@ -113,6 +111,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
+
+import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 /**
  * Login with OpenID Connect / OAuth 2
