@@ -824,10 +824,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                         authorizationServerUrl)
                 .setScopes(Arrays.asList(this.getScopes()));
 
-        if (pkceEnabled) {
-            builder.enablePKCE();
-        }
-
         return builder.build();
     }
 
@@ -867,6 +863,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     AuthorizationCodeTokenRequest tokenRequest = flow.newTokenRequest(authorizationCode)
                             .setRedirectUri(buildOAuthRedirectUrl())
                             .setResponseClass(OicTokenResponse.class);
+                    if (this.pkceVerifierCode != null) {
+                        tokenRequest.set("code_verifier", this.pkceVerifierCode);
+                    }
                     if (!sendScopesInTokenRequest) {
                         tokenRequest.setScopes(Collections.emptyList());
                     }
@@ -907,7 +906,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     return HttpResponses.error(500, e);
                 }
             }
-        }.commenceLogin(isNonceDisabled(), buildAuthorizationCodeFlow());
+        }.withNonceDisabled(isNonceDisabled())
+        .withPkceEnabled(isPkceEnabled())
+        .commenceLogin(buildAuthorizationCodeFlow());
     }
 
     @SuppressFBWarnings(

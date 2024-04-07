@@ -27,17 +27,18 @@ import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
 import com.google.api.client.auth.openidconnect.IdToken;
+import com.google.api.client.util.Base64;
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Failure;
-import hudson.remoting.Base64;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.UUID;
 import javax.servlet.http.HttpSession;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.Stapler;
@@ -60,13 +61,13 @@ abstract class OicSession implements Serializable {
      * An opaque value used by the client to maintain state between the request and callback.
      */
     @VisibleForTesting
-    String state = Base64.encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8))
+    String state = Base64.encodeBase64URLSafeString(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8))
             .substring(0, 20);
     /**
      * More random state, this time extending to the id token.
      */
     @VisibleForTesting
-    String nonce = UUID.randomUUID().toString();
+    String nonce;
     /**
      * The url the user was trying to navigate to.
      */
@@ -79,10 +80,79 @@ abstract class OicSession implements Serializable {
      * ID Token needed to logout from OpenID Provider
      */
     private String idToken;
+    /**
+     * PKCE Verifier code if activated
+     */
+    String pkceVerifierCode;
 
     OicSession(String from, String redirectUrl) {
         this.from = from;
         this.redirectUrl = redirectUrl;
+        this.withNonceDisabled(false);
+    }
+
+    /**
+     * Activate or disable Nonce
+     */
+    public OicSession withNonceDisabled(boolean isDisabled) {
+        if (isDisabled) {
+            this.nonce = null;
+        } else {
+            if (this.nonce == null) {
+                this.nonce = UUID.randomUUID().toString();
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Helper class to compute PKCE Challenge
+     */
+    private static class PKCE {
+        /** Challenge code of verifier code */
+        public String challengeCode;
+        /** Methode used for computing challenge code */
+        public String challengeCodeMethod;
+
+        public PKCE(String verifierCode) {
+            try {
+                byte[] bytes = verifierCode.getBytes();
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                md.update(bytes, 0, bytes.length);
+                byte[] digest = md.digest();
+                challengeCode = Base64.encodeBase64URLSafeString(digest);
+                challengeCodeMethod = "S256";
+            } catch (NoSuchAlgorithmException e) {
+                challengeCode = verifierCode;
+                challengeCodeMethod = "plain";
+            }
+        }
+
+        /**
+         * Generate base64 verifier code
+         */
+        public static String generateVerifierCode() {
+            try {
+                SecureRandom random = SecureRandom.getInstanceStrong();
+                byte[] code = new byte[32];
+                random.nextBytes(code);
+                return Base64.encodeBase64URLSafeString(code);
+            } catch (NoSuchAlgorithmException e) {
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Activate or disable PKCE
+     */
+    public OicSession withPkceEnabled(boolean isEnabled) {
+        if (isEnabled) {
+            this.pkceVerifierCode = PKCE.generateVerifierCode();
+        } else {
+            this.pkceVerifierCode = null;
+        }
+        return this;
     }
 
     /**
@@ -98,15 +168,19 @@ abstract class OicSession implements Serializable {
      * Starts the login session.
      * @return an {@link HttpResponse}
      */
-    @Restricted(DoNotUse.class)
-    public HttpResponse commenceLogin(boolean disableNonce, AuthorizationCodeFlow flow) {
+    public HttpResponse commenceLogin(AuthorizationCodeFlow flow) {
         setupOicSession(Stapler.getCurrentRequest().getSession());
-        AuthorizationCodeRequestUrl authorizationCodeRequestUrl =
-                flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
-        if (disableNonce) {
-            this.nonce = null;
-        } else {
+        AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl()
+            .setState(state)
+            .setRedirectUri(redirectUrl);
+        if (this.nonce != null) {
             authorizationCodeRequestUrl.set("nonce", this.nonce); // no @Key field defined in AuthorizationRequestUrl
+        }
+
+        if (this.pkceVerifierCode != null) {
+            PKCE pkce = new PKCE(this.pkceVerifierCode);
+            authorizationCodeRequestUrl.setCodeChallengeMethod(pkce.challengeCodeMethod);
+            authorizationCodeRequestUrl.setCodeChallenge(pkce.challengeCode);
         }
         return new HttpRedirect(authorizationCodeRequestUrl.toString());
     }

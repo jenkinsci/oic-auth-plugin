@@ -7,11 +7,13 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.json.webtoken.JsonWebToken;
 import com.google.api.client.util.ArrayMap;
+import com.google.api.client.util.Base64;
 import com.google.gson.JsonElement;
 import hudson.model.User;
 import hudson.tasks.Mailer;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.util.ArrayList;
@@ -20,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.junit.Before;
@@ -34,6 +38,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
@@ -139,7 +144,8 @@ public class PluginTest {
         verify(getRequestedFor(urlPathEqualTo("/authorization"))
                 .withQueryParam("scope", equalTo("openid email"))
                 .withQueryParam("nonce", matching(".+")));
-        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*&scope=.*")));
+        verify(postRequestedFor(urlPathEqualTo("/token"))
+                .withRequestBody(notMatching(".*&scope=.*")));
     }
 
     @Test
@@ -175,8 +181,10 @@ public class PluginTest {
         jenkins.setSecurityRealm(oidcSecurityRealm);
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
-        verify(getRequestedFor(urlPathEqualTo("/authorization")).withQueryParam("scope", equalTo("openid email")));
-        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("&scope=openid+email&")));
+        verify(getRequestedFor(urlPathEqualTo("/authorization"))
+                .withQueryParam("scope", equalTo("openid email")));
+        verify(postRequestedFor(urlPathEqualTo("/token"))
+                .withRequestBody(containing("&scope=openid+email&")));
     }
 
     @Test
@@ -215,6 +223,32 @@ public class PluginTest {
         verify(getRequestedFor(urlPathEqualTo("/authorization"))
                 .withQueryParam("code_challenge_method", equalTo("S256"))
                 .withQueryParam("code_challenge", matching(".+")));
+        verify(postRequestedFor(urlPathEqualTo("/token"))
+                .withRequestBody(matching(".*&code_verifier=[^&]+.*")));
+
+        // check PKCE
+        //   - get codeChallenge
+        final String codeChallenge = findAll(getRequestedFor(urlPathEqualTo("/authorization")))
+            .get(0)
+            .queryParameter("code_challenge")
+            .values()
+            .get(0);
+        //   - get verifierCode
+        Matcher m = Pattern.compile(".*&code_verifier=([^&]+).*")
+            .matcher(findAll(postRequestedFor(urlPathEqualTo("/token")))
+                .get(0)
+                .getBodyAsString());
+        assertTrue(m.find());
+        final String codeVerifier = m.group(1);
+
+        //   - hash verifierCode
+        byte[] bytes = codeVerifier.getBytes();
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        md.update(bytes, 0, bytes.length);
+        byte[] digest = md.digest();
+        final String verifyChallenge = Base64.encodeBase64URLSafeString(digest);
+
+        assertEquals(verifyChallenge, codeChallenge);
     }
 
     @Test
