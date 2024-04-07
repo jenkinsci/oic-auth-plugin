@@ -116,7 +116,7 @@ abstract class OicSession implements Serializable {
 
         public PKCE(String verifierCode) {
             try {
-                byte[] bytes = verifierCode.getBytes();
+                byte[] bytes = verifierCode.getBytes(StandardCharsets.UTF_8);
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
                 md.update(bytes, 0, bytes.length);
                 byte[] digest = md.digest();
