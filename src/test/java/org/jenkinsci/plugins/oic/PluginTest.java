@@ -56,6 +56,7 @@ import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+
 /**
  * goes trough a login scenario, the openid provider is mocked and always returns state. We aren't checking
  * if if openid connect or if the openid connect implementation works. Rather we are only
@@ -1292,6 +1293,74 @@ public class PluginTest {
         }
 
         return JsonWebSignature.signUsingRsaSha256(privateKey, GsonFactory.getDefaultInstance(), header, payload);
+    }
+
+    @Test
+    public void testLoginWithMisingIdTokenShouldBeRefused() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
+                .willReturn(aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader(
+                                "Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withBody("{"
+                                + "\"access_token\":\"AcCeSs_ToKeN\","
+                                + "\"token_type\":\"example\","
+                                + "\"expires_in\":3600,"
+                                + "\"refresh_token\":\"ReFrEsH_ToKeN\","
+                                + "\"example_parameter\":\"example_value\""
+                                + "}")));
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, null, null));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 500);
+    }
+
+    @Test
+    public void testLoginWithUnreadableIdTokenShouldBeRefused() throws Exception {
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
+                .willReturn(aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader(
+                                "Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")));
+        Map<String, Object> keyValues = new HashMap<>();
+        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
+        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
+        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withBody("{" + "\"id_token\": \"Thi is not anb IdToken\","
+                                + "\"access_token\":\"AcCeSs_ToKeN\","
+                                + "\"token_type\":\"example\","
+                                + "\"expires_in\":3600,"
+                                + "\"refresh_token\":\"ReFrEsH_ToKeN\","
+                                + "\"example_parameter\":\"example_value\""
+                                + "}")));
+
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, null, null));
+
+        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 500);
     }
 
     /**
