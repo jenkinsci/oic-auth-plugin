@@ -261,25 +261,25 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 || (Util.fixNull(automanualconfigure).isEmpty()
                         && !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
-            this.wellKnownOpenIDConfigurationUrl = Util.fixEmpty(wellKnownOpenIDConfigurationUrl);
+            this.wellKnownOpenIDConfigurationUrl = Util.fixEmptyAndTrim(wellKnownOpenIDConfigurationUrl);
             this.loadWellKnownOpenIDConfigurationUrl();
         } else {
             this.automanualconfigure = "manual";
             this.wellKnownOpenIDConfigurationUrl = null; // Remove the autoconfig URL
         }
 
-        this.setTokenFieldToCheckKey(Util.fixEmpty(tokenFieldToCheckKey));
-        this.setTokenFieldToCheckValue(Util.fixEmpty(tokenFieldToCheckValue));
-        this.setUserNameField(Util.fixEmpty(userNameField) == null ? "sub" : userNameField);
-        this.setFullNameFieldName(Util.fixEmpty(fullNameFieldName));
-        this.setEmailFieldName(Util.fixEmpty(emailFieldName));
-        this.setGroupsFieldName(Util.fixEmpty(groupsFieldName));
+        this.setTokenFieldToCheckKey(tokenFieldToCheckKey);
+        this.setTokenFieldToCheckValue(tokenFieldToCheckValue);
+        this.setUserNameField(userNameField);
+        this.setFullNameFieldName(fullNameFieldName);
+        this.setEmailFieldName(emailFieldName);
+        this.setGroupsFieldName(groupsFieldName);
         this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
         this.postLogoutRedirectUrl = postLogoutRedirectUrl;
         this.escapeHatchEnabled = Util.fixNull(escapeHatchEnabled, Boolean.FALSE);
-        this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
+        this.escapeHatchUsername = Util.fixEmptyAndTrim(escapeHatchUsername);
         this.setEscapeHatchSecret(Secret.fromString(escapeHatchSecret));
-        this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
+        this.escapeHatchGroup = Util.fixEmptyAndTrim(escapeHatchGroup);
     }
 
     @DataBoundConstructor
@@ -534,7 +534,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /** Parse headers to determine expiration date
      */
     private void setWellKnownExpires(HttpHeaders headers) {
-        String expires = Util.fixEmpty(headers.getExpires());
+        String expires = Util.fixEmptyAndTrim(headers.getExpires());
         // expires 0 means no cache
         // we could (should?) have a look at Cache-Control header and max-age but for simplicity
         // we can just leave it default TTL 1h refresh which sounds reasonable for such file
@@ -582,30 +582,30 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @DataBoundSetter
     public void setUserNameField(String userNameField) {
-        this.userNameField = Util.fixEmpty(userNameField);
+        this.userNameField = Util.fixNull(Util.fixEmptyAndTrim(userNameField), "sub");
         this.userNameFieldExpr = compileJMESPath(this.userNameField, "user name field");
     }
 
     @DataBoundSetter
     public void setTokenFieldToCheckKey(String tokenFieldToCheckKey) {
-        this.tokenFieldToCheckKey = Util.fixEmpty(tokenFieldToCheckKey);
+        this.tokenFieldToCheckKey = Util.fixEmptyAndTrim(tokenFieldToCheckKey);
         this.tokenFieldToCheckExpr = compileJMESPath(this.tokenFieldToCheckKey, "token field to check");
     }
 
     @DataBoundSetter
     public void setTokenFieldToCheckValue(String tokenFieldToCheckValue) {
-        this.tokenFieldToCheckValue = Util.fixEmpty(tokenFieldToCheckValue);
+        this.tokenFieldToCheckValue = Util.fixEmptyAndTrim(tokenFieldToCheckValue);
     }
 
     @DataBoundSetter
     public void setFullNameFieldName(String fullNameFieldName) {
-        this.fullNameFieldName = Util.fixEmpty(fullNameFieldName);
+        this.fullNameFieldName = Util.fixEmptyAndTrim(fullNameFieldName);
         this.fullNameFieldExpr = compileJMESPath(this.fullNameFieldName, "full name field");
     }
 
     @DataBoundSetter
     public void setEmailFieldName(String emailFieldName) {
-        this.emailFieldName = Util.fixEmpty(emailFieldName);
+        this.emailFieldName = Util.fixEmptyAndTrim(emailFieldName);
         this.emailFieldExpr = compileJMESPath(this.emailFieldName, "email field");
     }
 
@@ -634,7 +634,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
-        this.groupsFieldName = Util.fixEmpty(groupsFieldName);
+        this.groupsFieldName = Util.fixEmptyAndTrim(groupsFieldName);
         this.groupsFieldExpr = this.compileJMESPath(groupsFieldName, "groups field");
     }
 
@@ -650,7 +650,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @DataBoundSetter
     public void setPostLogoutRedirectUrl(String postLogoutRedirectUrl) {
-        this.postLogoutRedirectUrl = Util.fixEmpty(postLogoutRedirectUrl);
+        this.postLogoutRedirectUrl = Util.fixEmptyAndTrim(postLogoutRedirectUrl);
     }
 
     @DataBoundSetter
@@ -660,7 +660,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @DataBoundSetter
     public void setEscapeHatchUsername(String escapeHatchUsername) {
-        this.escapeHatchUsername = Util.fixEmpty(escapeHatchUsername);
+        this.escapeHatchUsername = Util.fixEmptyAndTrim(escapeHatchUsername);
     }
 
     @DataBoundSetter
@@ -686,7 +686,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @DataBoundSetter
     public void setEscapeHatchGroup(String escapeHatchGroup) {
-        this.escapeHatchGroup = Util.fixEmpty(escapeHatchGroup);
+        this.escapeHatchGroup = Util.fixEmptyAndTrim(escapeHatchGroup);
     }
 
     @DataBoundSetter
@@ -872,7 +872,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
                     OicTokenResponse response = (OicTokenResponse) tokenRequest.execute();
 
-                    IdToken idToken = response.parseIdToken();
+                    if (response.getIdToken() == null) {
+                        return HttpResponses.errorWithoutStack(500, Messages.OicSecurityRealm_NoIdTokenInResponse());
+                    }
+                    IdToken idToken;
+                    try {
+                         idToken = response.parseIdToken();
+                    } catch(IllegalArgumentException e) {
+                        return HttpResponses.errorWithoutStack(403, Messages.OicSecurityRealm_IdTokenParseError());
+                    }
                     if (!isNonceDisabled() && !validateNonce(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
@@ -890,10 +898,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
                     String username = determineStringField(userNameFieldExpr, idToken, userInfo);
                     if (username == null) {
-                        return HttpResponses.error(
-                                500,
-                                "no field '" + userNameField
-                                        + "' was supplied in the UserInfo or the IdToken payload to be used as the username");
+                        return HttpResponses.error(500, Messages.OicSecurityRealm_UsernameNotFound(userNameField));
                     }
 
                     flow.createAndStoreCredential(response, null);
@@ -903,7 +908,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     return new HttpRedirect(redirectOnFinish);
 
                 } catch (IOException e) {
-                    return HttpResponses.error(500, e);
+                    return HttpResponses.error(500, Messages.OicSecurityRealm_TokenRequestFailure(e));
                 }
             }
         }.withNonceDisabled(isNonceDisabled())

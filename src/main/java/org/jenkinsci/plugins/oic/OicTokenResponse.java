@@ -50,6 +50,9 @@ public class OicTokenResponse extends TokenResponse {
     }
 
     public IdToken parseIdToken() throws IOException {
+        if (this.idToken == null) {
+            return null;
+        }
         return IdToken.parse(getFactory(), this.idToken);
     }
 
