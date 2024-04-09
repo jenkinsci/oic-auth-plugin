@@ -873,11 +873,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     OicTokenResponse response = (OicTokenResponse) tokenRequest.execute();
 
                     if (response.getIdToken() == null) {
-                        return HttpResponses.error(500, Messages.OicSecurityRealm_NoIdTokenInResponse());
+                        return HttpResponses.errorWithoutStack(500, Messages.OicSecurityRealm_NoIdTokenInResponse());
                     }
-                    IdToken idToken = response.parseIdToken();
-                    if (idToken == null) {
-                        return HttpResponses.error(500, Messages.OicSecurityRealm_IdTokenParseError());
+                    IdToken idToken;
+                    try {
+                         idToken = response.parseIdToken();
+                    } catch(IllegalArgumentException e) {
+                        return HttpResponses.errorWithoutStack(403, Messages.OicSecurityRealm_IdTokenParseError());
                     }
                     if (!isNonceDisabled() && !validateNonce(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");

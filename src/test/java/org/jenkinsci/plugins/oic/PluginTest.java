@@ -1360,7 +1360,7 @@ public class PluginTest {
 
         assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
 
-        webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 500);
+        webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 403);
     }
 
     /**
