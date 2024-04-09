@@ -5,10 +5,10 @@ files:
     translation: '/src/main/resources/org/jenkinsci/plugins/oic/%file_name%_%two_letters_code%.properties'
     escape_quotes: 0
     escape_special_characters: 0
-  - source: '/main/resources/org/jenkinsci/plugins/oic/**/*.html'
+  - source: '/src/main/resources/org/jenkinsci/plugins/oic/**/*.html'
     ignore:
-      - '/main/resources/org/jenkinsci/plugins/oic/**/%file_name%_%two_letters_code%.html'
-    translation: '/main/resources/org/jenkinsci/plugins/oic/**/%file_name%_%two_letters_code%.html'
+      - '/src/main/resources/org/jenkinsci/plugins/oic/**/%file_name%_%two_letters_code%.html'
+    translation: '/src/main/resources/org/jenkinsci/plugins/oic/**/%file_name%_%two_letters_code%.html'
     escape_quotes: 0
     escape_special_characters: 0
 
