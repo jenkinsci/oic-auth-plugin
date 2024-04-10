@@ -64,13 +64,15 @@ configure this plugin against a identity provider then please share your
 experiences and found caveats through a blog post or by adding it to the
 documentation.
 
-Also note that the spec describes a well known configuration location
-which will also help discovering your settings
-(<https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig>)
+Instructions for [Generic OpenID Connect](docs/configuration/)
+configuration are provided in the documentation. Configurations for
+specific providers are also available:
 
-From 1.5 and onward the well known configuration location may be used to
-populate the configuration simplifying the configuration greatly. See
-also the following screenshot utilizing the google well known endpoint
+* [Google Provider](GOOGLE.md)
+* [Azure AD (blog post)](http://www.epiclabs.io/configure-jenkins-use-azure-ad-authentication-openid-connect/)
+
+
+See the following screenshot utilizing the google well known endpoint
 for a minimal configuration example: 
 
 ![global-config](/docs/images/global-config.png)
@@ -78,22 +80,8 @@ for a minimal configuration example: 
 All of the fields can be configured as a [JMES Path](https://jmespath.org/) specification.
 Most of the time, the name of the field in the idtoken or userinfo is enough.
 
-#### Using g-suite / google
-
-Obtain the client id and secret from the developer console:
-https://console.cloud.google.com/apis/credentials by creating Oauth client id.
-
-Use those to fill the respective fields in the configuration of Jenkins.
-
-Choose automatic configuration:
-
-Well-known configuration: https://accounts.google.com/.well-known/openid-configuration
 
 see also: <https://developers.google.com/identity/protocols/OpenIDConnect>
-
-#### Using the plugin with Azure AD
-
-See this blog post <http://www.epiclabs.io/configure-jenkins-use-azure-ad-authentication-openid-connect/>
 
 ### Interacting with Jenkins as a non front-end user
 
@@ -168,4 +156,3 @@ Contributions are welcome, we are looking for:
 - just anybody who wants to drop by and take an interest
 
 Please refer to the separate [CONTRIBUTING](docs/CONTRIBUTING.md) document for details on how to proceed!
-

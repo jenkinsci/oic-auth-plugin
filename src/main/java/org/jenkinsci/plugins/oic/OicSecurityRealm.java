@@ -258,8 +258,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.endSessionEndpoint = endSessionEndpoint;
 
         if ("auto".equals(automanualconfigure)
-                || (Util.fixNull(automanualconfigure).isEmpty()
-                        && !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
+                || (Util.fixNull(automanualconfigure).isEmpty() &&
+                    !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
             this.wellKnownOpenIDConfigurationUrl = Util.fixEmptyAndTrim(wellKnownOpenIDConfigurationUrl);
             this.loadWellKnownOpenIDConfigurationUrl();
