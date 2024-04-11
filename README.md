@@ -23,7 +23,9 @@ A Jenkins plugin which lets you login to Jenkins using your own, self-hosted or 
   - [Open Tickets (bugs and feature requests)](#open-tickets-bugs-and-feature-requests)
   - [Changelog](#changelog)
   - [Contributing](#contributing)
-
+- [Documentation](docs/)
+  - [Configuration](docs/configuration/README.md)
+  - [FAQ](docs/FAQ.md)
 </details>
 
 ## User guide
@@ -126,7 +128,7 @@ is our main communication channel for issues and feature request.
 We will look at issues entered through [Jenkins Jira](https://issues.jenkins.io/issues/?jql=project+%3D+JENKINS+AND+component+%3D+oic-auth-plugin)
 but the response time may currently be spotty at best.
 
-Before adding an issue, please search for any relevant entry in the [FAQ][docs/FAQ.md]
+Before adding an issue, please search for any relevant entry in the [FAQ](docs/FAQ.md)
 or if the same issue has already be reported
 and avoid duplicating it. If it is a new issue and it not purely related
 to your environment, please provide relevant information (such as the version
