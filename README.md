@@ -23,7 +23,9 @@ A Jenkins plugin which lets you login to Jenkins using your own, self-hosted or 
   - [Open Tickets (bugs and feature requests)](#open-tickets-bugs-and-feature-requests)
   - [Changelog](#changelog)
   - [Contributing](#contributing)
-
+- [Documentation](docs/)
+  - [Configuration](docs/configuration/README.md)
+  - [FAQ](docs/FAQ.md)
 </details>
 
 ## User guide
@@ -39,6 +41,13 @@ After installing the plugin, the Jenkins administrator can choose
 "OpenID Connect" as [Security Realm](https://www.jenkins.io/doc/book/security/managing-security/#access-control).
 The configuration involves the configuration of the provider and
 the related authorisation strategy.
+
+Configurations for specific providers are documented:
+
+* [Google Provider](docs/configuration/GOOGLE.md)
+* [Gitlab Provider](docs/configuration/GITLAB.md)
+* [Azure AD (blog post)](http://www.epiclabs.io/configure-jenkins-use-azure-ad-authentication-openid-connect/)
+
 
 ### Installation
 
@@ -64,13 +73,21 @@ configure this plugin against a identity provider then please share your
 experiences and found caveats through a blog post or by adding it to the
 documentation.
 
-Also note that the spec describes a well known configuration location
-which will also help discovering your settings
-(<https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig>)
+In a nutshell, the configuration is done in three steps:
+1. **Register Jenkins** as an OIDC client in your provide. You will need these details:
+    - Login Redirec URI: `${JENKINS_ROOT_URL}/securityRealm/finishLogin`
+    - Logout Redirect URI: `${JENKINS_ROOT_URL}/OicLogout`
+    - scope: openid profile email
+    - Grant Type: `authorization_code`
+    - Response Types: `code, token, id_token`
+2. **Generate Client ID** and secret which are needed in plugin configuration
+3. **Configure plugin** with providers endpoints, security features and specific configuration.<br />
+   Normally, providers expose .well-known/openid-configuration which has all the details client need to know.
 
-From 1.5 and onward the well known configuration location may be used to
-populate the configuration simplifying the configuration greatly. See
-also the following screenshot utilizing the google well known endpoint
+Detailed instructions for [Generic OpenID Connect](docs/configuration/README.md)
+configuration are provided in the documentation. 
+
+See the following screenshot utilizing the google well known endpoint
 for a minimal configuration example: 
 
 ![global-config](/docs/images/global-config.png)
@@ -78,22 +95,6 @@ for a minimal configuration example: 
 All of the fields can be configured as a [JMES Path](https://jmespath.org/) specification.
 Most of the time, the name of the field in the idtoken or userinfo is enough.
 
-#### Using g-suite / google
-
-Obtain the client id and secret from the developer console:
-https://console.cloud.google.com/apis/credentials by creating Oauth client id.
-
-Use those to fill the respective fields in the configuration of Jenkins.
-
-Choose automatic configuration:
-
-Well-known configuration: https://accounts.google.com/.well-known/openid-configuration
-
-see also: <https://developers.google.com/identity/protocols/OpenIDConnect>
-
-#### Using the plugin with Azure AD
-
-See this blog post <http://www.epiclabs.io/configure-jenkins-use-azure-ad-authentication-openid-connect/>
 
 ### Interacting with Jenkins as a non front-end user
 
@@ -140,8 +141,9 @@ is our main communication channel for issues and feature request.
 We will look at issues entered through [Jenkins Jira](https://issues.jenkins.io/issues/?jql=project+%3D+JENKINS+AND+component+%3D+oic-auth-plugin)
 but the response time may currently be spotty at best.
 
-Before adding an issue, please search if the same issue has already be reported
-and avoid duplicating it. If it is a new issue and it not purley related
+Before adding an issue, please search for any relevant entry in the [FAQ](docs/FAQ.md)
+or if the same issue has already be reported
+and avoid duplicating it. If it is a new issue and it not purely related
 to your environment, please provide relevant information (such as the version
 of Jenkins and the plugin).
 
@@ -168,4 +170,3 @@ Contributions are welcome, we are looking for:
 - just anybody who wants to drop by and take an interest
 
 Please refer to the separate [CONTRIBUTING](docs/CONTRIBUTING.md) document for details on how to proceed!
-
