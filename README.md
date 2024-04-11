@@ -81,7 +81,7 @@ Detailed instructions for [Generic OpenID Connect](docs/configuration/README.md)
 configuration are provided in the documentation. Configurations for
 specific providers are also available:
 
-* [Google Provider](GOOGLE.md)
+* [Google Provider](docs/configuration/GOOGLE.md)
 * [Azure AD (blog post)](http://www.epiclabs.io/configure-jenkins-use-azure-ad-authentication-openid-connect/)
 
 
