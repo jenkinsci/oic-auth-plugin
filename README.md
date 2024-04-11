@@ -81,8 +81,6 @@ All of the fields can be configured as a [JMES Path](https://jmespath.org/) spec
 Most of the time, the name of the field in the idtoken or userinfo is enough.
 
 
-see also: <https://developers.google.com/identity/protocols/OpenIDConnect>
-
 ### Interacting with Jenkins as a non front-end user
 
 TLDR: use an API token instead as described here: 
@@ -128,8 +126,9 @@ is our main communication channel for issues and feature request.
 We will look at issues entered through [Jenkins Jira](https://issues.jenkins.io/issues/?jql=project+%3D+JENKINS+AND+component+%3D+oic-auth-plugin)
 but the response time may currently be spotty at best.
 
-Before adding an issue, please search if the same issue has already be reported
-and avoid duplicating it. If it is a new issue and it not purley related
+Before adding an issue, please search for any relevant entry in the [FAQ][docs/FAQ.md]
+or if the same issue has already be reported
+and avoid duplicating it. If it is a new issue and it not purely related
 to your environment, please provide relevant information (such as the version
 of Jenkins and the plugin).
 
