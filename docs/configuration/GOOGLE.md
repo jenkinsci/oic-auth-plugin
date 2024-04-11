@@ -26,6 +26,8 @@ Google provides a well known configuration endpoint which can be used
 for automating endpoint configuration. It also supports PKCE
 verification for additional security.
 
+Except for thos parameters and the choice of user information, default parameters value are suitable.
+
 ### User information
 
 The following user information is used by the plugin:
@@ -35,7 +37,7 @@ The following user information is used by the plugin:
 | sub | (always) | An identifier for the user, unique among all Google accounts. |
 | email | email | The user's email address. |
 | name | profile | The user's full name, in a displayable form. |
-| hd | (optioanl) | The domain associated with the Google Workspace or Cloud organization of the user. |
+| hd | (optional) | The domain associated with the Google Workspace or Cloud organization of the user. |
 
 ### JCasC
 
