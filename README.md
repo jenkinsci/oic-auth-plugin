@@ -66,7 +66,18 @@ configure this plugin against a identity provider then please share your
 experiences and found caveats through a blog post or by adding it to the
 documentation.
 
-Instructions for [Generic OpenID Connect](docs/configuration/)
+In a nutshell, the configuration is done in three steps:
+1. **Register Jenkins** as an OIDC client in your provide. You will need these details:
+    - Login Redirec URI: `${JENKINS_ROOT_URL}/securityRealm/finishLogin`
+    - Logout Redirect URI: `${JENKINS_ROOT_URL}/OicLogout`
+    - scope: openid profile email
+    - Grant Type: `authorization_code`
+    - Response Types: `code, token, id_token`
+2. **Generate Client ID** and secret which are needed in plugin configuration
+3. **Configure plugin** with providers endpoints, security features and specific configuration.<br />
+   Normally, providers expose .well-known/openid-configuration which has all the details client need to know.
+
+Detailed instructions for [Generic OpenID Connect](docs/configuration/README.md)
 configuration are provided in the documentation. Configurations for
 specific providers are also available:
 
