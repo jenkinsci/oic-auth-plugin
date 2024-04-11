@@ -13,15 +13,15 @@ and [Jenkins GitHub organization contributing guide](https://github.com/jenkinsc
 Good documentation is a great help for users and maintainers.
 All of the plugin's documentation is written in [Github Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/quickstart-for-writing-on-github).
 
-Github makes a good job of facilitating the modification of Markdown files: click on the `Edit file` futton on any markdown file and it will guide you through the steps.
-If you want to makes more changes or have a nicier ibterface, you make the changes in a [codespace](https://docs.github.com/en/codespaces): click on the `Open in codespace` to have a visual studio code in the browser.
+Github makes a good job of facilitating the modification of Markdown files: click on the `Edit file` button on any markdown file and it will guides you through the steps.
+If you want to make more changes or have a nice interface, you can make changes through a [codespace](https://docs.github.com/en/codespaces): click on the `Open in codespace` to have a visual studio code in the browser.
 
-All of the changes should be done in a branch; then create a pull request to proposethe documentation changes.
+All changes should be done in a branch, then create a pull request to propose them into the main branch.
 
 ### Editing and proofreading
 
 Documentation is prone to typos and errors. Proofreading helps us maintain an unambiguous, good quality documentation that gives confidence in the plugin.
-Some (most) of the contributors are non-native english speaker, feel free to rewrite the documentation to a more idiomatic english.
+Some (most) of the contributors are non-native english speakers, feel free to rewrite the documentation to a more idiomatic english.
 
 Guidelines:
 
@@ -40,7 +40,7 @@ Guidelines:
 Configuration often requires to understand the domain and how the various parameters apply to one's own specific case.
 Most people want to understand just enough for their purpose or just wants it *to work*.
 
-The [configuration](configuration/README.md) documentation contains space for addresing known providers.
+The [configuration](configuration/README.md) documentation contains space for addressing known providers.
 Contributing to document a specific provider involves:
 
 - describing the setup on the provider side: not the install step, only the necessary steps to configure the client
