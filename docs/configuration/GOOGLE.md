@@ -18,6 +18,7 @@ After, clicking on the creation button, a popup window provides the
 client Id and the associated client secret to be used in the
 configuration of the plugin.
 
+Additional configurations are available as indicated in [Google's documentation][1] such as the customization of the consent screen.
 
 ## Plugin configuration
 
@@ -25,18 +26,32 @@ Google provides a well known configuration endpoint which can be used
 for automating endpoint configuration. It also supports PKCE
 verification for additional security.
 
+### User information
+
+The following user information is used by the plugin:
+
+| field | scope | description |
+| ----- | ----- | ----------- |
+| sub | (always) | An identifier for the user, unique among all Google accounts. |
+| email | email | The user's email address. |
+| name | profile | The user's full name, in a displayable form. |
+| hd | (optioanl) | The domain associated with the Google Workspace or Cloud organization of the user. |
+
+### JCasC
+
 ```yaml
 jenkins:
   securityRealm:
     oic:
       wellKnownOpenIDConfigurationUrl: https://accounts.google.com/.well-known/openid-configuration
-	  automanualconfigure: auto
+      automanualconfigure: auto
       clientId: identifier-client-id
       clientSecret: identifuer-client-secret
-      scopes: openid profile name mail 
+      scopes: openid profile ename mail 
       userNameField: sub
       fullNameFieldName: name
       emailFieldName: email
+      groupFieldName: 
       pkceEnabled: true
 ```
 
