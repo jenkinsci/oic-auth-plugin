@@ -26,7 +26,7 @@ Google provides a well known configuration endpoint which can be used
 for automating endpoint configuration. It also supports PKCE
 verification for additional security.
 
-Except for thos parameters and the choice of user information, default parameters value are suitable.
+Except for those parameters and the choice of user information, default parameters value are suitable.
 
 ### User information
 
@@ -39,6 +39,9 @@ The following user information is used by the plugin:
 | name | profile | The user's full name, in a displayable form. |
 | hd | (optional) | The domain associated with the Google Workspace or Cloud organization of the user. |
 
+The flag for overriding scope must be set for requesting only needed
+scopes.
+
 ### JCasC
 
 ```yaml
@@ -49,11 +52,10 @@ jenkins:
       automanualconfigure: auto
       clientId: identifier-client-id
       clientSecret: identifuer-client-secret
-      scopes: openid profile ename mail 
+      overrideScopes: openid profile name email
       userNameField: sub
       fullNameFieldName: name
       emailFieldName: email
-      groupFieldName: 
       pkceEnabled: true
 ```
 

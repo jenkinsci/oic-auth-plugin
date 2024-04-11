@@ -42,6 +42,13 @@ After installing the plugin, the Jenkins administrator can choose
 The configuration involves the configuration of the provider and
 the related authorisation strategy.
 
+Configurations for specific providers are documented:
+
+* [Google Provider](docs/configuration/GOOGLE.md)
+* [Gitlab Provider](docs/configuration/GITLAB.md)
+* [Azure AD (blog post)](http://www.epiclabs.io/configure-jenkins-use-azure-ad-authentication-openid-connect/)
+
+
 ### Installation
 
 OpenID Connect Authentication plugin is installed as other plugins:
@@ -78,12 +85,7 @@ In a nutshell, the configuration is done in three steps:
    Normally, providers expose .well-known/openid-configuration which has all the details client need to know.
 
 Detailed instructions for [Generic OpenID Connect](docs/configuration/README.md)
-configuration are provided in the documentation. Configurations for
-specific providers are also available:
-
-* [Google Provider](docs/configuration/GOOGLE.md)
-* [Azure AD (blog post)](http://www.epiclabs.io/configure-jenkins-use-azure-ad-authentication-openid-connect/)
-
+configuration are provided in the documentation. 
 
 See the following screenshot utilizing the google well known endpoint
 for a minimal configuration example: 

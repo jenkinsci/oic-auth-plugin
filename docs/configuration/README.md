@@ -8,6 +8,7 @@ information to extract.
 There are specifics instructions for well known providers:
 
 * [Google Provider](GOOGLE.md)
+* [Gitlab Provider](GITLAB.md)
 
 
 ## Provider configuration
