@@ -18,7 +18,88 @@ which will also help discovering your settings
 (<https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig>)
 
 From 1.5 and onward the well known configuration location may be used to
-populate the configuration simplifying the configuration greatly. 
+populate the configuration simplifying the configuration greatly.
+The switch between modes is controled by the `automanualconfigure` field
+
+| field | format | description |
+| automanualconfigure | enum | Crontols endpoint configuration mode
+- `auto`:  activate automatic configuration
+- `manual`: activate manual configuration |
+| clientId | string | Id of the openid client obtained from the provider |
+| clientSecret | secret | Secret associated to the client |
+
+### Automatic configuration
+
+In automatic mode, the [well-known](https://datatracker.ietf.org/doc/html/rfc5785)
+configuration endpoint is regularly fetched and parse to fill the fields
+required in manual configuration. By default, all scopes are requested
+but this can be overriden by the `overrideScopes` config parameter.
+
+| field | format | description |
+| ----- | ------ | ----------- |
+| wellKnownOpenIDConfigurationUrl | url | Providers' well-known configuration endpoint |
+| overrideScopes | string | Space separated list of scopes to request (default: request all) |
+
+When configuring from the interface, the automatic mode will fill in the
+fields expected in manual mode. This can be useful for prefilling the
+fields but adapting the configuration of the endpoints.
+
+### Manual configuration
+
+The manual configuration mut provide the authorization and token endpoints.
+The scopes can be configured but default to `openid profile`.
+If the JWKS endpoint is configured, JWS' signatures will be verified
+(unless disabled).
+
+| field | format | description |
+| ----- | ------ | ----------- |
+| automanualconfigure | enum | Always `manual` in manual mode |
+| authorizationServerUrl | url | URL the user is redirected to at login |
+| tokenServerUrl | url | URL used by jenkins to request the tokens |
+| endSessionEndpoint | url | URL to logout from provider (used if activated) |
+| jwksServerUrl | url | URL of provider's jws certificates (unused if disabled) |
+| scopes | string | Space separated list of scopes to request (default: request all) |
+| tokenAuthMethod | enum | method used for authenticating when requesting token(s)
+- `client_secret_basic`: for client id/secret as basic authentication user/pass
+- `client_secret_post`: for client id/secret sent in post request
+|
+
+### Advanced configuration
+
+Providers have some variation in their implementation of OpenID Connect
+or some oddities they required.
+
+| field | format | description |
+| ----- | ------ | ----------- |
+| logoutFromOpenidProvider | boolean | Enable the logout from provider when user logout from Jenkisn. |
+| sendScopesInTokenRequest | boolean | Some providers expects scopes to be sent in token request |
+| rootURLFromRequest | boolean | When computing Jenkins redirect, the root url is either deduced from configured root url or request |
+
+### Security configuration
+
+Most security feature are activated by default if possible.
+
+| field | format | description |
+| ----- | ------ | ----------- |
+| disableSslVerification | boolean | disable SSL verification (in case of self signed certificates by example) |
+| nonceDisabled | boolean | Disable nonce verification |
+| pkceEnable | boolean | Enable PKCE challenge |
+| disableSignatureVerification | boolean | If JWKS uri is configured, ignore signature verifiaction |
+| tokenFieldToCheckKey | jmespath | field(s) to check to authorize user |
+| tokenFieldToCheckValue | string | tokenFieldToCheckValue expected value |
+
+## User information
+
+Content of idtoken or user info to use for identifying the user.
+They are called claims in OpenID Connect terminology.
+
+| field | format | description |
+| ----- | ------ | ----------- |
+| userNameField | jmes path | claim to use as user login (default: `sub`) |
+| fullNameFieldName | jmes path | claim to use as name of user |
+| emailFieldName | jmes path | claim to use for populating user email |
+| groupsFieldName |jmes path | groups the user belongs to |
+
 
 ## JCasC configuration reference
 
@@ -28,17 +109,21 @@ JCasC configuration can be defined with the following fields:
 jenkins:
   securityRealm:
     oic:
-      # Endpoints
       automanualconfigure: <string:enum>
+      # Automatic config of endpoint
       wellKnownOpenIDConfigurationUrl: <url>
+      overrideScopes: <string:space separated words>
+      # Manual config of endpoint
       tokenServerUrl: <url>
       authorizationServerUrl: <url>
+      endSessionEndpoint: <url>
+      jwksServerUrl: <url>
+      scopes: <string:space separated words>
       # Credentials
       clientId: <string>
       clientSecret: <string:secret>
       tokenAuthMethod: <string:enum>
       # claims
-      scopes: <string:space separated words>
       userNameField: <string:jmes path>
       groupsFieldName: <string:jmes path>
       fullNameFieldName: <string: jmes path>
@@ -51,9 +136,10 @@ jenkins:
       disableSslVerification: <boolean>
       nonceDisabled: <boolean>
       pkceEnabled: <boolean>
+      disableSignatureVerification: <boolean>
       tokenFieldToCheckKey: <string:jmes path>
-      tokenFieldToCheckValue: string
-      # escape hatch 
+      tokenFieldToCheckValue: <string>
+      # escape hatch
       escapeHatchEnabled: <boolean>
       escapeHatchUsername: escapeHatchUsername
       escapeHatchSecret: <string:secret>
