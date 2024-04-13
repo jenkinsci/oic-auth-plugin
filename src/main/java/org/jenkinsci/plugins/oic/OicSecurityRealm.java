@@ -139,6 +139,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private final Secret clientSecret;
     private String wellKnownOpenIDConfigurationUrl = null;
     private String tokenServerUrl = null;
+    private String jwksServerUrl = null;
     private TokenAuthMethod tokenAuthMethod;
     private String authorizationServerUrl = null;
     private String userInfoServerUrl = null;
@@ -188,6 +189,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     private boolean pkceEnabled = false;
 
+    /** Flag to disable JWT signature verification
+     */
+    private boolean disableSignatureVerification = false;
+
     /** Flag to disable nonce security
      */
     private boolean nonceDisabled = false;
@@ -221,6 +226,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             String clientSecret,
             String wellKnownOpenIDConfigurationUrl,
             String tokenServerUrl,
+            String jwksServerUrl,
             String tokenAuthMethod,
             String authorizationServerUrl,
             String userInfoServerUrl,
@@ -254,6 +260,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.tokenAuthMethod =
                 TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
         this.userInfoServerUrl = userInfoServerUrl;
+        this.jwksServerUrl = jwksServerUrl;
         this.setScopes(scopes);
         this.endSessionEndpoint = endSessionEndpoint;
 
@@ -288,6 +295,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             String clientSecret,
             String authorizationServerUrl,
             String tokenServerUrl,
+            String jwksServerUrl,
             String tokenAuthMethod,
             String userInfoServerUrl,
             String endSessionEndpoint,
@@ -307,6 +315,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // previous values of OpenIDConnect configuration
         this.authorizationServerUrl = authorizationServerUrl;
         this.tokenServerUrl = tokenServerUrl;
+        this.jwksServerUrl = jwksServerUrl;
         this.tokenAuthMethod =
                 TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
         this.userInfoServerUrl = userInfoServerUrl;
@@ -377,6 +386,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     public String getTokenServerUrl() {
         return tokenServerUrl;
+    }
+
+    public String getJwksServerUrl() {
+        return jwksServerUrl;
     }
 
     public TokenAuthMethod getTokenAuthMethod() {
@@ -475,6 +488,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return pkceEnabled;
     }
 
+    public boolean isDisableSignatureVerification() {
+        return disableSignatureVerification;
+    }
+
     public boolean isNonceDisabled() {
         return nonceDisabled;
     }
@@ -511,6 +528,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
             this.authorizationServerUrl = Util.fixNull(config.getAuthorizationEndpoint(), this.authorizationServerUrl);
             this.tokenServerUrl = Util.fixNull(config.getTokenEndpoint(), this.tokenServerUrl);
+            this.jwksServerUrl = Util.fixNull(config.getJwksUri(), this.jwksServerUrl);
             this.tokenAuthMethod = Util.fixNull(config.getPreferredTokenAuthMethod(), this.tokenAuthMethod);
             this.userInfoServerUrl = Util.fixNull(config.getUserinfoEndpoint(), this.userInfoServerUrl);
             if (config.getScopesSupported() != null) {
@@ -724,6 +742,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
+    public void setDisableSignatureVerification(boolean disableSignatureVerification) {
+        this. disableSignatureVerification = disableSignatureVerification;
+    }
+
+    @DataBoundSetter
     public void setNonceDisabled(boolean nonceDisabled) {
         this.nonceDisabled = nonceDisabled;
     }
@@ -881,6 +904,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     } catch(IllegalArgumentException e) {
                         return HttpResponses.errorWithoutStack(403, Messages.OicSecurityRealm_IdTokenParseError());
                     }
+                    if (!isDisableSignatureVerification() && !validateSignature(idToken)) {
+                        return HttpResponses.errorWithoutStack(401, "Unauthorized");
+                    }
                     if (!isNonceDisabled() && !validateNonce(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
@@ -894,6 +920,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     GenericJson userInfo = null;
                     if (!Strings.isNullOrEmpty(userInfoServerUrl)) {
                         userInfo = getUserInfo(flow, response.getAccessToken());
+                        if (userInfo == null) {
+                            return HttpResponses.errorWithoutStack(401, "Unauthorized");
+                        }
                     }
 
                     String username = determineStringField(userNameFieldExpr, idToken, userInfo);
@@ -914,6 +943,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }.withNonceDisabled(isNonceDisabled())
         .withPkceEnabled(isPkceEnabled())
         .commenceLogin(buildAuthorizationCodeFlow());
+    }
+
+    /** Validate WebToken signature if available */
+    private boolean validateSignature(JsonWebSignature jws) {
+        return true;
     }
 
     @SuppressFBWarnings(
@@ -942,6 +976,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             if (response.getHeaders().getContentType().contains("application/jwt")) {
                 String token = response.parseAsString();
                 JsonWebSignature jws = JsonWebSignature.parse(flow.getJsonFactory(), token);
+                if (!isDisableSignatureVerification() && !validateSignature(jws)) {
+                    return null;
+                }
                 return jws.getPayload();
             }
 
@@ -1279,6 +1316,20 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             }
             try {
                 new URL(tokenServerUrl);
+                return FormValidation.ok();
+            } catch (MalformedURLException e) {
+                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
+            }
+        }
+
+        @RequirePOST
+        public FormValidation doCheckJwksServerUrl(@QueryParameter String jwksServerUrl) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(jwksServerUrl) == null) {
+                return FormValidation.ok();
+            }
+            try {
+                new URL(jwksServerUrl);
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
                 return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());

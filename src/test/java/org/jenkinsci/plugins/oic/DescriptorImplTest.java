@@ -130,6 +130,19 @@ public class DescriptorImplTest {
     }
 
     @Test
+    public void doCheckJwksServerUrl() throws IOException {
+        configureWellKnown();
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+
+        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
+
+        assertNotNull(descriptor);
+        assertEquals(FormValidation.ok(), descriptor.doCheckJwksServerUrl(null));
+        assertEquals(FormValidation.ok(), descriptor.doCheckJwksServerUrl(""));
+        assertEquals(FormValidation.ok(), descriptor.doCheckJwksServerUrl("http://localhost/jwks"));
+    }
+
+    @Test
     public void doCheckUserNameField() throws IOException {
         configureWellKnown();
         TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
