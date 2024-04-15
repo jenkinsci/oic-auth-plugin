@@ -62,7 +62,7 @@ public class ConfigurationAsCodeTest {
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isRootURLFromRequest());
         assertEquals("http://localhost/jwks", oicSecurityRealm.getJwksServerUrl());
-        assertFalse(oicSecurityRealm.isDisableSignatureVerification());
+        assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
     @Test
@@ -115,7 +115,7 @@ public class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertFalse(oicSecurityRealm.isRootURLFromRequest());
         assertEquals(null, oicSecurityRealm.getJwksServerUrl());
-        assertFalse(oicSecurityRealm.isDisableSignatureVerification());
+        assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
     @Rule(order = 0)
@@ -154,7 +154,7 @@ public class ConfigurationAsCodeTest {
         assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
-        assertFalse(oicSecurityRealm.isDisableSignatureVerification());
+        assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
     /** Class to setup WireMockRule for well known with stub and setting port in env variable

@@ -98,7 +98,7 @@
     <f:entry title="${%Disable Nonce verification}" field="nonceDisabled">
       <f:checkbox/>
     </f:entry>
-    <f:entry title="${%Disable signature verification (JWKS)}" field="disableSignatureVerification">
+    <f:entry title="${%Disable token verification (JWKS)}" field="disableTokenVerification">
       <f:checkbox/>
     </f:entry>
 

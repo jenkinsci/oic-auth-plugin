@@ -10,10 +10,11 @@ There are specifics instructions for well known providers:
 * [Google Provider](GOOGLE.md)
 * [Gitlab Provider](GITLAB.md)
 
+This page contains the reference of plugin's configuration.
 
 ## Provider configuration
 
-The OpenID Conenct spec describes a well known configuration location
+The OpenID Connect spec describes a well known configuration location
 which will also help discovering your settings
 (<https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig>)
 
@@ -22,9 +23,8 @@ populate the configuration simplifying the configuration greatly.
 The switch between modes is controled by the `automanualconfigure` field
 
 | field | format | description |
-| automanualconfigure | enum | Crontols endpoint configuration mode
-- `auto`:  activate automatic configuration
-- `manual`: activate manual configuration |
+| ----- | ------ | ----------- |
+| automanualconfigure | enum | Crontols endpoint configuration mode<br />- `auto`:  activate automatic configuration <br />- `manual`: activate manual configuration |
 | clientId | string | Id of the openid client obtained from the provider |
 | clientSecret | secret | Secret associated to the client |
 
@@ -59,10 +59,8 @@ If the JWKS endpoint is configured, JWS' signatures will be verified
 | endSessionEndpoint | url | URL to logout from provider (used if activated) |
 | jwksServerUrl | url | URL of provider's jws certificates (unused if disabled) |
 | scopes | string | Space separated list of scopes to request (default: request all) |
-| tokenAuthMethod | enum | method used for authenticating when requesting token(s)
-- `client_secret_basic`: for client id/secret as basic authentication user/pass
-- `client_secret_post`: for client id/secret sent in post request
-|
+| tokenAuthMethod | enum | method used for authenticating when requesting token(s)<br />- `client_secret_basic`: for client id/secret as basic authentication user/pass<br />- `client_secret_post`: for client id/secret sent in post request
+| userInfoServerUrl | url | URL to get user's details |
 
 ### Advanced configuration
 
@@ -84,7 +82,7 @@ Most security feature are activated by default if possible.
 | disableSslVerification | boolean | disable SSL verification (in case of self signed certificates by example) |
 | nonceDisabled | boolean | Disable nonce verification |
 | pkceEnable | boolean | Enable PKCE challenge |
-| disableSignatureVerification | boolean | If JWKS uri is configured, ignore signature verifiaction |
+| disableTokenVerification | boolean | Disable IdToken and UserInfo verification (not recommended) |
 | tokenFieldToCheckKey | jmespath | field(s) to check to authorize user |
 | tokenFieldToCheckValue | string | tokenFieldToCheckValue expected value |
 
@@ -136,7 +134,7 @@ jenkins:
       disableSslVerification: <boolean>
       nonceDisabled: <boolean>
       pkceEnabled: <boolean>
-      disableSignatureVerification: <boolean>
+      disableTokenVerification: <boolean>
       tokenFieldToCheckKey: <string:jmes path>
       tokenFieldToCheckValue: <string>
       # escape hatch

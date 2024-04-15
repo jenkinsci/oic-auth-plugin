@@ -8,6 +8,7 @@ import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.json.webtoken.JsonWebToken;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Base64;
+import com.google.api.client.util.Clock;
 import com.google.gson.JsonElement;
 import hudson.model.User;
 import hudson.tasks.Mailer;
@@ -16,6 +17,7 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -733,6 +735,123 @@ public class PluginTest {
     }
 
     @Test
+    public void testLoginWithJWTSignature() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/jwks"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"keys\":[{"+encodePublicKey(keyPair)+
+                            ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""+
+                            "}]}")));
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
+                .willReturn(aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader(
+                                "Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")));
+        wireMockRule.stubFor(post(urlPathEqualTo("/token"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{" + "\"id_token\": \""
+                                + createIdToken(keyPair.getPrivate(), Collections.<String, Object>emptyMap()) + "\","
+                                + "\"access_token\":\"AcCeSs_ToKeN\","
+                                + "\"token_type\":\"example\","
+                                + "\"expires_in\":3600,"
+                                + "\"refresh_token\":\"ReFrEsH_ToKeN\","
+                                + "\"example_parameter\":\"example_value\""
+                                + "}")));
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/jwt")
+                        .withBody(createUserInfoJWT(
+                                keyPair.getPrivate(),
+                                "{\n" + "   \"sub\": \""
+                                        + TEST_USER_USERNAME + "\",\n" + "   \""
+                                        + FULL_NAME_FIELD + "\": \"" + TEST_USER_FULL_NAME + "\",\n" + "   \""
+                                        + EMAIL_FIELD + "\": \"" + TEST_USER_EMAIL_ADDRESS + "\",\n" + "   \""
+                                        + GROUPS_FIELD + "\": \"" + TEST_USER_GROUPS[0] + "\"\n" + "  }"))));
+
+        jenkins.setSecurityRealm(
+                new TestRealm.Builder(wireMockRule)
+                .WithUserInfoServerUrl("http://localhost:" + wireMockRule.port() + "/userinfo")
+                .WithJwksServerUrl("http://localhost:" + wireMockRule.port() + "/jwks")
+                .build());
+
+        assertEquals("Shouldn't be authenticated",
+                getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+    }
+
+    public void testLoginWithWrongJWTSignature() throws Exception {
+        wireMockRule.resetAll();
+
+        KeyPair keyPair = createKeyPair();
+
+        wireMockRule.stubFor(get(urlPathEqualTo("/jwks"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"keys\":[{"+encodePublicKey(keyPair)+
+                            ",\"use\":\"sig\",\"kid\":\"wrong_key_id\""+
+                            "}]}")));
+        wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
+                .willReturn(aResponse()
+                        .withStatus(302)
+                        .withHeader("Content-Type", "text/html; charset=utf-8")
+                        .withHeader(
+                                "Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")
+                        .withBody("")));
+        wireMockRule.stubFor(post(urlPathEqualTo("/token"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{" + "\"id_token\": \""
+                                + createIdToken(keyPair.getPrivate(), Collections.<String, Object>emptyMap()) + "\","
+                                + "\"access_token\":\"AcCeSs_ToKeN\","
+                                + "\"token_type\":\"example\","
+                                + "\"expires_in\":3600,"
+                                + "\"refresh_token\":\"ReFrEsH_ToKeN\","
+                                + "\"example_parameter\":\"example_value\""
+                                + "}")));
+        wireMockRule.stubFor(get(urlPathEqualTo("/userinfo"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/jwt")
+                        .withBody(createUserInfoJWT(
+                                keyPair.getPrivate(),
+                                "{\n" + "   \"sub\": \""
+                                        + TEST_USER_USERNAME + "\",\n" + "   \""
+                                        + FULL_NAME_FIELD + "\": \"" + TEST_USER_FULL_NAME + "\",\n" + "   \""
+                                        + EMAIL_FIELD + "\": \"" + TEST_USER_EMAIL_ADDRESS + "\",\n" + "   \""
+                                        + GROUPS_FIELD + "\": \"" + TEST_USER_GROUPS[0] + "\"\n" + "  }"))));
+
+        TestRealm testRealm = new TestRealm.Builder(wireMockRule)
+            .WithUserInfoServerUrl("http://localhost:" + wireMockRule.port() + "/userinfo")
+            .WithJwksServerUrl("http://localhost:" + wireMockRule.port() + "/jwks")
+            .build();
+        jenkins.setSecurityRealm(testRealm);
+
+        assertEquals("Shouldn't be authenticated",
+                getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        assertEquals("Should have refused authentication",
+                getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+        testRealm.setDisableTokenVerification(true);
+
+        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, authentication.getPrincipal(), TEST_USER_USERNAME);
+    }
+
+    @Test
     public void testShouldLogUserWithoutGroupsWhenUserGroupIsMissing() throws Exception {
         wireMockRule.resetAll();
 
@@ -1160,25 +1279,25 @@ public class PluginTest {
     }
 
     private void configureWellKnown(String endSessionUrl, String scopesSupported) {
-        String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
-        String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
-        String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
+        String authUrl = "\"http://localhost:" + wireMockRule.port() + "/authorization\"";
+        String tokenUrl = "\"http://localhost:" + wireMockRule.port() + "/token\"";
+        String userInfoUrl = "\"http://localhost:" + wireMockRule.port() + "/userinfo\"";
         String jwksUrl = "null";
-        String endSessionUrlStr = endSessionUrl == null ? "null" : endSessionUrl;
+        String endSessionUrlStr = endSessionUrl == null ? "null" : ('"' + endSessionUrl + '"');
 
         wireMockRule.stubFor(get(urlPathEqualTo("/well.known"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "text/html; charset=utf-8")
                         .withBody(String.format(
-                                "{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
-                                        + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": "
+                                "{\"authorization_endpoint\": %s, \"token_endpoint\":%s, "
+                                        + "\"userinfo_endpoint\":%s,\"jwks_uri\":%s, \"scopes_supported\": "
                                         + scopesSupported + ", "
-                                        + "\"end_session_endpoint\":\"%s\"}",
+                                        + "\"end_session_endpoint\":%s}",
                                 authUrl,
                                 tokenUrl,
                                 userInfoUrl,
                                 jwksUrl,
-                                endSessionUrl))));
+                                endSessionUrlStr))));
     }
 
     @Test
@@ -1269,8 +1388,13 @@ public class PluginTest {
     }
 
     private String createIdToken(PrivateKey privateKey, Map<String, Object> keyValues) throws Exception {
-        JsonWebSignature.Header header = new JsonWebSignature.Header().setAlgorithm("RS256");
+        JsonWebSignature.Header header = new JsonWebSignature.Header()
+            .setAlgorithm("RS256")
+            .setKeyId("jwks_key_id");
+        long now = (long)(Clock.SYSTEM.currentTimeMillis()/1000);
         IdToken.Payload payload = new IdToken.Payload()
+                .setExpirationTimeSeconds(now + 60L)
+                .setIssuedAtTimeSeconds(now)
                 .setIssuer("issuer")
                 .setSubject(TEST_USER_USERNAME)
                 .setAudience(Collections.singletonList("clientId"))
@@ -1284,7 +1408,9 @@ public class PluginTest {
 
     private String createUserInfoJWT(PrivateKey privateKey, String userInfo) throws Exception {
 
-        JsonWebSignature.Header header = new JsonWebSignature.Header().setAlgorithm("RS256");
+        JsonWebSignature.Header header = new JsonWebSignature.Header()
+            .setAlgorithm("RS256")
+            .setKeyId("jwks_key_id");
 
         JsonWebToken.Payload payload = new JsonWebToken.Payload();
         for (Map.Entry<String, JsonElement> keyValue :
@@ -1361,6 +1487,16 @@ public class PluginTest {
         assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
 
         webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 403);
+    }
+
+    /** Generate JWKS entry with public key of keyPair */
+    String encodePublicKey(KeyPair keyPair) {
+        final RSAPublicKey rsaPKey = (RSAPublicKey)(keyPair.getPublic());
+        return "\"n\":\"" +
+            Base64.encodeBase64String(rsaPKey.getModulus().toByteArray()) +
+            "\",\"e\":\"" +
+            Base64.encodeBase64String(rsaPKey.getPublicExponent().toByteArray()) +
+            "\",\"alg\":\"RS256\",\"kty\":\"RSA\"";
     }
 
     /**
