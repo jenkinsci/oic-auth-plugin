@@ -42,7 +42,7 @@ public class ConfigurationAsCodeTest {
         assertTrue(realm instanceof OicSecurityRealm);
         OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
 
-        assertEquals("http://localhost", oicSecurityRealm.getAuthorizationServerUrl());
+        assertEquals("http://localhost/authorize", oicSecurityRealm.getAuthorizationServerUrl());
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertTrue(oicSecurityRealm.isDisableSslVerification());
@@ -57,10 +57,12 @@ public class ConfigurationAsCodeTest {
         assertEquals("groupsFieldName", oicSecurityRealm.getGroupsFieldName());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertEquals("scopes", oicSecurityRealm.getScopes());
-        assertEquals("http://localhost", oicSecurityRealm.getTokenServerUrl());
+        assertEquals("http://localhost/token", oicSecurityRealm.getTokenServerUrl());
         assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isRootURLFromRequest());
+        assertEquals("http://localhost/jwks", oicSecurityRealm.getJwksServerUrl());
+        assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
     @Test
@@ -68,8 +70,10 @@ public class ConfigurationAsCodeTest {
     public void testExport() throws Exception {
         ConfigurationContext context = new ConfigurationContext(ConfiguratorRegistry.get());
 
-        CNode yourAttribute =
-                getJenkinsRoot(context).get("securityRealm").asMapping().get("oic");
+        CNode yourAttribute = getJenkinsRoot(context)
+            .get("securityRealm")
+            .asMapping()
+            .get("oic");
 
         String exported = toYamlString(yourAttribute);
 
@@ -110,6 +114,8 @@ public class ConfigurationAsCodeTest {
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertFalse(oicSecurityRealm.isRootURLFromRequest());
+        assertEquals(null, oicSecurityRealm.getJwksServerUrl());
+        assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
     @Rule(order = 0)
@@ -118,7 +124,7 @@ public class ConfigurationAsCodeTest {
             "{\"authorization_endpoint\": \"http://localhost:%1$d/authorize\","
                     + "\"token_endpoint\":\"http://localhost:%1$d/token\","
                     + "\"userinfo_endpoint\":\"http://localhost:%1$d/user\","
-                    + "\"jwks_uri\":\"http://localhost:%1$d/authorize/jwks\","
+                    + "\"jwks_uri\":\"http://localhost:%1$d/jwks\","
                     + "\"scopes_supported\": null,"
                     + "\"end_session_endpoint\":\"http://localhost:%1$d/logout\"}");
 
@@ -135,6 +141,7 @@ public class ConfigurationAsCodeTest {
         assertEquals(urlBase + "/well.known", oicSecurityRealm.getWellKnownOpenIDConfigurationUrl());
         assertEquals(urlBase + "/authorize", oicSecurityRealm.getAuthorizationServerUrl());
         assertEquals(urlBase + "/token", oicSecurityRealm.getTokenServerUrl());
+        assertEquals(urlBase + "/jwks", oicSecurityRealm.getJwksServerUrl());
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
@@ -147,6 +154,7 @@ public class ConfigurationAsCodeTest {
         assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
+        assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
     /** Class to setup WireMockRule for well known with stub and setting port in env variable

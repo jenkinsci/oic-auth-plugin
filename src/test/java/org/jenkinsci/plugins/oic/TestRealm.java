@@ -23,6 +23,7 @@ public class TestRealm extends OicSecurityRealm {
         public String clientSecret = "secret";
         public String wellKnownOpenIDConfigurationUrl;
         public String tokenServerUrl;
+        public String jwksServerUrl = null;
         public String tokenAuthMethod = "client_secret_post";
         public String authorizationServerUrl;
         public String userInfoServerUrl = null;
@@ -61,6 +62,11 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithUserInfoServerUrl(String userInfoServerUrl) {
             this.userInfoServerUrl = userInfoServerUrl;
+            return this;
+        }
+
+        public Builder WithJwksServerUrl(String jwksServerUrl) {
+            this.jwksServerUrl = jwksServerUrl;
             return this;
         }
 
@@ -123,6 +129,7 @@ public class TestRealm extends OicSecurityRealm {
                 builder.clientSecret,
                 builder.wellKnownOpenIDConfigurationUrl,
                 builder.tokenServerUrl,
+                builder.jwksServerUrl,
                 builder.tokenAuthMethod,
                 builder.authorizationServerUrl,
                 builder.userInfoServerUrl,

@@ -28,6 +28,7 @@ import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
 import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.Credential.AccessMethod;
+import com.google.api.client.auth.openidconnect.HttpTransportFactory;
 import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.http.BasicAuthentication;
 import com.google.api.client.http.GenericUrl;
@@ -139,6 +140,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private final Secret clientSecret;
     private String wellKnownOpenIDConfigurationUrl = null;
     private String tokenServerUrl = null;
+    private String jwksServerUrl = null;
     private TokenAuthMethod tokenAuthMethod;
     private String authorizationServerUrl = null;
     private String userInfoServerUrl = null;
@@ -188,6 +190,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     private boolean pkceEnabled = false;
 
+    /** Flag to disable JWT signature verification
+     */
+    private boolean disableTokenVerification = false;
+
     /** Flag to disable nonce security
      */
     private boolean nonceDisabled = false;
@@ -201,7 +207,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * but it's still needed for backwards compatibility */
     private transient String endSessionUrl;
 
-    private transient HttpTransport httpTransport;
+    /** Verification of IdToken and UserInfo (in jwt case)
+     */
+    private transient OicJsonWebTokenVerifier jwtVerifier;
+
+    private transient HttpTransport httpTransport = null;
 
     /** Random generator needed for robust random wait
      */
@@ -221,6 +231,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             String clientSecret,
             String wellKnownOpenIDConfigurationUrl,
             String tokenServerUrl,
+            String jwksServerUrl,
             String tokenAuthMethod,
             String authorizationServerUrl,
             String userInfoServerUrl,
@@ -254,6 +265,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.tokenAuthMethod =
                 TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
         this.userInfoServerUrl = userInfoServerUrl;
+        this.jwksServerUrl = jwksServerUrl;
         this.setScopes(scopes);
         this.endSessionEndpoint = endSessionEndpoint;
 
@@ -288,6 +300,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             String clientSecret,
             String authorizationServerUrl,
             String tokenServerUrl,
+            String jwksServerUrl,
             String tokenAuthMethod,
             String userInfoServerUrl,
             String endSessionEndpoint,
@@ -307,6 +320,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // previous values of OpenIDConnect configuration
         this.authorizationServerUrl = authorizationServerUrl;
         this.tokenServerUrl = tokenServerUrl;
+        this.jwksServerUrl = jwksServerUrl;
         this.tokenAuthMethod =
                 TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
         this.userInfoServerUrl = userInfoServerUrl;
@@ -377,6 +391,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     public String getTokenServerUrl() {
         return tokenServerUrl;
+    }
+
+    public String getJwksServerUrl() {
+        return jwksServerUrl;
     }
 
     public TokenAuthMethod getTokenAuthMethod() {
@@ -475,6 +493,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return pkceEnabled;
     }
 
+    public boolean isDisableTokenVerification() {
+        return disableTokenVerification;
+    }
+
     public boolean isNonceDisabled() {
         return nonceDisabled;
     }
@@ -511,6 +533,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
             this.authorizationServerUrl = Util.fixNull(config.getAuthorizationEndpoint(), this.authorizationServerUrl);
             this.tokenServerUrl = Util.fixNull(config.getTokenEndpoint(), this.tokenServerUrl);
+            this.jwksServerUrl = Util.fixNull(config.getJwksUri(), this.jwksServerUrl);
             this.tokenAuthMethod = Util.fixNull(config.getPreferredTokenAuthMethod(), this.tokenAuthMethod);
             this.userInfoServerUrl = Util.fixNull(config.getUserinfoEndpoint(), this.userInfoServerUrl);
             if (config.getScopesSupported() != null) {
@@ -724,6 +747,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
+    public void setDisableTokenVerification(boolean disableTokenVerification) {
+        this. disableTokenVerification = disableTokenVerification;
+    }
+
+    @DataBoundSetter
     public void setNonceDisabled(boolean nonceDisabled) {
         this.nonceDisabled = nonceDisabled;
     }
@@ -881,6 +909,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     } catch(IllegalArgumentException e) {
                         return HttpResponses.errorWithoutStack(403, Messages.OicSecurityRealm_IdTokenParseError());
                     }
+                    if (!validateIdToken(idToken)) {
+                        return HttpResponses.errorWithoutStack(401, "Unauthorized");
+                    }
                     if (!isNonceDisabled() && !validateNonce(idToken)) {
                         return HttpResponses.errorWithoutStack(401, "Unauthorized");
                     }
@@ -894,6 +925,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     GenericJson userInfo = null;
                     if (!Strings.isNullOrEmpty(userInfoServerUrl)) {
                         userInfo = getUserInfo(flow, response.getAccessToken());
+                        if (userInfo == null) {
+                            return HttpResponses.errorWithoutStack(401, "Unauthorized");
+                        }
                     }
 
                     String username = determineStringField(userNameFieldExpr, idToken, userInfo);
@@ -914,6 +948,43 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }.withNonceDisabled(isNonceDisabled())
         .withPkceEnabled(isPkceEnabled())
         .commenceLogin(buildAuthorizationCodeFlow());
+    }
+
+    /** Create OicJsonWebTokenVerifier if needed */
+    private OicJsonWebTokenVerifier getJwksVerifier() {
+        if (isDisableTokenVerification()) {
+            return null;
+        }
+        if (jwtVerifier == null) {
+            jwtVerifier = new OicJsonWebTokenVerifier(
+                    jwksServerUrl,
+                    new OicJsonWebTokenVerifier.Builder()
+                        .setHttpTransportFactory(new HttpTransportFactory() {
+                            @Override
+                            public HttpTransport create() {
+                                return httpTransport;
+                            }
+                        }));
+        }
+        return jwtVerifier;
+    }
+
+    /** Validate UserInfo signature if available */
+    private boolean validateUserInfo(JsonWebSignature userinfo)  throws IOException {
+        OicJsonWebTokenVerifier verifier = getJwksVerifier();
+        if (verifier == null) {
+            return true;
+        }
+        return verifier.verifyUserInfo(userinfo);
+    }
+
+    /** Validate IdToken signature if available */
+    private boolean validateIdToken(IdToken idtoken) throws IOException {
+        OicJsonWebTokenVerifier verifier = getJwksVerifier();
+        if (verifier == null) {
+            return true;
+        }
+        return verifier.verifyIdToken(idtoken);
     }
 
     @SuppressFBWarnings(
@@ -942,6 +1013,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             if (response.getHeaders().getContentType().contains("application/jwt")) {
                 String token = response.parseAsString();
                 JsonWebSignature jws = JsonWebSignature.parse(flow.getJsonFactory(), token);
+                if (!validateUserInfo(jws)) {
+                    return null;
+                }
                 return jws.getPayload();
             }
 
@@ -1279,6 +1353,20 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             }
             try {
                 new URL(tokenServerUrl);
+                return FormValidation.ok();
+            } catch (MalformedURLException e) {
+                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
+            }
+        }
+
+        @RequirePOST
+        public FormValidation doCheckJwksServerUrl(@QueryParameter String jwksServerUrl) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(jwksServerUrl) == null) {
+                return FormValidation.ok();
+            }
+            try {
+                new URL(jwksServerUrl);
                 return FormValidation.ok();
             } catch (MalformedURLException e) {
                 return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());

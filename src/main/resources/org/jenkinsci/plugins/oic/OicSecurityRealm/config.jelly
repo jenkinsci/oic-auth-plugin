@@ -42,6 +42,9 @@
       <f:entry title="${%UserInfo server url}" field="userInfoServerUrl">
         <f:textbox/>
       </f:entry>
+      <f:entry title="${%Jwks server url}" field="jwksServerUrl">
+        <f:textbox/>
+      </f:entry>
       <f:entry title="${%Scopes}" field="scopes">
         <f:textbox />
       </f:entry>
@@ -93,6 +96,9 @@
       <f:checkbox/>
     </f:entry>
     <f:entry title="${%Disable Nonce verification}" field="nonceDisabled">
+      <f:checkbox/>
+    </f:entry>
+    <f:entry title="${%Disable token verification (JWKS)}" field="disableTokenVerification">
       <f:checkbox/>
     </f:entry>
 
