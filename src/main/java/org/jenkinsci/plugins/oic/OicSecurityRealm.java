@@ -855,6 +855,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return builder.build();
     }
 
+    /**
+     * Validate post-login redirect URL
+     *
+     * For security reasons, the login must not redirect outside Jenkins
+     * realm. For useablility reason, the logout page should redirect to
+     * root url.
+     */
     protected String getValidRedirectUrl(String url) {
         final String rootUrl = getRootUrl();
         if (url != null && !url.isEmpty()) {
@@ -862,6 +869,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 final String redirectUrl = new URL(new URL(rootUrl), url).toString();
                 // check redirect url stays within rootUrl
                 if (redirectUrl.startsWith(rootUrl)) {
+                    // check if redirect is logout page
+                    final String logoutUrl = new URL(new URL(rootUrl), OicLogoutAction.POST_LOGOUT_URL).toString();
+                    if (redirectUrl.startsWith(logoutUrl)) {
+                        return rootUrl;
+                    }
                     return redirectUrl;
                 }
             } catch (MalformedURLException e) {

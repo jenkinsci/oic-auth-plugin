@@ -97,6 +97,8 @@ public class OicSecurityRealmTest {
         assertEquals(rootUrl + "foo", realm.getValidRedirectUrl(rootUrl + "foo"));
         assertEquals(rootUrl, realm.getValidRedirectUrl(null));
         assertEquals(rootUrl, realm.getValidRedirectUrl(""));
+
+        assertEquals(rootUrl, realm.getValidRedirectUrl(OicLogoutAction.POST_LOGOUT_URL));
     }
 
     @Test
