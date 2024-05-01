@@ -21,7 +21,7 @@ Logs contains warnings about crumb and CSRF issues:
 
 *Workaround*
 
-This was solved by installin the [Strict Crumb Issuer](https://plugins.jenkins.io/strict-crumb-issuer/) plugin.
+This was solved by installing the [Strict Crumb Issuer](https://plugins.jenkins.io/strict-crumb-issuer/) plugin.
 Relevant JCasC configuration is the following:
 
 ```jenkins:

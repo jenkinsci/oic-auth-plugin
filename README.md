@@ -25,6 +25,7 @@ A Jenkins plugin which lets you login to Jenkins using your own, self-hosted or 
   - [Contributing](#contributing)
 - [Documentation](docs/)
   - [Configuration](docs/configuration/README.md)
+  - [How to ...](docs/howto/README.md)
   - [FAQ](docs/FAQ.md)
 </details>
 
@@ -59,7 +60,7 @@ OpenID Connect Authentication plugin is installed as other plugins:
 
 In either case, choosing the plugin as Security Realm means that other
 authentication methods (Jenkins Database, LDAP, ...) will no
-longer be available and any missconfiguration or service availability
+longer be available and any misconfiguration or service availability
 issue will lock out the users. An *escape hatch* can be activated at
 configuration time to define a admin credential which can be used to
 recover access to Jenkins.
@@ -75,7 +76,7 @@ documentation.
 
 In a nutshell, the configuration is done in three steps:
 1. **Register Jenkins** as an OIDC client in your provide. You will need these details:
-    - Login Redirec URI: `${JENKINS_ROOT_URL}/securityRealm/finishLogin`
+    - Login Redirect URI: `${JENKINS_ROOT_URL}/securityRealm/finishLogin`
     - Logout Redirect URI: `${JENKINS_ROOT_URL}/OicLogout`
     - scope: openid profile email
     - Grant Type: `authorization_code`
@@ -85,7 +86,8 @@ In a nutshell, the configuration is done in three steps:
    Normally, providers expose .well-known/openid-configuration which has all the details client need to know.
 
 Detailed instructions for [Generic OpenID Connect](docs/configuration/README.md)
-configuration are provided in the documentation. 
+configuration are provided in the documentation. Some [HOWTO](docs/howto/README.md)
+are provided for the various aspects of the configuration.
 
 See the following screenshot utilizing the google well known endpoint
 for a minimal configuration example: 
@@ -162,7 +164,7 @@ panel of the plugin's repository. They also available in the
 
 Contributions are welcome, we are looking for:
 
-- developpers to implement the features, improve the code and whatever
+- developers to implement the features, improve the code and whatever
   hackers do for a living
 - anybody wanting to help sorting the issues, improve,
   [translate](https://jenkins.crowdin.com/u/projects/25)
