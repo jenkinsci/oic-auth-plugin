@@ -62,18 +62,15 @@ public class OicJsonWebTokenVerifierTest {
         wireMockRule.resetAll();
         IdToken idtoken = createIdToken(keyPair.getPrivate(), new HashMap<>());
         OicJsonWebTokenVerifier verifier = new OicJsonWebTokenVerifier(
-                "http://localhost:" + wireMockRule.port() + "/jwks",
-                new OicJsonWebTokenVerifier.Builder()
-                );
+                "http://localhost:" + wireMockRule.port() + "/jwks", new OicJsonWebTokenVerifier.Builder());
         assertTrue(verifier.isJwksServerUrlAvailable());
 
         wireMockRule.stubFor(get(urlPathEqualTo("/jwks"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody("{\"keys\":[{"+encodePublicKey(keyPair)+
-                            ",\"alg\":\"RS256\""+
-                            ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""+
-                            "}]}")));
+                        .withBody("{\"keys\":[{" + encodePublicKey(keyPair) + ",\"alg\":\"RS256\""
+                                + ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""
+                                + "}]}")));
 
         assertTrue(verifier.verifyIdToken(idtoken));
         assertTrue(verifier.isJwksServerUrlAvailable());
@@ -82,10 +79,7 @@ public class OicJsonWebTokenVerifierTest {
     @Test
     public void tesNoJWKSURIShouldBeSuccessfulAndNeverVerifySignature() throws Exception {
         IdToken idtoken = createIdToken(keyPair.getPrivate(), new HashMap<>());
-        OicJsonWebTokenVerifier verifier = new OicJsonWebTokenVerifier(
-                null,
-                new OicJsonWebTokenVerifier.Builder()
-                );
+        OicJsonWebTokenVerifier verifier = new OicJsonWebTokenVerifier(null, new OicJsonWebTokenVerifier.Builder());
         assertFalse(verifier.isJwksServerUrlAvailable());
 
         assertTrue(verifier.verifyIdToken(idtoken));
@@ -96,13 +90,10 @@ public class OicJsonWebTokenVerifierTest {
         wireMockRule.resetAll();
         IdToken idtoken = createIdToken(keyPair.getPrivate(), new HashMap<>());
         OicJsonWebTokenVerifier verifier = new OicJsonWebTokenVerifier(
-                "http://localhost:" + wireMockRule.port() + "/jwks",
-                new OicJsonWebTokenVerifier.Builder()
-                );
+                "http://localhost:" + wireMockRule.port() + "/jwks", new OicJsonWebTokenVerifier.Builder());
         assertTrue(verifier.isJwksServerUrlAvailable());
 
-        wireMockRule.stubFor(get(urlPathEqualTo("/jwks"))
-                .willReturn(aResponse().withStatus(404)));
+        wireMockRule.stubFor(get(urlPathEqualTo("/jwks")).willReturn(aResponse().withStatus(404)));
 
         assertTrue(verifier.verifyIdToken(idtoken));
         assertFalse(verifier.isJwksServerUrlAvailable());
@@ -113,17 +104,14 @@ public class OicJsonWebTokenVerifierTest {
         wireMockRule.resetAll();
         IdToken idtoken = createIdToken(keyPair.getPrivate(), new HashMap<>());
         OicJsonWebTokenVerifier verifier = new OicJsonWebTokenVerifier(
-                "http://localhost:" + wireMockRule.port() + "/jwks",
-                new OicJsonWebTokenVerifier.Builder()
-                );
+                "http://localhost:" + wireMockRule.port() + "/jwks", new OicJsonWebTokenVerifier.Builder());
         assertTrue(verifier.isJwksServerUrlAvailable());
 
         wireMockRule.stubFor(get(urlPathEqualTo("/jwks"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody("{\"keys\":[{"+encodePublicKey(keyPair)+
-                            ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""+
-                            "}]}")));
+                        .withBody("{\"keys\":[{" + encodePublicKey(keyPair) + ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""
+                                + "}]}")));
 
         assertTrue(verifier.verifyIdToken(idtoken));
         assertFalse(verifier.isJwksServerUrlAvailable());
@@ -134,24 +122,21 @@ public class OicJsonWebTokenVerifierTest {
         wireMockRule.resetAll();
         IdToken idtoken = createIdToken(keyPair.getPrivate(), new HashMap<>());
         OicJsonWebTokenVerifier verifier = new OicJsonWebTokenVerifier(
-                "http://localhost:" + wireMockRule.port() + "/jwks",
-                new OicJsonWebTokenVerifier.Builder()
-                );
+                "http://localhost:" + wireMockRule.port() + "/jwks", new OicJsonWebTokenVerifier.Builder());
         assertTrue(verifier.isJwksServerUrlAvailable());
 
         wireMockRule.stubFor(get(urlPathEqualTo("/jwks"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody("{\"keys\":[{"+encodePublicKey(keyPair)+
-                            ",\"alg\":\"RSA-OAEP\""+
-                            ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""+
-                            "}]}")));
+                        .withBody("{\"keys\":[{" + encodePublicKey(keyPair) + ",\"alg\":\"RSA-OAEP\""
+                                + ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""
+                                + "}]}")));
 
         assertTrue(verifier.verifyIdToken(idtoken));
         assertFalse(verifier.isJwksServerUrlAvailable());
     }
 
-    static private KeyPair createKeyPair() {
+    private static KeyPair createKeyPair() {
         try {
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
             keyGen.initialize(2048);
@@ -163,40 +148,36 @@ public class OicJsonWebTokenVerifierTest {
     }
 
     private IdToken createIdToken(PrivateKey privateKey, Map<String, Object> keyValues) throws Exception {
-        JsonWebSignature.Header header = new JsonWebSignature.Header()
-            .setAlgorithm("RS256")
-            .setKeyId("jwks_key_id");
-        long now = (long)(Clock.SYSTEM.currentTimeMillis()/1000);
+        JsonWebSignature.Header header =
+                new JsonWebSignature.Header().setAlgorithm("RS256").setKeyId("jwks_key_id");
+        long now = (long) (Clock.SYSTEM.currentTimeMillis() / 1000);
         IdToken.Payload payload = new IdToken.Payload()
-            .setExpirationTimeSeconds(now + 60L)
-            .setIssuedAtTimeSeconds(now)
-            .setIssuer("issuer")
-            .setSubject("sub")
-            .setAudience(Collections.singletonList("clientId"))
-            .setNonce("nonce");
+                .setExpirationTimeSeconds(now + 60L)
+                .setIssuedAtTimeSeconds(now)
+                .setIssuer("issuer")
+                .setSubject("sub")
+                .setAudience(Collections.singletonList("clientId"))
+                .setNonce("nonce");
         for (Map.Entry<String, Object> keyValue : keyValues.entrySet()) {
             payload.set(keyValue.getKey(), keyValue.getValue());
         }
 
         JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
-        String content =
-            Base64.encodeBase64URLSafeString(jsonFactory.toByteArray(header))
-            + "."
-            + Base64.encodeBase64URLSafeString(jsonFactory.toByteArray(payload));
+        String content = Base64.encodeBase64URLSafeString(jsonFactory.toByteArray(header))
+                + "."
+                + Base64.encodeBase64URLSafeString(jsonFactory.toByteArray(payload));
         byte[] contentBytes = StringUtils.getBytesUtf8(content);
         byte[] signature =
-            SecurityUtils.sign(
-                    SecurityUtils.getSha256WithRsaSignatureAlgorithm(), privateKey, contentBytes);
+                SecurityUtils.sign(SecurityUtils.getSha256WithRsaSignatureAlgorithm(), privateKey, contentBytes);
         return new IdToken(header, payload, signature, contentBytes);
     }
 
     /** Generate JWKS entry with public key of keyPair */
     String encodePublicKey(KeyPair keyPair) {
-        final RSAPublicKey rsaPKey = (RSAPublicKey)(keyPair.getPublic());
-        return "\"n\":\"" +
-            Base64.encodeBase64String(rsaPKey.getModulus().toByteArray()) +
-            "\",\"e\":\"" +
-            Base64.encodeBase64String(rsaPKey.getPublicExponent().toByteArray()) +
-            "\",\"kty\":\"RSA\"";
+        final RSAPublicKey rsaPKey = (RSAPublicKey) (keyPair.getPublic());
+        return "\"n\":\"" + Base64.encodeBase64String(rsaPKey.getModulus().toByteArray())
+                + "\",\"e\":\""
+                + Base64.encodeBase64String(rsaPKey.getPublicExponent().toByteArray())
+                + "\",\"kty\":\"RSA\"";
     }
 }

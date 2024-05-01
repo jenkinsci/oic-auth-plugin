@@ -64,14 +64,14 @@ public class OicJsonWebTokenVerifier extends IdTokenVerifier {
         return jwksServerUrlAvailable;
     }
 
-
     /** Verify real idtoken */
     public boolean verifyIdToken(IdToken idToken) throws IOException {
         if (isJwksServerUrlAvailable()) {
             try {
                 return verifyOrThrow(idToken);
-            } catch(IOException e) {
-                LOGGER.warning("IdToken signature verification failed '" + e.toString() + "' - jwks signature verification disabled");
+            } catch (IOException e) {
+                LOGGER.warning("IdToken signature verification failed '" + e.toString()
+                        + "' - jwks signature verification disabled");
                 jwksServerUrlAvailable = false;
             }
         }
@@ -88,7 +88,7 @@ public class OicJsonWebTokenVerifier extends IdTokenVerifier {
                         userinfo.getSignatureBytes(),
                         userinfo.getSignedContentBytes());
                 return verifyOrThrow(idToken);
-            } catch(IOException e) {
+            } catch (IOException e) {
                 LOGGER.warning("UserInfo signature verification failed '" + e.toString() + "' - ignore");
             }
         }

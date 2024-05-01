@@ -58,7 +58,6 @@ import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-
 /**
  * goes trough a login scenario, the openid provider is mocked and always returns state. We aren't checking
  * if if openid connect or if the openid connect implementation works. Rather we are only
@@ -147,8 +146,7 @@ public class PluginTest {
         verify(getRequestedFor(urlPathEqualTo("/authorization"))
                 .withQueryParam("scope", equalTo("openid email"))
                 .withQueryParam("nonce", matching(".+")));
-        verify(postRequestedFor(urlPathEqualTo("/token"))
-                .withRequestBody(notMatching(".*&scope=.*")));
+        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*&scope=.*")));
     }
 
     @Test
@@ -184,10 +182,8 @@ public class PluginTest {
         jenkins.setSecurityRealm(oidcSecurityRealm);
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
-        verify(getRequestedFor(urlPathEqualTo("/authorization"))
-                .withQueryParam("scope", equalTo("openid email")));
-        verify(postRequestedFor(urlPathEqualTo("/token"))
-                .withRequestBody(containing("&scope=openid+email&")));
+        verify(getRequestedFor(urlPathEqualTo("/authorization")).withQueryParam("scope", equalTo("openid email")));
+        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("&scope=openid+email&")));
     }
 
     @Test
@@ -226,21 +222,20 @@ public class PluginTest {
         verify(getRequestedFor(urlPathEqualTo("/authorization"))
                 .withQueryParam("code_challenge_method", equalTo("S256"))
                 .withQueryParam("code_challenge", matching(".+")));
-        verify(postRequestedFor(urlPathEqualTo("/token"))
-                .withRequestBody(matching(".*&code_verifier=[^&]+.*")));
+        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(matching(".*&code_verifier=[^&]+.*")));
 
         // check PKCE
         //   - get codeChallenge
         final String codeChallenge = findAll(getRequestedFor(urlPathEqualTo("/authorization")))
-            .get(0)
-            .queryParameter("code_challenge")
-            .values()
-            .get(0);
+                .get(0)
+                .queryParameter("code_challenge")
+                .values()
+                .get(0);
         //   - get verifierCode
         Matcher m = Pattern.compile(".*&code_verifier=([^&]+).*")
-            .matcher(findAll(postRequestedFor(urlPathEqualTo("/token")))
-                .get(0)
-                .getBodyAsString());
+                .matcher(findAll(postRequestedFor(urlPathEqualTo("/token")))
+                        .get(0)
+                        .getBodyAsString());
         assertTrue(m.find());
         final String codeVerifier = m.group(1);
 
@@ -743,9 +738,8 @@ public class PluginTest {
         wireMockRule.stubFor(get(urlPathEqualTo("/jwks"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody("{\"keys\":[{"+encodePublicKey(keyPair)+
-                            ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""+
-                            "}]}")));
+                        .withBody("{\"keys\":[{" + encodePublicKey(keyPair) + ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""
+                                + "}]}")));
         wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
                 .willReturn(aResponse()
                         .withStatus(302)
@@ -775,14 +769,13 @@ public class PluginTest {
                                         + EMAIL_FIELD + "\": \"" + TEST_USER_EMAIL_ADDRESS + "\",\n" + "   \""
                                         + GROUPS_FIELD + "\": \"" + TEST_USER_GROUPS[0] + "\"\n" + "  }"))));
 
-        jenkins.setSecurityRealm(
-                new TestRealm.Builder(wireMockRule)
+        jenkins.setSecurityRealm(new TestRealm.Builder(wireMockRule)
                 .WithUserInfoServerUrl("http://localhost:" + wireMockRule.port() + "/userinfo")
-                .WithJwksServerUrl("http://localhost:" + wireMockRule.port() + "/jwks")
-                .build());
+                        .WithJwksServerUrl("http://localhost:" + wireMockRule.port() + "/jwks")
+                        .build());
 
-        assertEquals("Shouldn't be authenticated",
-                getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+        assertEquals(
+                "Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
 
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
@@ -798,9 +791,8 @@ public class PluginTest {
         wireMockRule.stubFor(get(urlPathEqualTo("/jwks"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody("{\"keys\":[{"+encodePublicKey(keyPair)+
-                            ",\"use\":\"sig\",\"kid\":\"wrong_key_id\""+
-                            "}]}")));
+                        .withBody("{\"keys\":[{" + encodePublicKey(keyPair)
+                                + ",\"use\":\"sig\",\"kid\":\"wrong_key_id\"" + "}]}")));
         wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
                 .willReturn(aResponse()
                         .withStatus(302)
@@ -831,18 +823,20 @@ public class PluginTest {
                                         + GROUPS_FIELD + "\": \"" + TEST_USER_GROUPS[0] + "\"\n" + "  }"))));
 
         TestRealm testRealm = new TestRealm.Builder(wireMockRule)
-            .WithUserInfoServerUrl("http://localhost:" + wireMockRule.port() + "/userinfo")
-            .WithJwksServerUrl("http://localhost:" + wireMockRule.port() + "/jwks")
-            .build();
+                .WithUserInfoServerUrl("http://localhost:" + wireMockRule.port() + "/userinfo")
+                        .WithJwksServerUrl("http://localhost:" + wireMockRule.port() + "/jwks")
+                        .build();
         jenkins.setSecurityRealm(testRealm);
 
-        assertEquals("Shouldn't be authenticated",
-                getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+        assertEquals(
+                "Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
 
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
 
-        assertEquals("Should have refused authentication",
-                getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+        assertEquals(
+                "Should have refused authentication",
+                getAuthentication().getPrincipal(),
+                Jenkins.ANONYMOUS.getPrincipal());
         testRealm.setDisableTokenVerification(true);
 
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
@@ -1388,10 +1382,9 @@ public class PluginTest {
     }
 
     private String createIdToken(PrivateKey privateKey, Map<String, Object> keyValues) throws Exception {
-        JsonWebSignature.Header header = new JsonWebSignature.Header()
-            .setAlgorithm("RS256")
-            .setKeyId("jwks_key_id");
-        long now = (long)(Clock.SYSTEM.currentTimeMillis()/1000);
+        JsonWebSignature.Header header =
+                new JsonWebSignature.Header().setAlgorithm("RS256").setKeyId("jwks_key_id");
+        long now = (long) (Clock.SYSTEM.currentTimeMillis() / 1000);
         IdToken.Payload payload = new IdToken.Payload()
                 .setExpirationTimeSeconds(now + 60L)
                 .setIssuedAtTimeSeconds(now)
@@ -1408,9 +1401,8 @@ public class PluginTest {
 
     private String createUserInfoJWT(PrivateKey privateKey, String userInfo) throws Exception {
 
-        JsonWebSignature.Header header = new JsonWebSignature.Header()
-            .setAlgorithm("RS256")
-            .setKeyId("jwks_key_id");
+        JsonWebSignature.Header header =
+                new JsonWebSignature.Header().setAlgorithm("RS256").setKeyId("jwks_key_id");
 
         JsonWebToken.Payload payload = new JsonWebToken.Payload();
         for (Map.Entry<String, JsonElement> keyValue :
@@ -1450,7 +1442,8 @@ public class PluginTest {
 
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, null, null));
 
-        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+        assertEquals(
+                "Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
 
         webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 500);
     }
@@ -1484,19 +1477,19 @@ public class PluginTest {
 
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, null, null));
 
-        assertEquals("Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
+        assertEquals(
+                "Shouldn't be authenticated", getAuthentication().getPrincipal(), Jenkins.ANONYMOUS.getPrincipal());
 
         webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 403);
     }
 
     /** Generate JWKS entry with public key of keyPair */
     String encodePublicKey(KeyPair keyPair) {
-        final RSAPublicKey rsaPKey = (RSAPublicKey)(keyPair.getPublic());
-        return "\"n\":\"" +
-            Base64.encodeBase64String(rsaPKey.getModulus().toByteArray()) +
-            "\",\"e\":\"" +
-            Base64.encodeBase64String(rsaPKey.getPublicExponent().toByteArray()) +
-            "\",\"alg\":\"RS256\",\"kty\":\"RSA\"";
+        final RSAPublicKey rsaPKey = (RSAPublicKey) (keyPair.getPublic());
+        return "\"n\":\"" + Base64.encodeBase64String(rsaPKey.getModulus().toByteArray())
+                + "\",\"e\":\""
+                + Base64.encodeBase64String(rsaPKey.getPublicExponent().toByteArray())
+                + "\",\"alg\":\"RS256\",\"kty\":\"RSA\"";
     }
 
     /**

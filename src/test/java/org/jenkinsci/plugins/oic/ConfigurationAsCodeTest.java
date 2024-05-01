@@ -70,10 +70,8 @@ public class ConfigurationAsCodeTest {
     public void testExport() throws Exception {
         ConfigurationContext context = new ConfigurationContext(ConfiguratorRegistry.get());
 
-        CNode yourAttribute = getJenkinsRoot(context)
-            .get("securityRealm")
-            .asMapping()
-            .get("oic");
+        CNode yourAttribute =
+                getJenkinsRoot(context).get("securityRealm").asMapping().get("oic");
 
         String exported = toYamlString(yourAttribute);
 
