@@ -15,4 +15,5 @@ scopes: "scopes"
 sendScopesInTokenRequest: true
 tokenAuthMethod: "client_secret_post"
 tokenServerUrl: "http://localhost/token"
+useRefreshTokens: false
 userNameField: "userNameField"

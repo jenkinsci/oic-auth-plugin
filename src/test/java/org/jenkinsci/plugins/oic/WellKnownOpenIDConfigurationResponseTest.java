@@ -61,6 +61,10 @@ public class WellKnownOpenIDConfigurationResponseTest {
             + " \"code_challenge_methods_supported\": ["
             + "  \"plain\","
             + "  \"S256\""
+            + " ],"
+            + " \"grant_types_supported\": ["
+            + "  \"authorization_code\","
+            + "  \"refresh_token\""
             + " ]"
             + "}";
 
@@ -75,6 +79,7 @@ public class WellKnownOpenIDConfigurationResponseTest {
         assertThat(response.getJwksUri(), is("https://www.googleapis.com/oauth2/v3/certs"));
         assertThat(response.getScopesSupported(), containsInAnyOrder("openid", "email", "profile"));
         assertThat(response.getTokenAuthMethods(), containsInAnyOrder("client_secret_basic", "client_secret_post"));
+        assertThat(response.getGrantTypesSupported(), containsInAnyOrder("authorization_code", "refresh_token"));
     }
 
     @Test
@@ -89,6 +94,7 @@ public class WellKnownOpenIDConfigurationResponseTest {
                         "userinfo_endpoint",
                         "jwks_uri",
                         "scopes_supported",
+                        "grant_types_supported",
                         "token_endpoint_auth_methods_supported"));
     }
 
@@ -140,9 +146,9 @@ public class WellKnownOpenIDConfigurationResponseTest {
     @Test
     public void testHashcode() {
         WellKnownOpenIDConfigurationResponse obj1 = new WellKnownOpenIDConfigurationResponse();
-        assertEquals(701760682, obj1.hashCode());
+        assertEquals(1640064305, obj1.hashCode());
 
         obj1.set("userinfo_endpoint", "some endpoint");
-        assertEquals(961661960, obj1.hashCode());
+        assertEquals(1680887183, obj1.hashCode());
     }
 }

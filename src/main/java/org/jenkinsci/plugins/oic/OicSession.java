@@ -77,10 +77,6 @@ abstract class OicSession implements Serializable {
      */
     private final String redirectUrl;
     /**
-     * ID Token needed to logout from OpenID Provider
-     */
-    private String idToken;
-    /**
      * PKCE Verifier code if activated
      */
     String pkceVerifierCode;
@@ -245,14 +241,6 @@ abstract class OicSession implements Serializable {
      */
     public static OicSession getCurrent() {
         return (OicSession) Stapler.getCurrentRequest().getSession().getAttribute(SESSION_NAME);
-    }
-
-    public void setIdToken(String idToken) {
-        this.idToken = idToken;
-    }
-
-    public String getIdToken() {
-        return this.idToken;
     }
 
     private static final String SESSION_NAME = OicSession.class.getName();

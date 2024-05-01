@@ -36,6 +36,9 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
     @Key("scopes_supported")
     private Set<String> scopesSupported;
 
+    @Key("grant_types_supported")
+    private Set<String> grantTypesSupported;
+
     @Key("end_session_endpoint")
     private String endSessionEndpoint;
 
@@ -78,6 +81,10 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
 
     public Set<String> getScopesSupported() {
         return scopesSupported;
+    }
+
+    public Set<String> getGrantTypesSupported() {
+        return grantTypesSupported;
     }
 
     public String getEndSessionEndpoint() {
@@ -125,6 +132,9 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
         if (!Objects.equal(scopesSupported, obj.getScopesSupported())) {
             return false;
         }
+        if (!Objects.equal(grantTypesSupported, obj.getGrantTypesSupported())) {
+            return false;
+        }
         if (!Objects.equal(endSessionEndpoint, obj.getEndSessionEndpoint())) {
             return false;
         }
@@ -142,6 +152,7 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
                         + userinfoEndpoint
                         + jwksUri
                         + scopesSupported
+                        + grantTypesSupported
                         + endSessionEndpoint)
                 .hashCode();
     }
