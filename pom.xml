@@ -124,6 +124,13 @@
         <artifactId>spotless-maven-plugin</artifactId>
         <configuration>
           <java combine.self="override">
+            <endWithNewline />
+            <indent>
+              <spaces>true</spaces>
+            </indent>
+            <palantirJavaFormat />
+            <removeUnusedImports />
+            <trimTrailingWhitespace />
             <importOrder>
               <order>,\#</order>
             </importOrder>

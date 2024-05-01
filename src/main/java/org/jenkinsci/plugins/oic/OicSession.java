@@ -170,9 +170,8 @@ abstract class OicSession implements Serializable {
      */
     public HttpResponse commenceLogin(AuthorizationCodeFlow flow) {
         setupOicSession(Stapler.getCurrentRequest().getSession());
-        AuthorizationCodeRequestUrl authorizationCodeRequestUrl = flow.newAuthorizationUrl()
-            .setState(state)
-            .setRedirectUri(redirectUrl);
+        AuthorizationCodeRequestUrl authorizationCodeRequestUrl =
+                flow.newAuthorizationUrl().setState(state).setRedirectUri(redirectUrl);
         if (this.nonce != null) {
             authorizationCodeRequestUrl.set("nonce", this.nonce); // no @Key field defined in AuthorizationRequestUrl
         }

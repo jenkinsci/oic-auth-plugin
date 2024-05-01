@@ -270,8 +270,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.endSessionEndpoint = endSessionEndpoint;
 
         if ("auto".equals(automanualconfigure)
-                || (Util.fixNull(automanualconfigure).isEmpty() &&
-                    !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
+                || (Util.fixNull(automanualconfigure).isEmpty()
+                        && !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
             this.wellKnownOpenIDConfigurationUrl = Util.fixEmptyAndTrim(wellKnownOpenIDConfigurationUrl);
             this.loadWellKnownOpenIDConfigurationUrl();
@@ -748,7 +748,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @DataBoundSetter
     public void setDisableTokenVerification(boolean disableTokenVerification) {
-        this. disableTokenVerification = disableTokenVerification;
+        this.disableTokenVerification = disableTokenVerification;
     }
 
     @DataBoundSetter
@@ -917,8 +917,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     }
                     IdToken idToken;
                     try {
-                         idToken = response.parseIdToken();
-                    } catch(IllegalArgumentException e) {
+                        idToken = response.parseIdToken();
+                    } catch (IllegalArgumentException e) {
                         return HttpResponses.errorWithoutStack(403, Messages.OicSecurityRealm_IdTokenParseError());
                     }
                     if (!validateIdToken(idToken)) {
@@ -958,8 +958,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 }
             }
         }.withNonceDisabled(isNonceDisabled())
-        .withPkceEnabled(isPkceEnabled())
-        .commenceLogin(buildAuthorizationCodeFlow());
+                .withPkceEnabled(isPkceEnabled())
+                .commenceLogin(buildAuthorizationCodeFlow());
     }
 
     /** Create OicJsonWebTokenVerifier if needed */
@@ -970,19 +970,18 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (jwtVerifier == null) {
             jwtVerifier = new OicJsonWebTokenVerifier(
                     jwksServerUrl,
-                    new OicJsonWebTokenVerifier.Builder()
-                        .setHttpTransportFactory(new HttpTransportFactory() {
-                            @Override
-                            public HttpTransport create() {
-                                return httpTransport;
-                            }
-                        }));
+                    new OicJsonWebTokenVerifier.Builder().setHttpTransportFactory(new HttpTransportFactory() {
+                        @Override
+                        public HttpTransport create() {
+                            return httpTransport;
+                        }
+                    }));
         }
         return jwtVerifier;
     }
 
     /** Validate UserInfo signature if available */
-    private boolean validateUserInfo(JsonWebSignature userinfo)  throws IOException {
+    private boolean validateUserInfo(JsonWebSignature userinfo) throws IOException {
         OicJsonWebTokenVerifier verifier = getJwksVerifier();
         if (verifier == null) {
             return true;
