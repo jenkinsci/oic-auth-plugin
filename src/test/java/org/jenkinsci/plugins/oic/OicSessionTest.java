@@ -21,8 +21,6 @@ public class OicSessionTest {
 
     private static final String from = "fromAddy";
 
-    private static final String token = "token";
-
     @Before
     public void init() throws IOException {
         TestRealm realm = new TestRealm.Builder("http://localhost/")
@@ -34,7 +32,6 @@ public class OicSessionTest {
                 return null;
             }
         };
-        session.setIdToken(token);
     }
 
     private String buildOAuthRedirectUrl() throws NullPointerException {
@@ -49,11 +46,6 @@ public class OicSessionTest {
     @Test
     public void getFrom() {
         assertEquals(from, session.getFrom());
-    }
-
-    @Test
-    public void getIdToken() {
-        assertEquals(token, session.getIdToken());
     }
 
     @Test

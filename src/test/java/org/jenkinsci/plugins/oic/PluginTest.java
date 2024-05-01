@@ -22,6 +22,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Url;
 import org.kohsuke.stapler.Stapler;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.xml.sax.SAXException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -64,6 +66,9 @@ import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -77,6 +82,7 @@ public class PluginTest {
     private static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
     private static final String TEST_USER_FULL_NAME = "Oic Test User";
     private static final String[] TEST_USER_GROUPS = new String[] {"group1", "group2"};
+    private static final String[] TEST_USER_GROUPS_REFRESHED = new String[] {"group1", "group2", "group3"};
     private static final List<Map<String, String>> TEST_USER_GROUPS_MAP =
             List.of(Map.of("id", "id1", "name", "group1"), Map.of("id", "id2", "name", "group2"));
 
@@ -292,6 +298,161 @@ public class PluginTest {
         oicsr.setWellKnownOpenIDConfigurationUrl(oicsr.getWellKnownOpenIDConfigurationUrl());
         assertEquals(
                 "All scopes of WellKnown should be used", "openid profile scope1 scope2 scope3", oicsr.getScopes());
+    }
+
+    @Test
+    public void testConfigurationWithAutoConfiguration_withRefreshToken() throws Exception {
+        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        TestRealm oicsr = new TestRealm.Builder(wireMockRule)
+                .WithMinimalDefaults().WithAutomanualconfigure("auto").build();
+        assertTrue("Refresh token should be enabled", oicsr.isUseRefreshTokens());
+    }
+
+    @Test
+    public void testRefreshToken_validAndExtendedToken() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        // user groups on first login
+        mockTokenReturnsIdTokenWithGroup();
+        mockUserInfoWithTestGroups();
+        browseLoginPage();
+        var user = assertTestUser();
+        assertFalse(
+                "User should not be part of group " + TEST_USER_GROUPS_REFRESHED[2],
+                user.getAuthorities().contains(TEST_USER_GROUPS_REFRESHED[2]));
+
+        // refresh user with different groups
+        mockTokenReturnsIdTokenWithValues(setUpKeyValuesWithGroup(TEST_USER_GROUPS_REFRESHED));
+        mockUserInfoWithGroups(TEST_USER_GROUPS_REFRESHED);
+        expire();
+        webClient.goTo(jenkins.getSearchUrl());
+
+        user = assertTestUser();
+        assertTrue(
+                "User should be part of group " + TEST_USER_GROUPS_REFRESHED[2],
+                user.getAuthorities().contains(TEST_USER_GROUPS_REFRESHED[2]));
+
+        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("grant_type=refresh_token")));
+    }
+
+    @Test
+    public void testRefreshTokenAndTokenExpiration_withoutRefreshToken() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        configureWellKnown(null, null, "authorization_code");
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        // login
+        mockTokenReturnsIdTokenWithGroup(PluginTest::withoutRefreshToken);
+        mockUserInfoWithTestGroups();
+        browseLoginPage();
+        assertTestUser();
+
+        // expired token not refreshed
+        expire();
+        webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 302);
+
+        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*grant_type=refresh_token.*")));
+    }
+
+    @Test
+    public void testRefreshTokenWithTokenExpirationCheckDisabled_withoutRefreshToken() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        configureWellKnown(null, null, "authorization_code");
+        var realm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD);
+        realm.setTokenExpirationCheckDisabled(true);
+        jenkins.setSecurityRealm(realm);
+        // login
+        mockTokenReturnsIdTokenWithoutValues();
+        mockUserInfoWithTestGroups();
+        browseLoginPage();
+        assertTestUser();
+
+        expire();
+        webClient.goTo(jenkins.getSearchUrl());
+
+        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*grant_type=refresh_token.*")));
+    }
+
+    @Test
+    public void testRefreshTokenWithTokenExpirationCheckDisabled_expiredRefreshToken() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        TestRealm testRealm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD);
+        testRealm.setTokenExpirationCheckDisabled(true);
+        jenkins.setSecurityRealm(testRealm);
+        // login
+        mockTokenReturnsIdTokenWithGroup();
+        mockUserInfoWithTestGroups();
+        browseLoginPage();
+        assertTestUser();
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token"))
+                .willReturn(aResponse()
+                        .withStatus(400)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{ \"error\": \"invalid_grant\" }")));
+        expire();
+        webClient.goTo(jenkins.getSearchUrl(), "");
+
+        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("grant_type=refresh_token")));
+    }
+
+    @Test
+    public void testRefreshTokenAndTokenExpiration_expiredRefreshToken() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        TestRealm testRealm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD);
+        jenkins.setSecurityRealm(testRealm);
+        // login
+        mockTokenReturnsIdTokenWithGroup();
+        mockUserInfoWithTestGroups();
+        browseLoginPage();
+        assertTestUser();
+
+        wireMockRule.stubFor(post(urlPathEqualTo("/token"))
+                .willReturn(aResponse()
+                        .withStatus(400)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{ \"error\": \"invalid_grant\" }")));
+        expire();
+        webClient.assertFails(jenkins.getSearchUrl(), 401);
+
+        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("grant_type=refresh_token")));
+    }
+
+    @Test
+    public void testTokenExpiration_withoutExpiresInValue() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        TestRealm testRealm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD);
+        jenkins.setSecurityRealm(testRealm);
+        // login
+        mockTokenReturnsIdTokenWithGroup(PluginTest::withoutExpiresIn);
+        mockUserInfoWithTestGroups();
+        browseLoginPage();
+        var user = assertTestUser();
+        OicCredentials credentials = user.getProperty(OicCredentials.class);
+
+        assertNotNull(credentials);
+        assertNull(credentials.getExpiresAtMillis());
+    }
+
+    private void expire() throws Exception {
+        webClient.executeOnServer(() -> {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            User user = User.get2(authentication);
+            OicCredentials credentials = user.getProperty(OicCredentials.class);
+
+            user.addProperty(new OicCredentials(
+                    credentials.getAccessToken(),
+                    credentials.getIdToken(),
+                    credentials.getRefreshToken(),
+                    60L,
+                    Clock.SYSTEM.currentTimeMillis() - 3600,
+                    60L));
+
+            return null;
+        });
     }
 
     @Test
@@ -597,6 +758,13 @@ public class PluginTest {
     }
 
     private void configureWellKnown(@CheckForNull String endSessionUrl, @CheckForNull List<String> scopesSupported) {
+        configureWellKnown(endSessionUrl, scopesSupported, "authorization_code");
+    }
+
+    private void configureWellKnown(
+            @CheckForNull String endSessionUrl,
+            @CheckForNull List<String> scopesSupported,
+            @CheckForNull String... grantTypesSupported) {
         wireMockRule.stubFor(get(urlPathEqualTo("/well.known"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "text/html; charset=utf-8")
@@ -612,7 +780,9 @@ public class PluginTest {
                                 "scopes_supported",
                                 scopesSupported == null ? JsonNull.INSTANCE : scopesSupported,
                                 "end_session_endpoint",
-                                endSessionUrl == null ? JsonNull.INSTANCE : endSessionUrl)))));
+                                endSessionUrl == null ? JsonNull.INSTANCE : endSessionUrl,
+                                "grant_types_supported",
+                                grantTypesSupported)))));
     }
 
     @Test
@@ -639,7 +809,7 @@ public class PluginTest {
             logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
             return null;
         });
-        assertEquals("http://provider/logout?id_token_hint=null&state=null", logoutURL[0]);
+        assertEquals("http://provider/logout?state=null", logoutURL[0]);
     }
 
     @Test
@@ -657,7 +827,7 @@ public class PluginTest {
             return null;
         });
         assertEquals(
-                "http://provider/logout?id_token_hint=null&state=null&post_logout_redirect_uri=http%3A%2F%2Fsee.it%2F%3Fcat%26color%3Dwhite",
+                "http://provider/logout?state=null&post_logout_redirect_uri=http%3A%2F%2Fsee.it%2F%3Fcat%26color%3Dwhite",
                 logoutURL[0]);
     }
 
@@ -785,10 +955,14 @@ public class PluginTest {
         return keyValues;
     }
 
-    private static @NonNull Map<String, Object> setUpKeyValuesWithGroup() {
+    private static @NonNull Map<String, Object> setUpKeyValuesWithGroup(String[] groups) {
         var keyValues = setUpKeyValuesNoGroup();
-        keyValues.put(GROUPS_FIELD, TEST_USER_GROUPS);
+        keyValues.put(GROUPS_FIELD, groups);
         return keyValues;
+    }
+
+    private static @NonNull Map<String, Object> setUpKeyValuesWithGroup() {
+        return setUpKeyValuesWithGroup(TEST_USER_GROUPS);
     }
 
     private static @NonNull Map<String, Object> setUpKeyValuesWithGroupAndSub() {
@@ -864,7 +1038,20 @@ public class PluginTest {
         mockTokenReturnsIdToken(createIdToken(keyPair.getPrivate(), keyValues));
     }
 
+    @SafeVarargs
+    private void mockTokenReturnsIdTokenWithGroup(@CheckForNull Consumer<Map<String, String>>... tokenAcceptors)
+            throws Exception {
+        var keyPair = createKeyPair();
+        mockTokenReturnsIdToken(createIdToken(keyPair.getPrivate(), setUpKeyValuesWithGroup()), tokenAcceptors);
+    }
+
     private void mockTokenReturnsIdToken(@CheckForNull String idToken) {
+        mockTokenReturnsIdToken(idToken, new Consumer[0]);
+    }
+
+    @SafeVarargs
+    private void mockTokenReturnsIdToken(
+            @CheckForNull String idToken, @CheckForNull Consumer<Map<String, String>>... tokenAcceptors) {
         var token = new HashMap<String, String>();
         token.put("access_token", "AcCeSs_ToKeN");
         token.put("token_type", "example");
@@ -874,6 +1061,9 @@ public class PluginTest {
         if (idToken != null) {
             token.put("id_token", idToken);
         }
+        if (tokenAcceptors != null) {
+            Arrays.stream(tokenAcceptors).forEach(a -> a.accept(token));
+        }
         wireMockRule.stubFor(post(urlPathEqualTo("/token"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
@@ -882,5 +1072,13 @@ public class PluginTest {
 
     private static @Nullable User toUser(Authentication authentication) {
         return User.get(String.valueOf(authentication.getPrincipal()), false, Map.of());
+    }
+
+    private static void withoutRefreshToken(Map<String, String> token) {
+        token.compute("refresh_token", (o, n) -> null);
+    }
+
+    private static void withoutExpiresIn(Map<String, String> token) {
+        token.compute("expires_in", (o, n) -> null);
     }
 }
