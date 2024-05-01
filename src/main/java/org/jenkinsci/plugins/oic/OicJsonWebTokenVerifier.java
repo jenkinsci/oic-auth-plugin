@@ -28,14 +28,17 @@ import com.google.api.client.auth.openidconnect.IdTokenVerifier;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import hudson.Util;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Extend IdTokenVerifier to verify UserInfo webtoken
  */
 public class OicJsonWebTokenVerifier extends IdTokenVerifier {
 
-    /** Bypass Signature verification if no JWKS url configured */
-    private final boolean hasNoJwksServerUrl;
+    private static final Logger LOGGER = Logger.getLogger(OicJsonWebTokenVerifier.class.getName());
+
+    /** Bypass Signature verification if JWKS url is not available */
+    private boolean jwksServerUrlAvailable;
 
     /** Payload indicating userInfo */
     private static final IdToken.Payload NO_PAYLOAD = new IdToken.Payload();
@@ -45,7 +48,7 @@ public class OicJsonWebTokenVerifier extends IdTokenVerifier {
      */
     public OicJsonWebTokenVerifier() {
         super();
-        hasNoJwksServerUrl = true;
+        jwksServerUrlAvailable = false;
     }
 
     /**
@@ -53,30 +56,43 @@ public class OicJsonWebTokenVerifier extends IdTokenVerifier {
      */
     public OicJsonWebTokenVerifier(String jwksServerUrl, IdTokenVerifier.Builder builder) {
         super(builder.setCertificatesLocation(jwksServerUrl));
-        hasNoJwksServerUrl = (Util.fixEmptyAndTrim(jwksServerUrl) == null);
+        jwksServerUrlAvailable = (Util.fixEmptyAndTrim(jwksServerUrl) != null);
     }
+
+    /** JWKS verfication enabled - for tests only */
+    public boolean isJwksServerUrlAvailable() {
+        return jwksServerUrlAvailable;
+    }
+
 
     /** Verify real idtoken */
     public boolean verifyIdToken(IdToken idToken) throws IOException {
-        if (hasNoJwksServerUrl) {
-            /* avoid Google's certificate fallback mechanism */
-            return super.verifyPayload(idToken);
+        if (isJwksServerUrlAvailable()) {
+            try {
+                return verifyOrThrow(idToken);
+            } catch(IOException e) {
+                LOGGER.warning("IdToken signature verification failed '" + e.toString() + "' - jwks signature verification disabled");
+                jwksServerUrlAvailable = false;
+            }
         }
-        return verifyOrThrow(idToken);
+        return super.verifyPayload(idToken);
     }
 
     /** Verify userinfo jwt token */
     public boolean verifyUserInfo(JsonWebSignature userinfo) throws IOException {
-        if (hasNoJwksServerUrl) {
-            /* avoid Google's certificate fallback mechanism */
-            return true;
+        if (isJwksServerUrlAvailable()) {
+            try {
+                IdToken idToken = new IdToken(
+                        userinfo.getHeader(),
+                        NO_PAYLOAD, /* bypass verification of payload */
+                        userinfo.getSignatureBytes(),
+                        userinfo.getSignedContentBytes());
+                return verifyOrThrow(idToken);
+            } catch(IOException e) {
+                LOGGER.warning("UserInfo signature verification failed '" + e.toString() + "' - ignore");
+            }
         }
-        IdToken idToken = new IdToken(
-                userinfo.getHeader(),
-                NO_PAYLOAD, /* bypass verification of payload */
-                userinfo.getSignatureBytes(),
-                userinfo.getSignedContentBytes());
-        return verifyOrThrow(idToken);
+        return true;
     }
 
     /** hack: verify payload only if idtoken is not userinfo */
