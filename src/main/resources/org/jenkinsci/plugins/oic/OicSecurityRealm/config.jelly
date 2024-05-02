@@ -1,21 +1,21 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
-  <f:entry title="${%Client id}" field="clientId">
+  <f:entry title="${%ClientId}" field="clientId">
     <f:textbox/>
   </f:entry>
-  <f:entry title="${%Client secret}" field="clientSecret">
+  <f:entry title="${%ClientSecret}" field="clientSecret">
     <f:password/>
   </f:entry>
 
-  <f:section title="Configuration mode">
+  <f:section title="${%ConfigurationMode}">
     <f:block>
-      <f:radioBlock title="${%Automatic configuration}" checked="${descriptor.auto}" name="automanualconfigure" value="auto" inline="true">
-        <f:entry title="${%Well-known configuration endpoint}" field="wellKnownOpenIDConfigurationUrl">
+      <f:radioBlock title="${%AutomaticConfiguration}" checked="${descriptor.auto}" name="automanualconfigure" value="auto" inline="true">
+        <f:entry title="${%WellknownConfigurationEndpoint}" field="wellKnownOpenIDConfigurationUrl">
           <f:textbox/>
         </f:entry>
         <f:block>
           <table>
-            <f:optionalBlock inline="true" title="${%Override scopes}" field="overrideScopesDefined">
+            <f:optionalBlock inline="true" title="${%OverrideScopes}" field="overrideScopesDefined">
               <f:entry title="${%Scopes}" field="overrideScopes">
                 <f:textbox />
               </f:entry>
@@ -26,85 +26,89 @@
     </f:block>
 
     <f:block>
-    <f:radioBlock title="${%Manual configuration}" checked="${descriptor.manual}" name="automanualconfigure" value="manual" inline="true">
-      <f:entry title="${%Token server url}" field="tokenServerUrl">
+    <f:radioBlock title="${%ManualConfiguration}" checked="${descriptor.manual}" name="automanualconfigure" value="manual" inline="true">
+      <f:entry title="${%TokenServerUrl}" field="tokenServerUrl">
         <f:textbox/>
       </f:entry>
 
-      <f:entry title="Token Authentication Method" field="tokenAuthMethod">
+      <f:entry title="${%TokenAuthenticationMethod}" field="tokenAuthMethod">
         <f:radioBlock title="${%Basic}" name="tokenAuthMethod" checked="${instance.tokenAuthMethod == 'client_secret_basic'}" value="client_secret_basic" inline="true" />
         <f:radioBlock title="${%Post}" name="tokenAuthMethod" checked="${instance.tokenAuthMethod == 'client_secret_post'}" value="client_secret_post" inline="true" />
       </f:entry>
 
-      <f:entry title="${%Authorization server url}" field="authorizationServerUrl">
+      <f:entry title="${%AuthorizationServerUrl}" field="authorizationServerUrl">
         <f:textbox/>
       </f:entry>
-      <f:entry title="${%UserInfo server url}" field="userInfoServerUrl">
+      <f:entry title="${%UserInfoServerUrl}" field="userInfoServerUrl">
         <f:textbox/>
       </f:entry>
-      <f:entry title="${%Jwks server url}" field="jwksServerUrl">
+      <f:entry title="${%JwksServerUrl}" field="jwksServerUrl">
         <f:textbox/>
       </f:entry>
+      <div id="endSessionConfig">
+        <f:entry title="${%EndSessionUrl}" field="endSessionEndpoint">
+          <f:textbox/>
+        </f:entry>
+      </div>
       <f:entry title="${%Scopes}" field="scopes">
         <f:textbox />
       </f:entry>
-      <f:block>
-        <table>
-          <f:optionalBlock inline="true" title="${%Logout from OpenID Provider}" field="logoutFromOpenidProvider" checked="${logoutFromOpenidProvider}">
-            <f:entry title="${%End session URL for OpenID Provider}" field="endSessionEndpoint">
-              <f:textbox/>
-            </f:entry>
-          </f:optionalBlock>
-        </table>
-      </f:block>
     </f:radioBlock>
     </f:block>
   </f:section>
 
-  <f:advanced>
-    <f:entry title="${%User name field name}" field="userNameField">
-      <f:textbox/>
+  <f:section title="${%AdvancedConfiguration}">
+    <f:advanced title="${%UserFields}">
+      <f:entry title="${%UsernameFieldName}" field="userNameField">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%FullnameFieldName}" field="fullNameFieldName">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%EmailFieldName}" field="emailFieldName">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%GroupsFieldName}" field="groupsFieldName">
+        <f:textbox/>
+      </f:entry>
+    </f:advanced>
+    <f:entry title="${%LogoutFromOpenIDProvider}" field="logoutFromOpenidProvider">
+      <f:checkbox id="logoutFromIDP"/>
     </f:entry>
-    <f:entry title="${%Full name field name}" field="fullNameFieldName">
-      <f:textbox/>
-    </f:entry>
-    <f:entry title="${%Email field name}" field="emailFieldName">
-      <f:textbox/>
-    </f:entry>
-    <f:entry title="${%Groups field name}" field="groupsFieldName">
-      <f:textbox/>
-    </f:entry>
-    <f:entry title="${%Token Field Key To Check}" field="tokenFieldToCheckKey">
-      <f:textbox/>
-    </f:entry>
-    <f:entry title="${%Token Field Value To Check}" field="tokenFieldToCheckValue">
-      <f:textbox/>
-    </f:entry>
-    <f:entry title="${%Disable ssl verification}" field="disableSslVerification">
+    <f:entry title="${%SendScopesInTokenRequest}" field="sendScopesInTokenRequest">
       <f:checkbox/>
     </f:entry>
-    <f:entry title="${%Use Root URL from request}" field="rootURLFromRequest">
-      <f:checkbox/>
-    </f:entry>
-    <f:entry title="${%Send scopes in token request}" field="sendScopesInTokenRequest">
-      <f:checkbox/>
-    </f:entry>
-    <f:entry title="${%Post logout redirect URL}" field="postLogoutRedirectUrl">
+    <f:entry title="${%PostLogoutRedirectUrl}" field="postLogoutRedirectUrl">
       <f:textbox/>
     </f:entry>
-    <f:entry title="${%Enable Proof Key for Code Exchange (PKCE)}" field="pkceEnabled">
-      <f:checkbox/>
-    </f:entry>
-    <f:entry title="${%Disable Nonce verification}" field="nonceDisabled">
-      <f:checkbox/>
-    </f:entry>
-    <f:entry title="${%Disable token verification (JWKS)}" field="disableTokenVerification">
-      <f:checkbox/>
-    </f:entry>
+
+    <f:advanced title="${%SecurityConfiguration}">
+      <f:entry title="${%TokenFieldKeyToCheck}" field="tokenFieldToCheckKey">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%TokenFieldValueToCheck}" field="tokenFieldToCheckValue">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%DisableSslVerification}" field="disableSslVerification">
+        <f:checkbox/>
+      </f:entry>
+      <f:entry title="${%UseRootUrlFromRequest}" field="rootURLFromRequest">
+        <f:checkbox/>
+      </f:entry>
+      <f:entry title="${%EnablePKCE}" field="pkceEnabled">
+        <f:checkbox/>
+      </f:entry>
+      <f:entry title="${%DisableNonceVerification}" field="nonceDisabled">
+        <f:checkbox/>
+      </f:entry>
+      <f:entry title="${%DisableTokenVerification}" field="disableTokenVerification">
+        <f:checkbox/>
+      </f:entry>
+    </f:advanced>
 
     <f:block>
       <table>
-        <f:optionalBlock inline="true" title="${%Configure 'escape hatch' for when the OpenID Provider is unavailable}" field="escapeHatchEnabled">
+        <f:optionalBlock inline="true" title="${%ConfigureEscapeHatch}" field="escapeHatchEnabled">
           <f:entry title="${%Username}" field="escapeHatchUsername">
             <f:textbox/>
           </f:entry>
@@ -117,5 +121,23 @@
         </f:optionalBlock>
       </table>
     </f:block>
-  </f:advanced>
+
+  </f:section>
+
+  <st:once>
+    <script type="text/javascript">
+
+    window.addEventListener('load', function() {
+      var logoutFromIDP = document.getElementById('logoutFromIDP');
+      var endSessionConfig = document.getElementById('endSessionConfig');
+
+      endSessionConfig.hidden = !logoutFromIDP.checked
+
+      logoutFromIDP.addEventListener("change", (event)=>{
+        endSessionConfig.hidden = !logoutFromIDP.checked;
+      });
+    })
+    </script>
+  </st:once>
+
 </j:jelly>
