@@ -176,7 +176,7 @@
           <dependency>
             <groupId>org.openrewrite.recipe</groupId>
             <artifactId>rewrite-jenkins</artifactId>
-            <version>0.4.0</version>
+            <version>0.4.1</version>
           </dependency>
         </dependencies>
       </plugin>
