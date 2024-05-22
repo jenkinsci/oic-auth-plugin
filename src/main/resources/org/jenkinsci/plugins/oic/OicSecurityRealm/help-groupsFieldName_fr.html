@@ -1,0 +1,9 @@
+<div>
+    Non obligatoire. La spécification du champ doit être un <a href="https://jmespath.org/" target="_blank">chemin JMES</a> valide.
+
+    Si le champ existe dans le token et est un tableau de chaînes de caractères, alors chacune est ajoutée en tant que groupe associé à l'utilisateur.
+    Cela permet d'utiliser l'autorisation par groupe dans Jenkins. Le serveur SSO devra ajouter le champ avec la liste des groupes dans le token. Par exemple dans Keycloak, cela peut être fait avec un mapper 'Groupe Membre' dans la configuration du client.
+
+    Mais si, par exemple, le serveur SSO ajoute les groupes comme un tableau d'objets, alors spécifiez le champ de groupe comme "groups[].name" où "groups" est le champ contenant le tableau d'objets, et "name" est le nom de la clé dans l'objet qui contient le nom du groupe.
+
+</div>

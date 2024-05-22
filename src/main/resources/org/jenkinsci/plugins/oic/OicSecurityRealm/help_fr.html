@@ -1,0 +1,14 @@
+<div>
+    Authentifiez tous les utilisateurs avec OpenID Connect</a>.
+</div>
+ <div>
+     Étapes :
+     <ol>
+         <li>Obtenez un ID et un secret de client à partir de votre serveur OpenID afin que les utilisateurs puisse accéder à Jenkins en s'authentifiant sur le serveur OpenID Connect.</li>
+         <li>Ajoutez ${JENKINS_ROOT_URL}/securityRealm/finishLogin aux URL de redirection autorisées afin que le callback de ce serveur Jenkins soit accepté.</li>
+         <li>Renseignez l'identifiant et le secret du client.</li>
+         <li>Détermine le token et l'URL d'authentification de votre serveur OpenID Connect. Pour nous, il y a https://[dns-name]/openid/token/ et https://[dns-name]/openid/authorize/ pour google l'adresse sont: https://accounts.google.com/o/oauth2/token et https://accounts.google.com/o/oauth2/auth - votre cas peut varier. Ceci est spécifique à votre serveur OpenID Connect.</li>
+         <li>Remplissez l'URL et faites un essai. - Nous vous suggérons de ne pas définir de sécurité pour les utilisateurs connectés uniquement tant que vous n'avez pas testé l'authentification avec succès.</li>
+     </ol>
+ </div>
+
