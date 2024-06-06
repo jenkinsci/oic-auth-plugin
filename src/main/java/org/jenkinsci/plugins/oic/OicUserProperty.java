@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
+import hudson.Extension;
 import hudson.model.User;
 import hudson.model.UserProperty;
 import hudson.model.UserPropertyDescriptor;
@@ -7,36 +8,42 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Logger;
+import net.sf.json.JSONObject;
+import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public class OicUserProperty extends UserProperty {
 
+    @Extension
     public static class Descriptor extends UserPropertyDescriptor {
 
         @Override
         public UserProperty newInstance(User user) {
-            LOGGER.fine("OicUserPropertyDescriptor.newInstance called, user:" + user);
-            return new OicUserProperty(user.getId(), new ArrayList<GrantedAuthority>());
+            return null;
         }
 
         @Override
-        public String getDisplayName() {
-            return Messages.OicUserProperty_OpenIdConnectUserProperty();
+        public boolean isEnabled() {
+            return false;
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(OicUserProperty.class.getName());
-
     private final List<String> authorities = new ArrayList<>();
+    /** @deprecated not actually used (implicit in user to which it is attached) */
+    @Deprecated
     private final String userName;
 
-    public OicUserProperty(String userName, Collection<? extends GrantedAuthority> authorities) {
+    OicUserProperty(String userName, Collection<? extends GrantedAuthority> authorities) {
         this.userName = userName;
         for (GrantedAuthority authority : authorities) {
             this.authorities.add(authority.getAuthority());
         }
+    }
+
+    @Override
+    public UserProperty reconfigure(StaplerRequest req, JSONObject form) {
+        return this;
     }
 
     public List<String> getAuthorities() {
@@ -64,10 +71,5 @@ public class OicUserProperty extends UserProperty {
 
     public String getUserName() {
         return userName;
-    }
-
-    @Override
-    public UserPropertyDescriptor getDescriptor() {
-        return new Descriptor();
     }
 }
