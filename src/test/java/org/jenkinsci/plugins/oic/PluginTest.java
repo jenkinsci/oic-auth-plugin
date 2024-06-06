@@ -70,7 +70,6 @@ public class PluginTest {
     private static final String TEST_USER_FULL_NAME = "Oic Test User";
     private static final String[] TEST_USER_GROUPS = new String[] {"group1", "group2"};
     private static final List<Map<String, String>> TEST_USER_GROUPS_MAP = new ArrayList<>();
-    private static final String OPENID_CONNECT_USER_PROPERTY = "OpenID Connect user property";
 
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(), true);
@@ -1262,14 +1261,24 @@ public class PluginTest {
                 user.getProperty(Mailer.UserProperty.class).getAddress());
         assertEquals("User should be in 2 groups", 2, user.getAuthorities().size());
 
-        OicUserProperty.Descriptor descriptor = new OicUserProperty.Descriptor();
-        OicUserProperty newProperty = (OicUserProperty) descriptor.newInstance(user);
-        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, newProperty.getUserName());
-
+        OicUserProperty userProperty = user.getProperty(OicUserProperty.class);
+        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, userProperty.getUserName());
         assertEquals(
-                "Display name should be " + OPENID_CONNECT_USER_PROPERTY,
-                OPENID_CONNECT_USER_PROPERTY,
-                descriptor.getDisplayName());
+                "Property should specify 3 groups (2 + 'authenticated')",
+                3,
+                userProperty.getAuthorities().size());
+
+        jenkinsRule.submit(webClient.goTo("me/configure").getFormByName("config"));
+        user = User.getById(TEST_USER_USERNAME, false);
+        assertEquals(
+                "User should still be in 2 groups", 2, user.getAuthorities().size());
+        userProperty = user.getProperty(OicUserProperty.class);
+        assertEquals(
+                "Should still be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, userProperty.getUserName());
+        assertEquals(
+                "Property should still specify 3 groups (2 + 'authenticated')",
+                3,
+                userProperty.getAuthorities().size());
     }
 
     private void configureWellKnown(String endSessionUrl, String scopesSupported) {
