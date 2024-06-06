@@ -27,6 +27,7 @@ import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
+import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.acegisecurity.Authentication;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -1261,24 +1262,21 @@ public class PluginTest {
                 user.getProperty(Mailer.UserProperty.class).getAddress());
         assertEquals("User should be in 2 groups", 2, user.getAuthorities().size());
 
-        OicUserProperty userProperty = user.getProperty(OicUserProperty.class);
-        assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, userProperty.getUserName());
+        LastGrantedAuthoritiesProperty userProperty = user.getProperty(LastGrantedAuthoritiesProperty.class);
         assertEquals(
                 "Property should specify 3 groups (2 + 'authenticated')",
                 3,
-                userProperty.getAuthorities().size());
+                userProperty.getAuthorities2().size());
 
         jenkinsRule.submit(webClient.goTo("me/configure").getFormByName("config"));
         user = User.getById(TEST_USER_USERNAME, false);
         assertEquals(
                 "User should still be in 2 groups", 2, user.getAuthorities().size());
-        userProperty = user.getProperty(OicUserProperty.class);
-        assertEquals(
-                "Should still be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, userProperty.getUserName());
+        userProperty = user.getProperty(LastGrantedAuthoritiesProperty.class);
         assertEquals(
                 "Property should still specify 3 groups (2 + 'authenticated')",
                 3,
-                userProperty.getAuthorities().size());
+                userProperty.getAuthorities2().size());
     }
 
     private void configureWellKnown(String endSessionUrl, String scopesSupported) {
