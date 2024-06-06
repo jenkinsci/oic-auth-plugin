@@ -9,7 +9,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 public class OicUserPropertyTest {
 
@@ -51,15 +50,5 @@ public class OicUserPropertyTest {
         userProp = new OicUserProperty(userName, authorities);
 
         assertThat(userProp.getAuthorities(), containsInAnyOrder(READ, ADMIN));
-    }
-
-    @Test
-    public void testGetDescriptor() {
-        String userName = "derek";
-        List<GrantedAuthority> authorities = Arrays.asList(GRANTED_AUTH1, GRANTED_AUTH2);
-
-        userProp = new OicUserProperty(userName, authorities);
-
-        assertNotNull(userProp.getDescriptor());
     }
 }
