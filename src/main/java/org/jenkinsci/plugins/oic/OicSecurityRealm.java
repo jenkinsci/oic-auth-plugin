@@ -108,9 +108,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
@@ -776,60 +773,33 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     @Override
     public SecurityComponents createSecurityComponents() {
-        return new SecurityComponents(
-                new AuthenticationManager() {
-                    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-                        if (authentication instanceof AnonymousAuthenticationToken) return authentication;
+        return new SecurityComponents(new AuthenticationManager() {
+            public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+                if (authentication instanceof AnonymousAuthenticationToken) return authentication;
 
-                        if (authentication instanceof UsernamePasswordAuthenticationToken && escapeHatchEnabled) {
-                            randomWait(); // to slowdown brute forcing
-                            if (checkEscapeHatch(
-                                    authentication.getPrincipal().toString(),
-                                    authentication.getCredentials().toString())) {
-                                List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
-                                grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
-                                if (isNotBlank(escapeHatchGroup)) {
-                                    grantedAuthorities.add(new SimpleGrantedAuthority(escapeHatchGroup));
-                                }
-                                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                                        escapeHatchUsername, "", grantedAuthorities);
-                                SecurityContextHolder.getContext().setAuthentication(token);
-                                OicUserDetails userDetails =
-                                        new OicUserDetails(escapeHatchUsername, grantedAuthorities);
-                                SecurityListener.fireAuthenticated2(userDetails);
-                                return token;
-                            } else {
-                                throw new BadCredentialsException("Wrong username and password: " + authentication);
-                            }
+                if (authentication instanceof UsernamePasswordAuthenticationToken && escapeHatchEnabled) {
+                    randomWait(); // to slowdown brute forcing
+                    if (checkEscapeHatch(
+                            authentication.getPrincipal().toString(),
+                            authentication.getCredentials().toString())) {
+                        List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+                        grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
+                        if (isNotBlank(escapeHatchGroup)) {
+                            grantedAuthorities.add(new SimpleGrantedAuthority(escapeHatchGroup));
                         }
-                        throw new BadCredentialsException("Unexpected authentication type: " + authentication);
+                        UsernamePasswordAuthenticationToken token =
+                                new UsernamePasswordAuthenticationToken(escapeHatchUsername, "", grantedAuthorities);
+                        SecurityContextHolder.getContext().setAuthentication(token);
+                        OicUserDetails userDetails = new OicUserDetails(escapeHatchUsername, grantedAuthorities);
+                        SecurityListener.fireAuthenticated2(userDetails);
+                        return token;
+                    } else {
+                        throw new BadCredentialsException("Wrong username and password: " + authentication);
                     }
-                },
-                new UserDetailsService() {
-
-                    @Override
-                    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-                        // Retrieve the OicUserProperty to get the list of groups that has to be set in the
-                        // OicUserDetails object.
-                        LOGGER.fine("loadUserByUsername in createSecurityComponents called, username: " + username);
-                        User u = User.get(username, false, Collections.emptyMap());
-                        if (u == null) {
-                            LOGGER.fine("loadUserByUsername in createSecurityComponents called, no user '" + username
-                                    + "' found");
-                            throw new UsernameNotFoundException(username);
-                        }
-                        LOGGER.fine("loadUserByUsername in createSecurityComponents called, user: " + u);
-                        OicUserProperty oicProp = u.getProperty(OicUserProperty.class);
-                        List<GrantedAuthority> auths = new ArrayList<>();
-                        if (oicProp != null) {
-                            auths = oicProp.getAuthoritiesAsGrantedAuthorities();
-                            LOGGER.fine(
-                                    "loadUserByUsername in createSecurityComponents called, oic prop found with username '"
-                                            + oicProp.getUserName() + "', auths size: " + auths.size());
-                        }
-                        return new OicUserDetails(username, auths);
-                    }
-                });
+                }
+                throw new BadCredentialsException("Unexpected authentication type: " + authentication);
+            }
+        });
     }
 
     /** Build authorization code flow
@@ -1077,9 +1047,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             // should not happen
             throw new IOException("Cannot set OIDC property on anonymous user");
         }
-        // Store the list of groups in a OicUserProperty so it can be retrieved later for the UserDetails object.
-        user.addProperty(new OicUserProperty(userName, grantedAuthorities));
-
         String email = determineStringField(emailFieldExpr, idToken, userInfo);
         if (email != null) {
             user.addProperty(new Mailer.UserProperty(email));
@@ -1092,6 +1059,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
         OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
         SecurityListener.fireAuthenticated2(userDetails);
+        SecurityListener.fireLoggedIn(userName);
 
         return token;
     }
