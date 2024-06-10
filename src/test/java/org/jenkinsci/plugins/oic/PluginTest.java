@@ -1218,7 +1218,7 @@ public class PluginTest {
     }
 
     @Test
-    public void testOicUserPropertyDescriptor() throws Exception {
+    public void testLastGrantedAuthoritiesProperty() throws Exception {
         wireMockRule.resetAll();
 
         KeyPair keyPair = createKeyPair();
