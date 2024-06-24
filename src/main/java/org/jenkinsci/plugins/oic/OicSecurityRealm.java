@@ -64,12 +64,12 @@ import io.burt.jmespath.RuntimeConfiguration;
 import io.burt.jmespath.jcf.JcfRuntime;
 import java.io.IOException;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
@@ -80,6 +80,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -899,7 +900,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     }
 
                     if (failedCheckOfTokenField(idToken)) {
-                        return HttpResponses.errorWithoutStack(401, "Unauthorized");
+                        throw new FailedCheckOfTokenException(maybeOpenIdLogoutEndpoint(response.getIdToken(), state, buildOauthCommenceLogin()));
                     }
 
                     this.setIdToken(response.getIdToken());
@@ -1194,24 +1195,26 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @Override
     public String getPostLogOutUrl2(StaplerRequest req, Authentication auth) {
+        Object idToken = req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE);
+        Object state = req.getAttribute(STATE_REQUEST_ATTRIBUTE);
+        var openidLogoutEndpoint = maybeOpenIdLogoutEndpoint(Objects.toString(idToken), Objects.toString(state), this.postLogoutRedirectUrl);
+        if (openidLogoutEndpoint != null) return openidLogoutEndpoint;
+        return getFinalLogoutUrl(req, auth);
+    }
+
+    private String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
         if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(this.endSessionEndpoint)) {
             StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionEndpoint);
-            openidLogoutEndpoint.append("?id_token_hint=").append(req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE));
-            openidLogoutEndpoint.append("&state=").append(req.getAttribute(STATE_REQUEST_ATTRIBUTE));
-
-            if (this.postLogoutRedirectUrl != null) {
-                try {
-                    openidLogoutEndpoint
-                            .append("&post_logout_redirect_uri=")
-                            .append(URLEncoder.encode(this.postLogoutRedirectUrl, "UTF-8"));
-                } catch (UnsupportedEncodingException e) {
-                    throw new RuntimeException(e);
-                }
+            openidLogoutEndpoint.append("?id_token_hint=").append(idToken);
+            openidLogoutEndpoint.append("&state=").append(state);
+            if (postLogoutRedirectUrl != null) {
+                openidLogoutEndpoint
+                        .append("&post_logout_redirect_uri=")
+                        .append(URLEncoder.encode(postLogoutRedirectUrl, StandardCharsets.UTF_8));
             }
             return openidLogoutEndpoint.toString();
         }
-
-        return getFinalLogoutUrl(req, auth);
+        return null;
     }
 
     private String getFinalLogoutUrl(StaplerRequest req, Authentication auth) {
@@ -1229,13 +1232,21 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
     }
 
-    private String buildOAuthRedirectUrl() throws NullPointerException {
+    private String ensureRootUrl() {
         String rootUrl = getRootUrl();
         if (rootUrl == null) {
-            throw new NullPointerException("Jenkins root url should not be null");
+            throw new NullPointerException("Jenkins root url must not be null");
         } else {
-            return rootUrl + "securityRealm/finishLogin";
+            return rootUrl;
         }
+    }
+
+    private String buildOauthCommenceLogin() {
+        return ensureRootUrl() + getLoginUrl();
+    }
+
+    private String buildOAuthRedirectUrl() throws NullPointerException {
+        return ensureRootUrl() + "securityRealm/finishLogin";
     }
 
     /**
