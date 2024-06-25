@@ -26,7 +26,8 @@ public class FailedCheckOfTokenException extends RuntimeException implements Htt
     }
 
     @Override
-    public void generateResponse(StaplerRequest req, StaplerResponse rsp, Object node) throws IOException, ServletException {
+    public void generateResponse(StaplerRequest req, StaplerResponse rsp, Object node)
+            throws IOException, ServletException {
         req.getView(this, "error").forward(req, rsp);
     }
 }

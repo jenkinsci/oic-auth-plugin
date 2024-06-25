@@ -900,7 +900,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     }
 
                     if (failedCheckOfTokenField(idToken)) {
-                        throw new FailedCheckOfTokenException(maybeOpenIdLogoutEndpoint(response.getIdToken(), state, buildOauthCommenceLogin()));
+                        throw new FailedCheckOfTokenException(
+                                maybeOpenIdLogoutEndpoint(response.getIdToken(), state, buildOauthCommenceLogin()));
                     }
 
                     this.setIdToken(response.getIdToken());
@@ -1197,7 +1198,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     public String getPostLogOutUrl2(StaplerRequest req, Authentication auth) {
         Object idToken = req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE);
         Object state = req.getAttribute(STATE_REQUEST_ATTRIBUTE);
-        var openidLogoutEndpoint = maybeOpenIdLogoutEndpoint(Objects.toString(idToken), Objects.toString(state), this.postLogoutRedirectUrl);
+        var openidLogoutEndpoint = maybeOpenIdLogoutEndpoint(
+                Objects.toString(idToken), Objects.toString(state), this.postLogoutRedirectUrl);
         if (openidLogoutEndpoint != null) return openidLogoutEndpoint;
         return getFinalLogoutUrl(req, auth);
     }
