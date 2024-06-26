@@ -211,7 +211,7 @@ public class PluginTest {
         mockTokenReturnsIdTokenWithoutValues();
         mockUserInfoWithGroups(TEST_USER_GROUPS_MAP);
 
-        System.out.println("jsonarray : " + new Gson().toJson(TEST_USER_GROUPS_MAP));
+        System.out.println("jsonarray : " + toJson(TEST_USER_GROUPS_MAP));
         jenkins.setSecurityRealm(new TestRealm(
                 wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo", "email", "groups[].name"));
         assertAnonymous();
@@ -809,7 +809,7 @@ public class PluginTest {
     }
 
     private static String toJson(Object o) {
-        return new Gson().toJson(o);
+        return new Gson().newBuilder().serializeNulls().create().toJson(o);
     }
 
     private void mockTokenReturnsIdTokenWithGroup() throws Exception {
