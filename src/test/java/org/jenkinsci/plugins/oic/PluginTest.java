@@ -123,7 +123,11 @@ public class PluginTest {
     }
 
     private static void assertTestUserIsMemberOfTestGroups(User user) {
-        for (String group : TEST_USER_GROUPS) {
+        assertTestUserIsMemberOfGroups(user, TEST_USER_GROUPS);
+    }
+
+    private static void assertTestUserIsMemberOfGroups(User user, String... testUserGroups) {
+        for (String group : testUserGroups) {
             assertTrue(
                     "User should be part of group " + group,
                     user.getAuthorities().contains(group));
@@ -333,7 +337,7 @@ public class PluginTest {
         KeyPair keyPair = createKeyPair();
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoJwtWithTestGroups(keyPair);
+        mockUserInfoJwtWithTestGroups(keyPair, "group1");
 
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, "http://localhost:" + wireMockRule.port() + "/userinfo"));
 
@@ -343,7 +347,7 @@ public class PluginTest {
 
         var user = assertTestUser();
         assertTestUserEmail(user);
-        assertTestUserIsMemberOfTestGroups(user);
+        assertTestUserIsMemberOfGroups(user, "group1");
     }
 
     @Test
@@ -357,7 +361,7 @@ public class PluginTest {
                                 + "}]}")));
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithoutValues(keyPair);
-        mockUserInfoJwtWithTestGroups(keyPair);
+        mockUserInfoJwtWithTestGroups(keyPair, TEST_USER_GROUPS);
 
         jenkins.setSecurityRealm(new TestRealm.Builder(wireMockRule)
                 .WithUserInfoServerUrl("http://localhost:" + wireMockRule.port() + "/userinfo")
@@ -384,7 +388,7 @@ public class PluginTest {
                                 + ",\"use\":\"sig\",\"kid\":\"wrong_key_id\"" + "}]}")));
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithoutValues(keyPair);
-        mockUserInfoJwtWithTestGroups(keyPair);
+        mockUserInfoJwtWithTestGroups(keyPair, TEST_USER_GROUPS);
         TestRealm testRealm = new TestRealm.Builder(wireMockRule)
                 .WithUserInfoServerUrl("http://localhost:" + wireMockRule.port() + "/userinfo")
                         .WithJwksServerUrl("http://localhost:" + wireMockRule.port() + "/jwks")
@@ -783,11 +787,11 @@ public class PluginTest {
         mockUserInfo(getUserInfo(groups));
     }
 
-    private void mockUserInfoJwtWithTestGroups(KeyPair keyPair) throws Exception {
+    private void mockUserInfoJwtWithTestGroups(KeyPair keyPair, Object testUserGroups) throws Exception {
         wireMockRule.stubFor(get(urlPathEqualTo("/userinfo"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/jwt")
-                        .withBody(createUserInfoJWT(keyPair.getPrivate(), toJson(getUserInfo(TEST_USER_GROUPS))))));
+                        .withBody(createUserInfoJWT(keyPair.getPrivate(), toJson(getUserInfo(testUserGroups))))));
     }
 
     private void mockUserInfo(Map<String, Object> userInfo) {
