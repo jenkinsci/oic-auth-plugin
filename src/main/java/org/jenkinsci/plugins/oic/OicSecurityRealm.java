@@ -48,6 +48,7 @@ import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Data;
 import com.google.common.base.Strings;
 import com.google.gson.JsonParseException;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
@@ -1200,10 +1201,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         Object state = req.getAttribute(STATE_REQUEST_ATTRIBUTE);
         var openidLogoutEndpoint = maybeOpenIdLogoutEndpoint(
                 Objects.toString(idToken), Objects.toString(state), this.postLogoutRedirectUrl);
-        if (openidLogoutEndpoint != null) return openidLogoutEndpoint;
+        if (openidLogoutEndpoint != null) {
+            return openidLogoutEndpoint;
+        }
         return getFinalLogoutUrl(req, auth);
     }
 
+    @CheckForNull
     private String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
         if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(this.endSessionEndpoint)) {
             StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionEndpoint);
