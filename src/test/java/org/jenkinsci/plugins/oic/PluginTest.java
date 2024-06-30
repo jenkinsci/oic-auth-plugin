@@ -722,6 +722,34 @@ public class PluginTest {
         webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 403);
     }
 
+    @Test
+    public void loginWithCheckTokenSuccess() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        configureTestRealm(belongsToGroup("group1"));
+        assertAnonymous();
+        browseLoginPage();
+        assertTestUser();
+    }
+
+    @Test
+    public void loginWithCheckTokenFailure() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        configureTestRealm(belongsToGroup("missing-group"));
+        assertAnonymous();
+        webClient.setThrowExceptionOnFailingStatusCode(false);
+        browseLoginPage();
+        assertAnonymous();
+    }
+
+    private static @NonNull Consumer<OicSecurityRealm> belongsToGroup(String groupName) {
+        return sc -> {
+            sc.setTokenFieldToCheckKey("contains(groups, '" + groupName + "')");
+            sc.setTokenFieldToCheckValue("true");
+        };
+    }
+
     /** Generate JWKS entry with public key of keyPair */
     String encodePublicKey(KeyPair keyPair) {
         final RSAPublicKey rsaPKey = (RSAPublicKey) (keyPair.getPublic());
