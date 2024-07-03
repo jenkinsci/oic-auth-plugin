@@ -45,11 +45,11 @@
     <revision>4</revision>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/oic-auth-plugin</gitHubRepo>
-    <jenkins.version>2.361.4</jenkins.version>
+    <jenkins.version>2.426.3</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
     <spotbugs.failOnError>true</spotbugs.failOnError>
     <spotbugs.effort>Max</spotbugs.effort>
-    <configuration-as-code.version>1569.vb_72405b_80249</configuration-as-code.version>
+    <configuration-as-code.version>1810.v9b_c30a_249a_4c</configuration-as-code.version>
   </properties>
   <dependencies>
     <dependency>
