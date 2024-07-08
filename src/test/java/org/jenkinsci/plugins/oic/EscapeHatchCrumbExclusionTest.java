@@ -6,7 +6,6 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
-import org.eclipse.jetty.server.Request;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -19,8 +18,8 @@ public class EscapeHatchCrumbExclusionTest {
 
     private FilterChain chain = null;
 
-    private Request newRequestWithPath(String requestPath) {
-        return new Request(null, null) {
+    private MockHttpServletRequest newRequestWithPath(String requestPath) {
+        return new MockHttpServletRequest() {
             @Override
             public String getPathInfo() {
                 return requestPath;
@@ -30,13 +29,13 @@ public class EscapeHatchCrumbExclusionTest {
 
     @Test
     public void process_WithNullPath() throws IOException, ServletException {
-        Request request = new Request(null, null);
+        MockHttpServletRequest request = newRequestWithPath("");
         assertFalse(crumb.process(request, response, chain));
     }
 
     @Test
     public void process_WithWrongPath() throws IOException, ServletException {
-        Request request = newRequestWithPath("fictionalPath");
+        MockHttpServletRequest request = newRequestWithPath("fictionalPath");
         assertFalse(crumb.process(request, response, chain));
     }
 
@@ -49,7 +48,7 @@ public class EscapeHatchCrumbExclusionTest {
             }
         };
 
-        Request request = newRequestWithPath("/securityRealm/escapeHatch");
+        MockHttpServletRequest request = newRequestWithPath("/securityRealm/escapeHatch");
         assertTrue(crumb.process(request, response, chain));
     }
 }
