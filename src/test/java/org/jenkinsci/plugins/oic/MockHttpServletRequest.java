@@ -22,8 +22,7 @@ import javax.servlet.http.Part;
 
 public class MockHttpServletRequest implements HttpServletRequest {
 
-    public MockHttpServletRequest() {
-    }
+    public MockHttpServletRequest() {}
 
     @Override
     public String getAuthType() {
