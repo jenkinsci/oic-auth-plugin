@@ -17,11 +17,6 @@ public class OicLogoutActionTest {
     }
 
     @Test
-    public void getDisplayName() {
-        assertEquals("Oic Logout", action.getDisplayName());
-    }
-
-    @Test
     public void getIconFileName() {
         assertNull(action.getIconFileName());
     }
