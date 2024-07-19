@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.junit.Before;
@@ -116,6 +117,12 @@ public class PluginTest {
                 .withQueryParam("scope", equalTo("openid email"))
                 .withQueryParam("nonce", matching(".+")));
         verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*&scope=.*")));
+        webClient.executeOnServer(() -> {
+            HttpSession session = Stapler.getCurrentRequest().getSession();
+            assertNull(OicSession.getCurrent());
+            assertNotNull(OicSecurityRealm.getStateAttribute(session));
+            return null;
+        });
     }
 
     private void browseLoginPage() throws IOException, SAXException {
