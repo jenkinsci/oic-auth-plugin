@@ -29,6 +29,7 @@ import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
 import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.util.Base64;
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Failure;
 import java.io.IOException;
@@ -43,6 +44,8 @@ import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
+
+import static org.jenkinsci.plugins.oic.OicSecurityRealm.ensureStateAttribute;
 
 /**
  * The state of the OpenId connect request.
@@ -61,6 +64,7 @@ abstract class OicSession implements Serializable {
      * An opaque value used by the client to maintain state between the request and callback.
      */
     @VisibleForTesting
+    @NonNull
     String state = Base64.encodeBase64URLSafeString(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8))
             .substring(0, 20);
     /**
@@ -208,8 +212,7 @@ abstract class OicSession implements Serializable {
             // avoid session fixation
             session.invalidate();
         }
-        setupOicSession(request.getSession(true));
-
+        ensureStateAttribute(request.getSession(true), getState());
         return onSuccess(code, flow);
     }
 
@@ -222,6 +225,7 @@ abstract class OicSession implements Serializable {
         return from;
     }
 
+    @NonNull
     public String getState() {
         return this.state;
     }

@@ -49,9 +49,11 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Data;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.gson.JsonParseException;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
@@ -98,6 +100,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.SecurityListener;
 import org.apache.commons.lang.StringUtils;
@@ -1264,12 +1267,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @Restricted(DoNotUse.class) // stapler only
     public void doLogout(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-        OicSession oicSession = OicSession.getCurrent();
-        if (oicSession != null) {
-            // session will be invalidated but we still need this data for our redirect.
-            req.setAttribute(STATE_REQUEST_ATTRIBUTE, oicSession.getState());
-        }
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = User.get2(authentication);
 
@@ -1290,16 +1287,25 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         super.doLogout(req, rsp);
     }
 
+    static void ensureStateAttribute(@NonNull HttpSession session, @NonNull String state) {
+        session.setAttribute(STATE_REQUEST_ATTRIBUTE, state);
+    }
+
     @Override
     public String getPostLogOutUrl2(StaplerRequest req, Authentication auth) {
         Object idToken = req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE);
-        Object state = req.getAttribute(STATE_REQUEST_ATTRIBUTE);
+        Object state = getStateAttribute(req.getSession());
         var openidLogoutEndpoint = maybeOpenIdLogoutEndpoint(
                 Objects.toString(idToken, ""), Objects.toString(state), this.postLogoutRedirectUrl);
         if (openidLogoutEndpoint != null) {
             return openidLogoutEndpoint;
         }
         return getFinalLogoutUrl(req, auth);
+    }
+
+    @VisibleForTesting
+    static Object getStateAttribute(HttpSession session) {
+        return session.getAttribute(STATE_REQUEST_ATTRIBUTE);
     }
 
     @CheckForNull
