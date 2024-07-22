@@ -49,7 +49,7 @@
     <spotless.check.skip>false</spotless.check.skip>
     <spotbugs.failOnError>true</spotbugs.failOnError>
     <spotbugs.effort>Max</spotbugs.effort>
-    <configuration-as-code.version>1810.v9b_c30a_249a_4c</configuration-as-code.version>
+    <configuration-as-code.version>1836.vccda_4a_122a_a_e</configuration-as-code.version>
   </properties>
   <dependencies>
     <dependency>
