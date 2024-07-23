@@ -450,12 +450,13 @@ public class PluginTest {
             User user = User.get2(authentication);
             OicCredentials credentials = user.getProperty(OicCredentials.class);
 
+            //setting currentTimestamp == 1 guarantees this will be an expired cred
             user.addProperty(new OicCredentials(
                     credentials.getAccessToken(),
                     credentials.getIdToken(),
                     credentials.getRefreshToken(),
                     60L,
-                    Clock.SYSTEM.currentTimeMillis() - 3600,
+                    1L,
                     60L));
 
             return null;
