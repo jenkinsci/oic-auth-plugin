@@ -1419,7 +1419,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private void redirectOrRejectRequest(HttpServletRequest req, HttpServletResponse res)
             throws IOException, ServletException {
         if (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
-            // WebApp.get(Jenkins.get().servletContext).getSomeStapler().invoke(req, res, Jenkins.get(), getLoginUrl());
             req.getSession().invalidate();
             res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
         } else {
