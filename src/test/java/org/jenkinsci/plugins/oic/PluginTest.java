@@ -16,6 +16,10 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.User;
 import hudson.tasks.Mailer;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
@@ -34,6 +38,7 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.LastGrantedAuthoritiesProperty;
+import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -61,6 +66,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static com.google.gson.JsonParser.parseString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
@@ -343,6 +349,22 @@ public class PluginTest {
         verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("grant_type=refresh_token")));
     }
 
+    private HttpResponse<String> getPageWithGet(String url) throws IOException, InterruptedException {
+        // fix up the url, if needed
+        if (url.startsWith("/")) {
+            url = url.substring(1);
+        }
+
+        HttpClient c = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+        return c.send(
+                HttpRequest.newBuilder(URI.create(jenkinsRule.getURL() + url))
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
     @Test
     public void testRefreshTokenAndTokenExpiration_withoutRefreshToken() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
@@ -353,11 +375,11 @@ public class PluginTest {
         mockUserInfoWithTestGroups();
         browseLoginPage();
         assertTestUser();
-
         // expired token not refreshed
         expire();
-        webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 302);
-
+        // use an actual HttpClient to make checking redirects easier
+        HttpResponse<String> rsp = getPageWithGet("/manage");
+        MatcherAssert.assertThat("response should have been 302\n" + rsp.body(), rsp.statusCode(), is(302));
         verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*grant_type=refresh_token.*")));
     }
 
@@ -450,7 +472,7 @@ public class PluginTest {
             User user = User.get2(authentication);
             OicCredentials credentials = user.getProperty(OicCredentials.class);
 
-            //setting currentTimestamp == 1 guarantees this will be an expired cred
+            // setting currentTimestamp == 1 guarantees this will be an expired cred
             user.addProperty(new OicCredentials(
                     credentials.getAccessToken(),
                     credentials.getIdToken(),
