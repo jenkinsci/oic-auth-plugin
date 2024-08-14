@@ -9,6 +9,7 @@ There are specifics instructions for well known providers:
 
 * [Google Provider](GOOGLE.md)
 * [Gitlab Provider](GITLAB.md)
+* [Microsoft AD FS](ADFS.md)
 
 This page contains the reference of plugin's configuration.
 
