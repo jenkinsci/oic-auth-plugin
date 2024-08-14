@@ -38,12 +38,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Map;
 import java.util.UUID;
 import javax.servlet.http.HttpSession;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import static org.jenkinsci.plugins.oic.OicSecurityRealm.ensureStateAttribute;
 
@@ -192,6 +194,14 @@ abstract class OicSession implements Serializable {
         StringBuffer buf = request.getRequestURL();
         if (request.getQueryString() != null) {
             buf.append('?').append(request.getQueryString());
+        } else {
+            // some providers ADFS! post data using a form rather than the queryString.
+            Map<String, String[]> parameterMap = request.getParameterMap();
+            UriComponentsBuilder queryBuilder = UriComponentsBuilder.fromHttpUrl(buf.toString());
+            for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
+                queryBuilder.queryParam(entry.getKey(), (Object[]) entry.getValue());
+            }
+            buf = new StringBuffer(queryBuilder.build().toUriString());
         }
         AuthorizationCodeResponseUrl responseUrl = new AuthorizationCodeResponseUrl(buf.toString());
         if (!state.equals(responseUrl.getState())) {
