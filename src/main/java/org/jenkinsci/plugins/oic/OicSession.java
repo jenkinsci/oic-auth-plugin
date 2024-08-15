@@ -41,6 +41,8 @@ import java.security.SecureRandom;
 import java.util.Map;
 import java.util.UUID;
 import javax.servlet.http.HttpSession;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.Stapler;
@@ -191,19 +193,16 @@ abstract class OicSession implements Serializable {
      * @return an {@link HttpResponse}
      */
     public HttpResponse finishLogin(StaplerRequest request, AuthorizationCodeFlow flow) throws IOException {
-        StringBuffer buf = request.getRequestURL();
+        final String requestURL;
         if (request.getQueryString() != null) {
+            StringBuffer buf = request.getRequestURL();
             buf.append('?').append(request.getQueryString());
+            requestURL = buf.toString();
         } else {
             // some providers ADFS! post data using a form rather than the queryString.
-            Map<String, String[]> parameterMap = request.getParameterMap();
-            UriComponentsBuilder queryBuilder = UriComponentsBuilder.fromHttpUrl(buf.toString());
-            for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
-                queryBuilder.queryParam(entry.getKey(), (Object[]) entry.getValue());
-            }
-            buf = new StringBuffer(queryBuilder.build().toUriString());
+            requestURL = convertFormToQueryParameters(request);
         }
-        AuthorizationCodeResponseUrl responseUrl = new AuthorizationCodeResponseUrl(buf.toString());
+        AuthorizationCodeResponseUrl responseUrl = new AuthorizationCodeResponseUrl(requestURL);
         if (!state.equals(responseUrl.getState())) {
             return new Failure("State is invalid");
         }
@@ -226,6 +225,17 @@ abstract class OicSession implements Serializable {
         return onSuccess(code, flow);
     }
 
+    @VisibleForTesting
+    @Restricted(DoNotUse.class)
+    protected static String convertFormToQueryParameters(StaplerRequest request) {
+        Map<String, String[]> parameterMap = request.getParameterMap();
+        UriComponentsBuilder queryBuilder =
+                UriComponentsBuilder.fromHttpUrl(request.getRequestURL().toString());
+        for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
+            queryBuilder.queryParam(entry.getKey(), (Object[]) entry.getValue());
+        }
+        return queryBuilder.build().toUriString();
+    }
     /**
      * Where was the user trying to navigate to when they had to login?
      *
