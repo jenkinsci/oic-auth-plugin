@@ -2,6 +2,9 @@ package org.jenkinsci.plugins.oic;
 
 import com.google.api.client.json.gson.GsonFactory;
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -68,6 +71,17 @@ public class WellKnownOpenIDConfigurationResponseTest {
             + " ]"
             + "}";
 
+    private static final Set<String> SET_FIELDS =
+            Set.of("token_endpoint_auth_methods_supported", "scopes_supported", "grant_types_supported");
+    private static final List<String> FIELDS = List.of(
+            "authorization_endpoint",
+            "token_endpoint",
+            "userinfo_endpoint",
+            "jwks_uri",
+            "scopes_supported",
+            "grant_types_supported",
+            "token_endpoint_auth_methods_supported");
+
     @Test
     public void parseExplicitKeys() throws IOException {
         WellKnownOpenIDConfigurationResponse response = GsonFactory.getDefaultInstance()
@@ -86,16 +100,7 @@ public class WellKnownOpenIDConfigurationResponseTest {
     public void parseWellKnownKeys() throws IOException {
         WellKnownOpenIDConfigurationResponse response = GsonFactory.getDefaultInstance()
                 .fromString(JSON_FROM_GOOGLE, WellKnownOpenIDConfigurationResponse.class);
-        assertThat(
-                response.getKnownKeys().keySet(),
-                containsInAnyOrder(
-                        "authorization_endpoint",
-                        "token_endpoint",
-                        "userinfo_endpoint",
-                        "jwks_uri",
-                        "scopes_supported",
-                        "grant_types_supported",
-                        "token_endpoint_auth_methods_supported"));
+        assertThat(response.getKnownKeys().keySet(), containsInAnyOrder(FIELDS.toArray(new String[0])));
     }
 
     @Test
@@ -146,9 +151,16 @@ public class WellKnownOpenIDConfigurationResponseTest {
     @Test
     public void testHashcode() {
         WellKnownOpenIDConfigurationResponse obj1 = new WellKnownOpenIDConfigurationResponse();
-        assertEquals(1640064305, obj1.hashCode());
-
-        obj1.set("userinfo_endpoint", "some endpoint");
-        assertEquals(1680887183, obj1.hashCode());
+        var currentHashCode = obj1.hashCode();
+        for (String field : FIELDS) {
+            if (SET_FIELDS.contains(field)) {
+                obj1.set(field, Set.of(UUID.randomUUID().toString()));
+            } else {
+                obj1.set(field, UUID.randomUUID().toString());
+            }
+            var previousHashCode = currentHashCode;
+            currentHashCode = obj1.hashCode();
+            assertNotEquals("should be different after setting " + field, previousHashCode, currentHashCode);
+        }
     }
 }

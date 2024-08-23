@@ -148,6 +148,7 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
     @Override
     public int hashCode() {
         return (authorizationEndpoint
+                        + tokenAuthMethods
                         + tokenEndpoint
                         + userinfoEndpoint
                         + jwksUri
