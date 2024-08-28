@@ -48,7 +48,7 @@ public class OicCredentials extends UserProperty implements Serializable {
 
         if (expiresInSeconds != null && expiresInSeconds > 0) {
             long allowedClockSkewFixed = Util.fixNull(allowedClockSkewSeconds, 60L);
-            this.expiresAtMillis = (currentTimestamp + expiresInSeconds + allowedClockSkewFixed) * 1000;
+            this.expiresAtMillis = currentTimestamp + (expiresInSeconds + allowedClockSkewFixed) * 1000;
         } else {
             this.expiresAtMillis = null;
         }
