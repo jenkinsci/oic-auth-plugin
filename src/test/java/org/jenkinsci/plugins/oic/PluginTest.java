@@ -1006,7 +1006,8 @@ public class PluginTest {
         // expired oic session tokens, do not refreshed
         expire();
 
-        // verify that jenkins api token is not authorized
+        // the default behavior expects there to be a valid oic session, so token based
+        // access should now fail (unauthorized)
         rsp = getPageWithGet(TEST_USER_USERNAME, token, "/whoAmI/api/xml");
         MatcherAssert.assertThat("response should have been 401\n" + rsp.body(), rsp.statusCode(), is(401));
 
