@@ -113,7 +113,7 @@
       <f:entry title="${%AllowedTokenExpirationClockSkewSeconds}" field="allowedTokenExpirationClockSkewSeconds">
         <f:textbox/>
       </f:entry>
-      <f:entry title="${%EnableTraditionalApiTokenAccess}" field="traditionalApiTokenAccessEnabled">
+      <f:entry title="${%AllowTokenAccessWithoutOicSession}" field="allowTokenAccessWithoutOicSession">
         <f:checkbox/>
       </f:entry>
     </f:advanced>

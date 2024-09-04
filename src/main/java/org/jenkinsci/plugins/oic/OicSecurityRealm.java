@@ -222,7 +222,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     /** Flag to enable traditional Jenkins API token based access (no OicSession needed)
      */
-    private boolean traditionalApiTokenAccessEnabled = false;
+    private boolean allowTokenAccessWithoutOicSession = false;
 
     /** Additional number of seconds to add to token expiration
      */
@@ -545,8 +545,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return tokenExpirationCheckDisabled;
     }
 
-    public boolean isTraditionalApiTokenAccessEnabled() {
-        return traditionalApiTokenAccessEnabled;
+    public boolean isAllowTokenAccessWithoutOicSession() {
+        return allowTokenAccessWithoutOicSession;
     }
 
     public Long getAllowedTokenExpirationClockSkewSeconds() {
@@ -818,8 +818,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
-    public void setTraditionalApiTokenAccessEnabled(boolean traditionalApiTokenAccessEnabled) {
-        this.traditionalApiTokenAccessEnabled = traditionalApiTokenAccessEnabled;
+    public void setAllowTokenAccessWithoutOicSession(boolean allowTokenAccessWithoutOicSession) {
+        this.allowTokenAccessWithoutOicSession = allowTokenAccessWithoutOicSession;
     }
 
     @DataBoundSetter
@@ -1409,15 +1409,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
         User user = User.get2(authentication);
 
-        if (isTraditionalApiTokenAccessEnabled()) {
+        if (isAllowTokenAccessWithoutOicSession()) {
             // check if this is a valid api token based request
             String authHeader = httpRequest.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Basic ")) {
-                String token = new String(
-                                Base64.getDecoder()
-                                        .decode(authHeader
-                                                .substring(6)),
-                                StandardCharsets.UTF_8)
+                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
                         .split(":")[1];
 
                 if (user.getProperty(ApiTokenProperty.class).matchesPassword(token)) {
