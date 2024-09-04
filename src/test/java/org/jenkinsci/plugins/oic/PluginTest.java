@@ -982,6 +982,10 @@ public class PluginTest {
         mockAuthorizationRedirectsToFinishLogin();
         configureWellKnown(null, null, "authorization_code");
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        // explicitly ensure allowTokenAccessWithoutOicSession is disabled
+        TestRealm testRealm = (TestRealm) jenkins.getSecurityRealm();
+        testRealm.setAllowTokenAccessWithoutOicSession(true);
+
         // login and assert normal auth is working
         mockTokenReturnsIdTokenWithGroup(PluginTest::withoutRefreshToken);
         mockUserInfoWithTestGroups();
@@ -1012,8 +1016,7 @@ public class PluginTest {
         MatcherAssert.assertThat("response should have been 401\n" + rsp.body(), rsp.statusCode(), is(401));
 
         // enable "traditional api token access"
-        TestRealm tr = (TestRealm) jenkins.getSecurityRealm();
-        tr.setTraditionalApiTokenAccessEnabled(true);
+        testRealm.setAllowTokenAccessWithoutOicSession(true);
 
         // verify that jenkins api token is now working again
         rsp = getPageWithGet(TEST_USER_USERNAME, token, "/whoAmI/api/xml");
