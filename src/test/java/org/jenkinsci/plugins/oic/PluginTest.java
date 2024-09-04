@@ -984,7 +984,7 @@ public class PluginTest {
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
         // explicitly ensure allowTokenAccessWithoutOicSession is disabled
         TestRealm testRealm = (TestRealm) jenkins.getSecurityRealm();
-        testRealm.setAllowTokenAccessWithoutOicSession(true);
+        testRealm.setAllowTokenAccessWithoutOicSession(false);
 
         // login and assert normal auth is working
         mockTokenReturnsIdTokenWithGroup(PluginTest::withoutRefreshToken);
