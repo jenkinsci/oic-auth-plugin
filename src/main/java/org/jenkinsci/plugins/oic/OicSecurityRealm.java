@@ -1411,11 +1411,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
         if (isTraditionalApiTokenAccessEnabled()) {
             // check if this is a valid api token based request
-            if (httpRequest.getHeader("Authorization") != null) {
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Basic ")) {
                 String token = new String(
                                 Base64.getDecoder()
-                                        .decode(httpRequest
-                                                .getHeader("Authorization")
+                                        .decode(authHeader
                                                 .substring(6)),
                                 StandardCharsets.UTF_8)
                         .split(":")[1];
