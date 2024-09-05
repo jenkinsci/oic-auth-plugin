@@ -35,8 +35,8 @@
   </developers>
 
   <scm>
-    <connection>scm:git:ssh://github.com/${gitHubRepo}.git</connection>
-    <developerConnection>scm:git:git@github.com/${gitHubRepo}.git</developerConnection>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <tag>${revision}.${changelist}</tag>
     <url>https://github.com/${gitHubRepo}</url>
   </scm>
