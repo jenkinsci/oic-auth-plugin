@@ -15,6 +15,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.User;
 import hudson.tasks.Mailer;
+import hudson.util.VersionNumber;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -39,6 +40,7 @@ import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.hamcrest.MatcherAssert;
+import org.htmlunit.html.HtmlPage;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -776,7 +778,10 @@ public class PluginTest {
                 3,
                 userProperty.getAuthorities2().size());
 
-        jenkinsRule.submit(webClient.goTo("me/configure").getFormByName("config"));
+        HtmlPage configure = Jenkins.getVersion().isNewerThan(new VersionNumber("2.467"))
+                ? webClient.goTo("me/account/")
+                : webClient.goTo("me/configure");
+        jenkinsRule.submit(configure.getFormByName("config"));
         user = User.getById(TEST_USER_USERNAME, false);
         assertEquals(
                 "User should still be in 2 groups", 2, user.getAuthorities().size());
