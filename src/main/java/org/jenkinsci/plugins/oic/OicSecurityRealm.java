@@ -83,6 +83,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -102,6 +103,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
+import jenkins.security.ApiTokenProperty;
 import jenkins.security.SecurityListener;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
@@ -217,6 +219,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /** Flag to disable token expiration check
      */
     private boolean tokenExpirationCheckDisabled = false;
+
+    /** Flag to enable traditional Jenkins API token based access (no OicSession needed)
+     */
+    private boolean allowTokenAccessWithoutOicSession = false;
 
     /** Additional number of seconds to add to token expiration
      */
@@ -539,6 +545,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return tokenExpirationCheckDisabled;
     }
 
+    public boolean isAllowTokenAccessWithoutOicSession() {
+        return allowTokenAccessWithoutOicSession;
+    }
+
     public Long getAllowedTokenExpirationClockSkewSeconds() {
         return allowedTokenExpirationClockSkewSeconds;
     }
@@ -805,6 +815,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @DataBoundSetter
     public void setTokenExpirationCheckDisabled(boolean tokenExpirationCheckDisabled) {
         this.tokenExpirationCheckDisabled = tokenExpirationCheckDisabled;
+    }
+
+    @DataBoundSetter
+    public void setAllowTokenAccessWithoutOicSession(boolean allowTokenAccessWithoutOicSession) {
+        this.allowTokenAccessWithoutOicSession = allowTokenAccessWithoutOicSession;
     }
 
     @DataBoundSetter
@@ -1393,6 +1408,21 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         User user = User.get2(authentication);
+
+        if (isAllowTokenAccessWithoutOicSession()) {
+            // check if this is a valid api token based request
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Basic ")) {
+                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
+                        .split(":")[1];
+
+                if (user.getProperty(ApiTokenProperty.class).matchesPassword(token)) {
+                    // this was a valid jenkins token being used, exit this filter and let
+                    // the rest of chain be processed
+                    return true;
+                } // else do nothing and continue evaluating this request
+            }
+        }
 
         if (user == null) {
             return true;

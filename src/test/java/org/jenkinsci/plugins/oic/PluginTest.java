@@ -21,6 +21,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
@@ -38,6 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
+import jenkins.security.ApiTokenProperty;
 import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.hamcrest.MatcherAssert;
 import org.htmlunit.html.HtmlPage;
@@ -67,6 +69,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static com.google.gson.JsonParser.parseString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
@@ -362,6 +365,37 @@ public class PluginTest {
                 .build();
         return c.send(
                 HttpRequest.newBuilder(URI.create(jenkinsRule.getURL() + url))
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+    }
+
+    /**
+     * performs a GET request using a basic authorization header
+     * @param user - The user id
+     * @param token - the password api token to user
+     * @param url - the url to request
+     * @return HttpResponse
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    private HttpResponse<String> getPageWithGet(String user, String token, String url)
+            throws IOException, InterruptedException {
+        // fix up the url, if needed
+        if (url.startsWith("/")) {
+            url = url.substring(1);
+        }
+
+        HttpClient c = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.ALWAYS)
+                .build();
+        return c.send(
+                HttpRequest.newBuilder(URI.create(jenkinsRule.getURL() + url))
+                        .header(
+                                "Authorization",
+                                "Basic "
+                                        + Base64.getEncoder()
+                                                .encodeToString((user + ":" + token).getBytes(StandardCharsets.UTF_8)))
                         .GET()
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -946,6 +980,56 @@ public class PluginTest {
         webClient.setThrowExceptionOnFailingStatusCode(false);
         browseLoginPage();
         assertAnonymous();
+    }
+
+    @Test
+    public void testAccessUsingJenkinsApiTokens() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        configureWellKnown(null, null, "authorization_code");
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        // explicitly ensure allowTokenAccessWithoutOicSession is disabled
+        TestRealm testRealm = (TestRealm) jenkins.getSecurityRealm();
+        testRealm.setAllowTokenAccessWithoutOicSession(false);
+
+        // login and assert normal auth is working
+        mockTokenReturnsIdTokenWithGroup(PluginTest::withoutRefreshToken);
+        mockUserInfoWithTestGroups();
+        browseLoginPage();
+        assertTestUser();
+
+        // create a jenkins api token for the test user
+        String token = User.getById(TEST_USER_USERNAME, false)
+                .getProperty(ApiTokenProperty.class)
+                .generateNewToken("foo")
+                .plainValue;
+
+        // validate that the token can be used
+        HttpResponse<String> rsp = getPageWithGet(TEST_USER_USERNAME, token, "/whoAmI/api/xml");
+        MatcherAssert.assertThat("response should have been 200\n" + rsp.body(), rsp.statusCode(), is(200));
+
+        MatcherAssert.assertThat(
+                "response should have been 200\n" + rsp.body(),
+                rsp.body(),
+                containsString("<authenticated>true</authenticated>"));
+
+        // expired oic session tokens, do not refreshed
+        expire();
+
+        // the default behavior expects there to be a valid oic session, so token based
+        // access should now fail (unauthorized)
+        rsp = getPageWithGet(TEST_USER_USERNAME, token, "/whoAmI/api/xml");
+        MatcherAssert.assertThat("response should have been 401\n" + rsp.body(), rsp.statusCode(), is(401));
+
+        // enable "traditional api token access"
+        testRealm.setAllowTokenAccessWithoutOicSession(true);
+
+        // verify that jenkins api token is now working again
+        rsp = getPageWithGet(TEST_USER_USERNAME, token, "/whoAmI/api/xml");
+        MatcherAssert.assertThat("response should have been 200\n" + rsp.body(), rsp.statusCode(), is(200));
+        MatcherAssert.assertThat(
+                "response should have been 200\n" + rsp.body(),
+                rsp.body(),
+                containsString("<authenticated>true</authenticated>"));
     }
 
     private static @NonNull Consumer<OicSecurityRealm> belongsToGroup(String groupName) {
