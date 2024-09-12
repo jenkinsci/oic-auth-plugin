@@ -1555,7 +1555,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return true;
     }
 
-    private void handleTokenRefreshException(TokenResponseException e, HttpServletRequest httpRequest, HttpServletResponse httpResponse)
+    private void handleTokenRefreshException(
+            TokenResponseException e, HttpServletRequest httpRequest, HttpServletResponse httpResponse)
             throws IOException {
         TokenErrorResponse details = e.getDetails();
 
@@ -1563,9 +1564,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             // RT expired or session terminated
             if (!isTokenExpirationCheckDisabled()) {
                 try {
-                  redirectOrRejectRequest(httpRequest, httpResponse);
+                    redirectOrRejectRequest(httpRequest, httpResponse);
                 } catch (ServletException ex) {
-                  httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
+                    httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
                 }
             }
         } else {
