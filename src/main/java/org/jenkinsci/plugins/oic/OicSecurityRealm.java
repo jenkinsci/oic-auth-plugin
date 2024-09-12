@@ -1450,10 +1450,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             throws IOException, ServletException {
         if (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
             req.getSession().invalidate();
-            res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
-        } else {
-            res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
         }
+        res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
     }
 
     public boolean isExpired(OicCredentials credentials) {
@@ -1487,7 +1485,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
             return handleTokenRefreshResponse(flow, expectedUsername, credentials, tokenResponse, httpResponse);
         } catch (TokenResponseException e) {
-            handleTokenRefreshException(e, httpResponse);
+            handleTokenRefreshException(e, httpRequest, httpResponse);
             return false;
         }
     }
@@ -1557,14 +1555,18 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return true;
     }
 
-    private void handleTokenRefreshException(TokenResponseException e, HttpServletResponse httpResponse)
+    private void handleTokenRefreshException(TokenResponseException e, HttpServletRequest httpRequest, HttpServletResponse httpResponse)
             throws IOException {
         TokenErrorResponse details = e.getDetails();
 
         if ("invalid_grant".equals(details.getError())) {
             // RT expired or session terminated
             if (!isTokenExpirationCheckDisabled()) {
-                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
+                try {
+                  redirectOrRejectRequest(httpRequest, httpResponse);
+                } catch (ServletException ex) {
+                  httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
+                }
             }
         } else {
             LOGGER.warning("Token response error: " + details.getError() + ", error description: "
