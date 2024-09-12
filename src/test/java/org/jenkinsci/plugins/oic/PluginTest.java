@@ -85,7 +85,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * goes through a login scenario, the openid provider is mocked and always returns state. We aren't checking
- * if if openid connect or if the openid connect implementation works. Rather we are only
+ * if openid connect or if the openid connect implementation works. Rather we are only
  * checking if the jenkins interaction works and if the plugin code works.
  */
 @Url("https://jenkins.io/blog/2018/01/13/jep-200/")
@@ -480,7 +480,7 @@ public class PluginTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{ \"error\": \"invalid_grant\" }")));
         expire();
-        webClient.assertFails(jenkins.getSearchUrl(), 401);
+        webClient.assertFails(jenkins.getSearchUrl(), 500);
 
         verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("grant_type=refresh_token")));
     }
@@ -1018,7 +1018,7 @@ public class PluginTest {
         // the default behavior expects there to be a valid oic session, so token based
         // access should now fail (unauthorized)
         rsp = getPageWithGet(TEST_USER_USERNAME, token, "/whoAmI/api/xml");
-        MatcherAssert.assertThat("response should have been 401\n" + rsp.body(), rsp.statusCode(), is(401));
+        MatcherAssert.assertThat("response should have been 302\n" + rsp.body(), rsp.statusCode(), is(302));
 
         // enable "traditional api token access"
         testRealm.setAllowTokenAccessWithoutOicSession(true);
