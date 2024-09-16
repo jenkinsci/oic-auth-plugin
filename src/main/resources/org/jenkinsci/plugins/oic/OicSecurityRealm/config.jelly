@@ -7,58 +7,7 @@
     <f:password/>
   </f:entry>
 
-  <f:section title="${%ConfigurationMode}">
-    <f:block>
-      <f:radioBlock title="${%AutomaticConfiguration}" checked="${descriptor.auto}" name="automanualconfigure" value="auto" inline="true">
-        <f:entry title="${%WellknownConfigurationEndpoint}" field="wellKnownOpenIDConfigurationUrl">
-          <f:textbox/>
-        </f:entry>
-        <f:block>
-          <table>
-            <f:optionalBlock inline="true" title="${%OverrideScopes}" field="overrideScopesDefined">
-              <f:entry title="${%Scopes}" field="overrideScopes">
-                <f:textbox />
-              </f:entry>
-            </f:optionalBlock>
-          </table>
-        </f:block>
-      </f:radioBlock>
-    </f:block>
-
-    <f:block>
-    <f:radioBlock title="${%ManualConfiguration}" checked="${descriptor.manual}" name="automanualconfigure" value="manual" inline="true">
-      <f:entry title="${%TokenServerUrl}" field="tokenServerUrl">
-        <f:textbox/>
-      </f:entry>
-
-      <f:entry title="${%TokenAuthenticationMethod}" field="tokenAuthMethod">
-        <f:radioBlock title="${%Basic}" name="tokenAuthMethod" checked="${instance.tokenAuthMethod == 'client_secret_basic'}" value="client_secret_basic" inline="true" />
-        <f:radioBlock title="${%Post}" name="tokenAuthMethod" checked="${instance.tokenAuthMethod == 'client_secret_post'}" value="client_secret_post" inline="true" />
-      </f:entry>
-
-      <f:entry title="${%AuthorizationServerUrl}" field="authorizationServerUrl">
-        <f:textbox/>
-      </f:entry>
-      <f:entry title="${%UserInfoServerUrl}" field="userInfoServerUrl">
-        <f:textbox/>
-      </f:entry>
-      <f:entry title="${%JwksServerUrl}" field="jwksServerUrl">
-        <f:textbox/>
-      </f:entry>
-      <div id="endSessionConfig">
-        <f:entry title="${%EndSessionUrl}" field="endSessionEndpoint">
-          <f:textbox/>
-        </f:entry>
-      </div>
-      <f:entry title="${%Scopes}" field="scopes">
-        <f:textbox />
-      </f:entry>
-      <f:entry title="${%UseRefreshTokens}" field="useRefreshTokens">
-        <f:checkbox/>
-      </f:entry>
-    </f:radioBlock>
-    </f:block>
-  </f:section>
+  <f:dropdownDescriptorSelector field="serverConfiguration" title="${%ConfigurationMode}" default="${descriptor.defaultServerConfigurationType}"/>
 
   <f:section title="${%AdvancedConfiguration}">
     <f:advanced title="${%UserFields}">

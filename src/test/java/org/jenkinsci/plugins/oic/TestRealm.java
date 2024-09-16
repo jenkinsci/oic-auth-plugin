@@ -5,7 +5,7 @@ import hudson.model.Descriptor;
 import hudson.security.SecurityRealm;
 import io.burt.jmespath.Expression;
 import java.io.IOException;
-import java.lang.reflect.Field;
+import java.io.ObjectStreamException;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -209,17 +209,9 @@ public class TestRealm extends OicSecurityRealm {
 
     @Override
     public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
-        try {
-            Field stateField = OicSession.class.getDeclaredField("state");
-            stateField.setAccessible(true);
-            stateField.set(OicSession.getCurrent(), "state");
-            if (!isNonceDisabled()) {
-                Field nonceField = OicSession.class.getDeclaredField("nonce");
-                nonceField.setAccessible(true);
-                nonceField.set(OicSession.getCurrent(), "nonce");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("can't fudge state", e);
+        OicSession.getCurrent().state = "state";
+        if (!isNonceDisabled()) {
+            OicSession.getCurrent().nonce = "nonce";
         }
         return super.doFinishLogin(request);
     }
@@ -233,7 +225,7 @@ public class TestRealm extends OicSecurityRealm {
     }
 
     @Override
-    public Object readResolve() {
+    public Object readResolve() throws ObjectStreamException {
         return super.readResolve();
     }
 

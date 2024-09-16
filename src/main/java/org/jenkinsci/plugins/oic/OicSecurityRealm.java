@@ -36,7 +36,6 @@ import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.http.BasicAuthentication;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpExecuteInterceptor;
-import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -51,13 +50,13 @@ import com.google.api.client.util.ArrayMap;
 import com.google.api.client.util.Data;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
-import com.google.gson.JsonParseException;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
+import hudson.model.Descriptor.FormException;
 import hudson.model.User;
 import hudson.security.ChainedServletFilter;
 import hudson.security.SecurityRealm;
@@ -69,23 +68,19 @@ import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.RuntimeConfiguration;
 import io.burt.jmespath.jcf.JcfRuntime;
 import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectStreamException;
 import java.io.Serializable;
-import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.Clock;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -108,6 +103,7 @@ import jenkins.security.SecurityListener;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Header;
@@ -138,7 +134,6 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
  * @author Michael Bischoff
  * @author Steve Arch
  */
-@SuppressWarnings("deprecation")
 public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -155,12 +150,31 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     private final String clientId;
     private final Secret clientSecret;
-    private String wellKnownOpenIDConfigurationUrl = null;
-    private String tokenServerUrl = null;
-    private String jwksServerUrl = null;
-    private TokenAuthMethod tokenAuthMethod;
-    private String authorizationServerUrl = null;
-    private String userInfoServerUrl = null;
+
+    /** @deprecated see {@link OicServerWellKnownConfiguration#getWellKnownOpenIDConfigurationUrl()} */
+    @Deprecated
+    private transient String wellKnownOpenIDConfigurationUrl;
+
+    /** @deprecated see {@link OicServerConfiguration#getTokenServerUrl()} */
+    @Deprecated
+    private transient String tokenServerUrl;
+
+    /** @deprecated see {@link OicServerConfiguration#getJwksServerUrl()} */
+    @Deprecated
+    private transient String jwksServerUrl;
+
+    /** @deprecated see {@link OicServerConfiguration#getTokenAuthMethod()} */
+    @Deprecated
+    private transient TokenAuthMethod tokenAuthMethod;
+
+    /** @deprecated see {@link OicServerConfiguration#getAuthorizationServerUrl()} */
+    @Deprecated
+    private transient String authorizationServerUrl;
+
+    /** @deprecated see {@link OicServerConfiguration#getUserInfoServerUrl()} */
+    @Deprecated
+    private transient String userInfoServerUrl;
+
     private String userNameField = "sub";
     private transient Expression<Object> userNameFieldExpr = null;
     private String tokenFieldToCheckKey = null;
@@ -174,24 +188,36 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private transient Expression<Object> groupsFieldExpr = null;
     private transient String simpleGroupsFieldName = null;
     private transient String nestedGroupFieldName = null;
-    private String scopes = null;
+
+    /** @deprecated see {@link OicServerConfiguration#getScopes()} */
+    @Deprecated
+    private transient String scopes = null;
+
     private final boolean disableSslVerification;
     private boolean logoutFromOpenidProvider = true;
-    private String endSessionEndpoint = null;
+
+    /** @deprecated see {@link OicServerConfiguration#getEndSessionUrl()} */
+    @Deprecated
+    private transient String endSessionEndpoint = null;
+
     private String postLogoutRedirectUrl;
     private boolean escapeHatchEnabled = false;
     private String escapeHatchUsername = null;
     private Secret escapeHatchSecret = null;
     private String escapeHatchGroup = null;
-    private String automanualconfigure = null;
-    private boolean useRefreshTokens = false;
 
-    /** flag to clear overrideScopes
-     */
-    private transient Boolean overrideScopesDefined = null;
+    @Deprecated
+    /** @deprecated with no replacement.  See sub classes of {@link OicServerConfiguration} */
+    private transient String automanualconfigure = null;
 
-    /** Override scopes in wellknown configuration
-     */
+    @Deprecated
+    /** @deprecated see {@link OicServerWellKnownConfiguration#isUseRefreshTokens()} */
+    private transient boolean useRefreshTokens = false;
+
+    private OicServerConfiguration serverConfiguration;
+
+    /** @deprecated see {@link OicServerWellKnownConfiguration#getScopes()} */
+    @Deprecated
     private String overrideScopes = null;
 
     /** Flag indicating if root url should be taken from config or request
@@ -228,13 +254,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     private Long allowedTokenExpirationClockSkewSeconds = 60L;
 
-    /** Date of wellknown configuration expiration
-     */
-    private transient LocalDateTime wellKnownExpires = null;
-
     /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
      * but it's still needed for backwards compatibility */
+    @Deprecated
     private transient String endSessionUrl;
 
     /** Verification of IdToken and UserInfo (in jwt case)
@@ -300,7 +323,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
         this.userInfoServerUrl = userInfoServerUrl;
         this.jwksServerUrl = jwksServerUrl;
-        this.setScopes(scopes);
+        this.scopes = scopes;
         this.endSessionEndpoint = endSessionEndpoint;
 
         if ("auto".equals(automanualconfigure)
@@ -308,7 +331,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                         && !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
             this.automanualconfigure = "auto";
             this.wellKnownOpenIDConfigurationUrl = Util.fixEmptyAndTrim(wellKnownOpenIDConfigurationUrl);
-            this.loadWellKnownOpenIDConfigurationUrl();
         } else {
             this.automanualconfigure = "manual";
             this.wellKnownOpenIDConfigurationUrl = null; // Remove the autoconfig URL
@@ -326,56 +348,32 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.escapeHatchUsername = Util.fixEmptyAndTrim(escapeHatchUsername);
         this.setEscapeHatchSecret(Secret.fromString(escapeHatchSecret));
         this.escapeHatchGroup = Util.fixEmptyAndTrim(escapeHatchGroup);
+        // hack to avoid rewriting lots of tests :-)
+        readResolve();
     }
 
     @DataBoundConstructor
     public OicSecurityRealm(
             String clientId,
-            String clientSecret,
-            String authorizationServerUrl,
-            String tokenServerUrl,
-            String jwksServerUrl,
-            String tokenAuthMethod,
-            String userInfoServerUrl,
-            String endSessionEndpoint,
-            String scopes,
-            String automanualconfigure,
-            Boolean disableSslVerification,
-            Boolean useRefreshTokens)
+            Secret clientSecret,
+            OicServerConfiguration serverConfiguration,
+            Boolean disableSslVerification)
             throws IOException {
         // Needed in DataBoundSetter
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
-        this.useRefreshTokens = Util.fixNull(useRefreshTokens, Boolean.FALSE);
         this.httpTransport = constructHttpTransport(this.disableSslVerification);
         this.clientId = clientId;
-        this.clientSecret = clientSecret != null && !clientSecret.toLowerCase().equals(NO_SECRET)
-                ? Secret.fromString(clientSecret)
-                : null;
-        // auto/manual configuration as set in jcasc/config
-        this.automanualconfigure = Util.fixNull(automanualconfigure);
-        // previous values of OpenIDConnect configuration
-        this.authorizationServerUrl = authorizationServerUrl;
-        this.tokenServerUrl = tokenServerUrl;
-        this.jwksServerUrl = jwksServerUrl;
-        this.tokenAuthMethod =
-                TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
-        this.userInfoServerUrl = userInfoServerUrl;
-        this.endSessionEndpoint = endSessionEndpoint;
-        this.setScopes(scopes);
+        this.clientSecret = clientSecret;
+        this.serverConfiguration = serverConfiguration;
     }
 
-    protected Object readResolve() {
+    @SuppressWarnings("deprecated")
+    protected Object readResolve() throws ObjectStreamException {
         if (httpTransport == null) {
             httpTransport = constructHttpTransport(isDisableSslVerification());
         }
         if (!Strings.isNullOrEmpty(endSessionUrl)) {
-            try {
-                Field field = getClass().getDeclaredField("endSessionEndpoint");
-                field.setAccessible(true);
-                field.set(this, endSessionUrl + "/");
-            } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
-                LOGGER.log(Level.SEVERE, "Can't set endSessionEndpoint from old value", e);
-            }
+            this.endSessionEndpoint = endSessionUrl + "/";
         }
 
         // backward compatibility with wrong groupsFieldName split
@@ -395,10 +393,39 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.setTokenFieldToCheckKey(this.tokenFieldToCheckKey);
         // ensure escapeHatchSecret is encrypted
         this.setEscapeHatchSecret(this.escapeHatchSecret);
+        try {
+            if (automanualconfigure != null) {
+                if ("auto".equals(automanualconfigure)) {
+                    OicServerWellKnownConfiguration conf =
+                            new OicServerWellKnownConfiguration(wellKnownOpenIDConfigurationUrl);
+                    conf.setScopesOverride(this.overrideScopes);
+                    serverConfiguration = conf;
+                } else {
+                    OicServerManualConfiguration conf =
+                            new OicServerManualConfiguration(tokenServerUrl, authorizationServerUrl);
+                    if (tokenAuthMethod != null) {
+                        conf.setTokenAuthMethod(tokenAuthMethod);
+                    }
+                    conf.setEndSessionUrl(endSessionEndpoint);
+                    conf.setJwksServerUrl(jwksServerUrl);
+                    conf.setScopes(scopes != null ? scopes : "openid email");
+                    conf.setUseRefreshTokens(useRefreshTokens);
+                    conf.setUserInfoServerUrl(userInfoServerUrl);
+                    serverConfiguration = conf;
+                }
+            }
+        } catch (FormException e) {
+            // FormException does not override toString() so looses info on the fields set and the message may not have
+            // context
+            // extract if into a better message until this is fixed.
+            ObjectStreamException ose = new InvalidObjectException(e.getFormField() + ": " + e.getMessage());
+            ose.initCause(e);
+            throw ose;
+        }
         return this;
     }
 
-    private static HttpTransport constructHttpTransport(boolean disableSslVerification) {
+    static HttpTransport constructHttpTransport(boolean disableSslVerification) {
         NetHttpTransport.Builder builder = new NetHttpTransport.Builder();
         builder.setConnectionFactory(new JenkinsAwareConnectionFactory());
 
@@ -413,6 +440,16 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return builder.build();
     }
 
+    /**
+     * Obtain the shared HttpTransport.
+     * The transport may be invalidated if the realm is saved so should not be cached.
+     * @return the shared {@code HttpTransport}.
+     */
+    @Restricted(NoExternalUse.class)
+    HttpTransport getHttpTransport() {
+        return httpTransport;
+    }
+
     public String getClientId() {
         return clientId;
     }
@@ -421,28 +458,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return clientSecret == null ? Secret.fromString(NO_SECRET) : clientSecret;
     }
 
-    public String getWellKnownOpenIDConfigurationUrl() {
-        return wellKnownOpenIDConfigurationUrl;
-    }
-
-    public String getTokenServerUrl() {
-        return tokenServerUrl;
-    }
-
-    public String getJwksServerUrl() {
-        return jwksServerUrl;
-    }
-
-    public TokenAuthMethod getTokenAuthMethod() {
-        return tokenAuthMethod;
-    }
-
-    public String getAuthorizationServerUrl() {
-        return authorizationServerUrl;
-    }
-
-    public String getUserInfoServerUrl() {
-        return userInfoServerUrl;
+    @Restricted(NoExternalUse.class) // jelly access
+    public OicServerConfiguration getServerConfiguration() {
+        return serverConfiguration;
     }
 
     public String getUserNameField() {
@@ -469,20 +487,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return groupsFieldName;
     }
 
-    public String getScopes() {
-        return scopes != null ? scopes : "openid email";
-    }
-
     public boolean isDisableSslVerification() {
         return disableSslVerification;
     }
 
     public boolean isLogoutFromOpenidProvider() {
         return logoutFromOpenidProvider;
-    }
-
-    public String getEndSessionEndpoint() {
-        return endSessionEndpoint;
     }
 
     public String getPostLogoutRedirectUrl() {
@@ -503,22 +513,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     public String getEscapeHatchGroup() {
         return escapeHatchGroup;
-    }
-
-    public String getAutomanualconfigure() {
-        return automanualconfigure;
-    }
-
-    public boolean isUseRefreshTokens() {
-        return useRefreshTokens;
-    }
-
-    public boolean isOverrideScopesDefined() {
-        return overrideScopes != null;
-    }
-
-    public String getOverrideScopes() {
-        return overrideScopes;
     }
 
     public boolean isRootURLFromRequest() {
@@ -551,112 +545,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     public Long getAllowedTokenExpirationClockSkewSeconds() {
         return allowedTokenExpirationClockSkewSeconds;
-    }
-
-    public boolean isAutoConfigure() {
-        return "auto".equals(this.automanualconfigure);
-    }
-
-    /** request wellknown config of provider and update it (if required)
-     */
-    private void loadWellKnownOpenIDConfigurationUrl() {
-        if (!isAutoConfigure() || this.wellKnownOpenIDConfigurationUrl == null) {
-            // not configured
-            return;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        if (this.wellKnownExpires != null && this.wellKnownExpires.isBefore(now)) {
-            // configuration is still fresh
-            return;
-        }
-
-        // Get the well-known configuration from the specified URL
-        try {
-            URL url = new URL(wellKnownOpenIDConfigurationUrl);
-            HttpRequest request = httpTransport.createRequestFactory().buildGetRequest(new GenericUrl(url));
-
-            com.google.api.client.http.HttpResponse response = request.execute();
-            WellKnownOpenIDConfigurationResponse config = GsonFactory.getDefaultInstance()
-                    .fromInputStream(
-                            response.getContent(),
-                            Charset.defaultCharset(),
-                            WellKnownOpenIDConfigurationResponse.class);
-
-            this.authorizationServerUrl = Util.fixNull(config.getAuthorizationEndpoint(), this.authorizationServerUrl);
-            this.tokenServerUrl = Util.fixNull(config.getTokenEndpoint(), this.tokenServerUrl);
-            this.jwksServerUrl = Util.fixNull(config.getJwksUri(), this.jwksServerUrl);
-            this.tokenAuthMethod = Util.fixNull(config.getPreferredTokenAuthMethod(), this.tokenAuthMethod);
-            this.userInfoServerUrl = Util.fixNull(config.getUserinfoEndpoint(), this.userInfoServerUrl);
-            if (config.getScopesSupported() != null) {
-                this.setScopes(StringUtils.join(config.getScopesSupported(), " "));
-            }
-            this.applyOverrideScopes();
-            this.endSessionEndpoint = Util.fixNull(config.getEndSessionEndpoint(), this.endSessionEndpoint);
-
-            if (config.getGrantTypesSupported() != null) {
-                this.useRefreshTokens = config.getGrantTypesSupported().contains("refresh_token");
-            }
-
-            setWellKnownExpires(response.getHeaders());
-        } catch (MalformedURLException e) {
-            LOGGER.log(Level.SEVERE, "Invalid WellKnown OpenID Configuration URL", e);
-        } catch (HttpResponseException e) {
-            LOGGER.log(Level.SEVERE, "Could not get wellknown OpenID Configuration", e);
-        } catch (JsonParseException e) {
-            LOGGER.log(Level.SEVERE, "Could not parse wellknown OpenID Configuration", e);
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error while loading wellknown OpenID Configuration", e);
-        }
-    }
-
-    /** Parse headers to determine expiration date
-     */
-    private void setWellKnownExpires(HttpHeaders headers) {
-        String expires = Util.fixEmptyAndTrim(headers.getExpires());
-        // expires 0 means no cache
-        // we could (should?) have a look at Cache-Control header and max-age but for simplicity
-        // we can just leave it default TTL 1h refresh which sounds reasonable for such file
-        if (expires != null && !"0".equals(expires)) {
-            ZonedDateTime zdt = ZonedDateTime.parse(expires, DateTimeFormatter.RFC_1123_DATE_TIME);
-            if (zdt != null) {
-                this.wellKnownExpires = zdt.toLocalDateTime();
-                return;
-            }
-        }
-
-        // default to 1 hour refresh
-        this.wellKnownExpires = LocalDateTime.now().plusSeconds(3600);
-    }
-
-    @DataBoundSetter
-    public void setWellKnownOpenIDConfigurationUrl(String wellKnownOpenIDConfigurationUrl) {
-        if (this.isAutoConfigure()
-                || (this.automanualconfigure.isEmpty()
-                        && !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
-            this.automanualconfigure = "auto";
-            this.wellKnownOpenIDConfigurationUrl = wellKnownOpenIDConfigurationUrl;
-            this.loadWellKnownOpenIDConfigurationUrl();
-        } else {
-            this.automanualconfigure = "manual";
-            this.wellKnownOpenIDConfigurationUrl = null;
-        }
-    }
-
-    private void applyOverrideScopes() {
-        if (!"auto".equals(this.automanualconfigure) || this.overrideScopes == null) {
-            // only applies in "auto" mode when overrideScopes defined
-            return;
-        }
-        if (this.scopes == null) {
-            this.scopes = overrideScopes;
-            return;
-        }
-        // keep only scopes that are in overrideScopes
-        HashSet<String> scopesSet =
-                new HashSet<>(Arrays.asList(this.scopes.trim().split("\\s+")));
-        scopesSet.retainAll(Arrays.asList(this.overrideScopes.trim().split("\\s+")));
-        this.setScopes(StringUtils.join(scopesSet, " "));
     }
 
     @DataBoundSetter
@@ -717,11 +605,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.groupsFieldExpr = this.compileJMESPath(groupsFieldName, "groups field");
     }
 
-    // Not a DataBoundSetter - set in constructor
-    public void setScopes(String scopes) {
-        this.scopes = Util.fixEmptyAndTrim(scopes);
-    }
-
     @DataBoundSetter
     public void setLogoutFromOpenidProvider(boolean logoutFromOpenidProvider) {
         this.logoutFromOpenidProvider = logoutFromOpenidProvider;
@@ -766,25 +649,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @DataBoundSetter
     public void setEscapeHatchGroup(String escapeHatchGroup) {
         this.escapeHatchGroup = Util.fixEmptyAndTrim(escapeHatchGroup);
-    }
-
-    @DataBoundSetter
-    public void setOverrideScopesDefined(boolean overrideScopesDefined) {
-        if (overrideScopesDefined) {
-            this.overrideScopesDefined = Boolean.TRUE;
-        } else {
-            this.overrideScopesDefined = Boolean.FALSE;
-            this.overrideScopes = null;
-            this.applyOverrideScopes();
-        }
-    }
-
-    @DataBoundSetter
-    public void setOverrideScopes(String overrideScopes) {
-        if (this.overrideScopesDefined == null || this.overrideScopesDefined) {
-            this.overrideScopes = Util.fixEmptyAndTrim(overrideScopes);
-            this.applyOverrideScopes();
-        }
     }
 
     @DataBoundSetter
@@ -897,7 +761,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         AccessMethod tokenAccessMethod = BearerToken.queryParameterAccessMethod();
         HttpExecuteInterceptor authInterceptor =
                 new ClientParametersAuthentication(clientId, Secret.toString(clientSecret));
-        if (TokenAuthMethod.client_secret_basic.equals(tokenAuthMethod)) {
+        if (TokenAuthMethod.client_secret_basic.equals(serverConfiguration.getTokenAuthMethod())) {
             tokenAccessMethod = BearerToken.authorizationHeaderAccessMethod();
             authInterceptor = new BasicAuthentication(clientId, Secret.toString(clientSecret));
         }
@@ -905,11 +769,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                         tokenAccessMethod,
                         httpTransport,
                         GsonFactory.getDefaultInstance(),
-                        new GenericUrl(tokenServerUrl),
+                        new GenericUrl(serverConfiguration.getTokenServerUrl()),
                         authInterceptor,
                         clientId,
-                        authorizationServerUrl)
-                .setScopes(Arrays.asList(this.getScopes()));
+                        serverConfiguration.getAuthorizationServerUrl())
+                .setScopes(Arrays.asList(serverConfiguration.getScopes()));
 
         return builder.build();
     }
@@ -950,9 +814,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     @Restricted(DoNotUse.class) // stapler only
     public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) {
-        // reload config if needed
-        loadWellKnownOpenIDConfigurationUrl();
-
         final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer);
 
         return new OicSession(from, buildOAuthRedirectUrl()) {
@@ -993,7 +854,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     }
 
                     GenericJson userInfo = null;
-                    if (!Strings.isNullOrEmpty(userInfoServerUrl)) {
+                    if (!Strings.isNullOrEmpty(getServerConfiguration().getUserInfoServerUrl())) {
                         userInfo = getUserInfo(flow, response.getAccessToken());
                         if (userInfo == null) {
                             return HttpResponses.errorWithoutStack(401, "Unauthorized");
@@ -1035,7 +896,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
         if (jwtVerifier == null) {
             jwtVerifier = new OicJsonWebTokenVerifier(
-                    jwksServerUrl,
+                    serverConfiguration.getJwksServerUrl(),
                     new OicJsonWebTokenVerifier.Builder().setHttpTransportFactory(new HttpTransportFactory() {
                         @Override
                         public HttpTransport create() {
@@ -1083,7 +944,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 request.getHeaders().setAuthorization("Bearer " + accessToken);
             }
         });
-        HttpRequest request = requestFactory.buildGetRequest(new GenericUrl(userInfoServerUrl));
+        HttpRequest request =
+                requestFactory.buildGetRequest(new GenericUrl(serverConfiguration.getUserInfoServerUrl()));
         request.setThrowExceptionOnExecuteError(false);
         com.google.api.client.http.HttpResponse response = request.execute();
         if (response.isSuccessStatusCode()) {
@@ -1289,7 +1151,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         OicCredentials credentials = user.getProperty(OicCredentials.class);
 
         if (credentials != null) {
-            if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(this.endSessionEndpoint)) {
+            if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(serverConfiguration.getEndSessionUrl())) {
                 // This ensures that token will be expired at the right time with API Key calls, but no refresh can be
                 // made.
                 user.addProperty(new OicCredentials(null, null, null, CLOCK.millis()));
@@ -1324,8 +1186,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @CheckForNull
     private String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
-        if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(this.endSessionEndpoint)) {
-            StringBuilder openidLogoutEndpoint = new StringBuilder(this.endSessionEndpoint);
+        final String url = serverConfiguration.getEndSessionUrl();
+        if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(url)) {
+            StringBuilder openidLogoutEndpoint = new StringBuilder(url);
 
             if (!Strings.isNullOrEmpty(idToken)) {
                 openidLogoutEndpoint.append("?id_token_hint=").append(idToken).append("&");
@@ -1435,7 +1298,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         if (isExpired(credentials)) {
-            if (isUseRefreshTokens() && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
+            if (serverConfiguration.isUseRefreshTokens() && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
                 return refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
             } else if (!isTokenExpirationCheckDisabled()) {
                 redirectOrRejectRequest(httpRequest, httpResponse);
@@ -1540,7 +1403,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             return false;
         }
 
-        if (!Strings.isNullOrEmpty(userInfoServerUrl)) {
+        if (!Strings.isNullOrEmpty(serverConfiguration.getUserInfoServerUrl())) {
             userInfo = getUserInfo(flow, tokenResponse.getAccessToken());
         }
 
@@ -1576,15 +1439,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
-        public boolean isAuto() {
-            SecurityRealm realm = Jenkins.get().getSecurityRealm();
-            return realm instanceof OicSecurityRealm
-                    && StringUtils.isNotBlank(((OicSecurityRealm) realm).getWellKnownOpenIDConfigurationUrl());
-        }
-
-        public boolean isManual() {
-            return Jenkins.get().getSecurityRealm() instanceof OicSecurityRealm && !isAuto();
-        }
 
         public String getDisplayName() {
             return Messages.OicSecurityRealm_DisplayName();
@@ -1606,133 +1460,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 return FormValidation.error(Messages.OicSecurityRealm_ClientSecretRequired());
             }
             return FormValidation.ok();
-        }
-
-        @RequirePOST
-        public FormValidation doCheckWellKnownOpenIDConfigurationUrl(
-                @QueryParameter String wellKnownOpenIDConfigurationUrl,
-                @QueryParameter boolean disableSslVerification) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            try {
-                URL url = new URL(wellKnownOpenIDConfigurationUrl);
-                HttpRequest request = constructHttpTransport(disableSslVerification)
-                        .createRequestFactory()
-                        .buildGetRequest(new GenericUrl(url));
-                com.google.api.client.http.HttpResponse response = request.execute();
-
-                // Try to parse the response. If it's not valid, a JsonParseException will be thrown indicating
-                // that it's not a valid JSON describing an OpenID Connect endpoint
-                WellKnownOpenIDConfigurationResponse config = GsonFactory.getDefaultInstance()
-                        .fromInputStream(
-                                response.getContent(),
-                                Charset.defaultCharset(),
-                                WellKnownOpenIDConfigurationResponse.class);
-                if (config.getAuthorizationEndpoint() == null || config.getTokenEndpoint() == null) {
-                    return FormValidation.warning(Messages.OicSecurityRealm_URLNotAOpenIdEnpoint());
-                }
-
-                return FormValidation.ok();
-            } catch (MalformedURLException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
-            } catch (HttpResponseException e) {
-                return FormValidation.error(
-                        e,
-                        Messages.OicSecurityRealm_CouldNotRetreiveWellKnownConfig(
-                                e.getStatusCode(), e.getStatusMessage()));
-            } catch (JsonParseException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_CouldNotParseResponse());
-            } catch (IOException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_ErrorRetreivingWellKnownConfig());
-            }
-        }
-
-        @RequirePOST
-        public FormValidation doCheckTokenServerUrl(@QueryParameter String tokenServerUrl) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(tokenServerUrl) == null) {
-                return FormValidation.error(Messages.OicSecurityRealm_TokenServerURLKeyRequired());
-            }
-            try {
-                new URL(tokenServerUrl);
-                return FormValidation.ok();
-            } catch (MalformedURLException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
-            }
-        }
-
-        @RequirePOST
-        public FormValidation doCheckJwksServerUrl(@QueryParameter String jwksServerUrl) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(jwksServerUrl) == null) {
-                return FormValidation.ok();
-            }
-            try {
-                new URL(jwksServerUrl);
-                return FormValidation.ok();
-            } catch (MalformedURLException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
-            }
-        }
-
-        @RequirePOST
-        public FormValidation doCheckTokenAuthMethod(@QueryParameter String tokenAuthMethod) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(tokenAuthMethod) == null) {
-                return FormValidation.error(Messages.OicSecurityRealm_TokenAuthMethodRequired());
-            }
-            return FormValidation.ok();
-        }
-
-        @RequirePOST
-        public FormValidation doCheckAuthorizationServerUrl(@QueryParameter String authorizationServerUrl) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (authorizationServerUrl == null) {
-                return FormValidation.error(Messages.OicSecurityRealm_TokenServerURLKeyRequired());
-            }
-            try {
-                new URL(authorizationServerUrl);
-                return FormValidation.ok();
-            } catch (MalformedURLException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
-            }
-        }
-
-        @RequirePOST
-        public FormValidation doCheckScopes(@QueryParameter String scopes) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(scopes) == null) {
-                return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultScopes());
-            }
-            if (!scopes.toLowerCase().contains("openid")) {
-                return FormValidation.warning(Messages.OicSecurityRealm_RUSureOpenIdNotInScope());
-            }
-            return FormValidation.ok();
-        }
-
-        @RequirePOST
-        public FormValidation doCheckOverrideScopes(@QueryParameter String overrideScopes) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(overrideScopes) == null) {
-                return FormValidation.ok(Messages.OicSecurityRealm_UsingDefaultScopes());
-            }
-            if (!overrideScopes.toLowerCase().contains("openid")) {
-                return FormValidation.warning(Messages.OicSecurityRealm_RUSureOpenIdNotInScope());
-            }
-            return FormValidation.ok();
-        }
-
-        @RequirePOST
-        public FormValidation doCheckEndSessionEndpoint(@QueryParameter String endSessionEndpoint) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(endSessionEndpoint) == null) {
-                return FormValidation.error(Messages.OicSecurityRealm_EndSessionURLKeyRequired());
-            }
-            try {
-                new URL(endSessionEndpoint);
-                return FormValidation.ok();
-            } catch (MalformedURLException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
-            }
         }
 
         @RequirePOST
@@ -1786,6 +1513,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 return FormValidation.error(Messages.OicSecurityRealm_InvalidFieldName());
             }
             return FormValidation.ok();
+        }
+
+        @Restricted(NoExternalUse.class) // jelly only
+        public Descriptor<OicServerConfiguration> getDefaultServerConfigurationType() {
+            return Jenkins.get().getDescriptor(OicServerWellKnownConfiguration.class);
         }
     }
 }

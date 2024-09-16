@@ -305,17 +305,21 @@ public class PluginTest {
         configureWellKnown(null, List.of("openid", "profile", "scope1", "scope2", "scope3"));
         TestRealm oicsr = new TestRealm.Builder(wireMockRule)
                 .WithMinimalDefaults().WithAutomanualconfigure("auto").build();
+        jenkins.setSecurityRealm(oicsr);
         assertEquals(
-                "All scopes of WellKnown should be used", "openid profile scope1 scope2 scope3", oicsr.getScopes());
+                "All scopes of WellKnown should be used",
+                "openid profile scope1 scope2 scope3",
+                oicsr.getServerConfiguration().getScopes());
+        OicServerWellKnownConfiguration serverConfig = (OicServerWellKnownConfiguration) oicsr.getServerConfiguration();
 
-        oicsr.setOverrideScopes("openid profile scope2 other");
-        assertEquals("Predefined scopes of WellKnown should be used", "openid profile scope2", oicsr.getScopes());
+        serverConfig.setScopesOverride("openid profile scope2 other");
+        assertEquals("scopes should be completely overridden", "openid profile scope2 other", serverConfig.getScopes());
 
-        oicsr.setScopes("openid profile other");
-        oicsr.setOverrideScopes("");
-        oicsr.setWellKnownOpenIDConfigurationUrl(oicsr.getWellKnownOpenIDConfigurationUrl());
+        serverConfig.setScopesOverride("");
         assertEquals(
-                "All scopes of WellKnown should be used", "openid profile scope1 scope2 scope3", oicsr.getScopes());
+                "All scopes of WellKnown should be used",
+                "openid profile scope1 scope2 scope3",
+                oicsr.getServerConfiguration().getScopes());
     }
 
     @Test
@@ -323,7 +327,10 @@ public class PluginTest {
         configureWellKnown(null, null, "authorization_code", "refresh_token");
         TestRealm oicsr = new TestRealm.Builder(wireMockRule)
                 .WithMinimalDefaults().WithAutomanualconfigure("auto").build();
-        assertTrue("Refresh token should be enabled", oicsr.isUseRefreshTokens());
+        jenkins.setSecurityRealm(oicsr);
+        assertTrue(
+                "Refresh token should be enabled",
+                oicsr.getServerConfiguration().isUseRefreshTokens());
     }
 
     @Test

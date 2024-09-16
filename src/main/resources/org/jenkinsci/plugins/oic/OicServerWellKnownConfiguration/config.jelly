@@ -1,0 +1,15 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+
+    <f:entry title="${%WellknownConfigurationEndpoint}"
+        field="wellKnownOpenIDConfigurationUrl">
+        <f:textbox />
+    </f:entry>
+    <f:advanced>
+        <f:entry title="${%OverrideScopes}"
+            field="scopesOverride">
+            <f:textbox />
+        </f:entry>
+    </f:advanced>
+</j:jelly>
+

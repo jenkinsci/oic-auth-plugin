@@ -1,4 +1,3 @@
-authorizationServerUrl: "http://localhost/authorize"
 clientId: "clientId"
 disableSslVerification: true
 emailFieldName: "emailFieldName"
@@ -7,13 +6,14 @@ escapeHatchGroup: "escapeHatchGroup"
 escapeHatchUsername: "escapeHatchUsername"
 fullNameFieldName: "fullNameFieldName"
 groupsFieldName: "groupsFieldName"
-jwksServerUrl: "http://localhost/jwks"
 nonceDisabled: true
 pkceEnabled: true
 rootURLFromRequest: true
-scopes: "scopes"
 sendScopesInTokenRequest: true
-tokenAuthMethod: "client_secret_post"
-tokenServerUrl: "http://localhost/token"
-useRefreshTokens: false
+serverConfiguration:
+  manual:
+    authorizationServerUrl: "http://localhost/authorize"
+    jwksServerUrl: "http://localhost/jwks"
+    scopes: "scopes"
+    tokenServerUrl: "http://localhost/token"
 userNameField: "userNameField"
