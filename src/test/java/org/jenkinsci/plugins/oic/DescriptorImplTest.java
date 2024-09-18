@@ -11,8 +11,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -46,8 +44,7 @@ public class DescriptorImplTest {
                 "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
 
-        TestRealm realm = new TestRealm(
-                new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(MANUAL_CONFIG_FIELD));
+        TestRealm realm = new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(false));
         jenkins.setSecurityRealm(realm);
 
         descriptor = (DescriptorImpl) realm.getDescriptor();
@@ -74,8 +71,7 @@ public class DescriptorImplTest {
                 "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
 
-        TestRealm realm =
-                new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(AUTO_CONFIG_FIELD));
+        TestRealm realm = new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(true));
         jenkins.setSecurityRealm(realm);
 
         descriptor = (DescriptorImpl) jenkins.getSecurityRealm().getDescriptor();

@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.oic;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.model.Descriptor;
 import hudson.security.SecurityRealm;
+import hudson.util.Secret;
 import io.burt.jmespath.Expression;
 import java.io.IOException;
 import java.io.ObjectStreamException;
@@ -15,16 +16,14 @@ public class TestRealm extends OicSecurityRealm {
     public static final String EMAIL_FIELD = "email";
     public static final String FULL_NAME_FIELD = "fullName";
     public static final String GROUPS_FIELD = "groups";
-    public static final String MANUAL_CONFIG_FIELD = "manual";
-    public static final String AUTO_CONFIG_FIELD = "auto";
 
     public static class Builder {
         public String clientId = CLIENT_ID;
-        public String clientSecret = "secret";
+        public Secret clientSecret = Secret.fromString("secret");
         public String wellKnownOpenIDConfigurationUrl;
         public String tokenServerUrl;
         public String jwksServerUrl = null;
-        public String tokenAuthMethod = "client_secret_post";
+        public TokenAuthMethod tokenAuthMethod = TokenAuthMethod.client_secret_post;
         public String authorizationServerUrl;
         public String userInfoServerUrl = null;
         public String userNameField = null;
@@ -40,9 +39,9 @@ public class TestRealm extends OicSecurityRealm {
         public String postLogoutRedirectUrl = null;
         public boolean escapeHatchEnabled = false;
         public String escapeHatchUsername = null;
-        public String escapeHatchSecret = null;
+        public Secret escapeHatchSecret = null;
         public String escapeHatchGroup = null;
-        public String automanualconfigure = MANUAL_CONFIG_FIELD;
+        public boolean automanualconfigure = false;
 
         public Builder(WireMockRule wireMockRule) throws IOException {
             this("http://localhost:" + wireMockRule.port() + "/");
@@ -56,7 +55,7 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithClient(String clientId, String clientSecret) {
             this.clientId = clientId;
-            this.clientSecret = clientSecret;
+            this.clientSecret = clientSecret == null ? null : Secret.fromString(clientSecret);
             return this;
         }
 
@@ -85,7 +84,7 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
-        public Builder WithAutomanualconfigure(String automanualconfigure) {
+        public Builder WithAutomanualconfigure(boolean automanualconfigure) {
             this.automanualconfigure = automanualconfigure;
             return this;
         }
@@ -112,7 +111,7 @@ public class TestRealm extends OicSecurityRealm {
                 String escapeHatchGroup) {
             this.escapeHatchEnabled = escapeHatchEnabled;
             this.escapeHatchUsername = escapeHatchUsername;
-            this.escapeHatchSecret = escapeHatchSecret;
+            this.escapeHatchSecret = escapeHatchSecret == null ? null : Secret.fromString(escapeHatchSecret);
             this.escapeHatchGroup = escapeHatchGroup;
             return this;
         }
@@ -120,35 +119,51 @@ public class TestRealm extends OicSecurityRealm {
         public TestRealm build() throws IOException {
             return new TestRealm(this);
         }
+
+        public OicServerConfiguration buildServerConfiguration() {
+            try {
+                if (automanualconfigure) {
+                    OicServerWellKnownConfiguration conf =
+                            new OicServerWellKnownConfiguration(wellKnownOpenIDConfigurationUrl);
+                    if (scopes != null) {
+                        conf.setScopesOverride(scopes);
+                    }
+                    return conf;
+                }
+                OicServerManualConfiguration conf =
+                        new OicServerManualConfiguration(tokenServerUrl, authorizationServerUrl);
+                conf.setTokenAuthMethod(tokenAuthMethod);
+                conf.setUserInfoServerUrl(userInfoServerUrl);
+                if (scopes != null) {
+                    conf.setScopes(scopes);
+                }
+                conf.setJwksServerUrl(jwksServerUrl);
+                conf.setEndSessionUrl(endSessionEndpoint);
+                return conf;
+            } catch (Exception e) {
+                throw new IllegalArgumentException(e);
+            }
+        }
     }
-    ;
 
     public TestRealm(Builder builder) throws IOException {
         super(
                 builder.clientId,
                 builder.clientSecret,
-                builder.wellKnownOpenIDConfigurationUrl,
-                builder.tokenServerUrl,
-                builder.jwksServerUrl,
-                builder.tokenAuthMethod,
-                builder.authorizationServerUrl,
-                builder.userInfoServerUrl,
-                builder.userNameField,
-                builder.tokenFieldToCheckKey,
-                builder.tokenFieldToCheckValue,
-                builder.fullNameFieldName,
-                builder.emailFieldName,
-                builder.scopes,
-                builder.groupsFieldName,
-                builder.disableSslVerification,
-                builder.logoutFromOpenidProvider,
-                builder.endSessionEndpoint,
-                builder.postLogoutRedirectUrl,
-                builder.escapeHatchEnabled,
-                builder.escapeHatchUsername,
-                builder.escapeHatchSecret,
-                builder.escapeHatchGroup,
-                builder.automanualconfigure);
+                builder.buildServerConfiguration(),
+                builder.disableSslVerification);
+        this.setUserNameField(builder.userNameField);
+        this.setTokenFieldToCheckKey(builder.tokenFieldToCheckKey);
+        this.setTokenFieldToCheckValue(builder.tokenFieldToCheckValue);
+        this.setFullNameFieldName(builder.fullNameFieldName);
+        this.setEmailFieldName(builder.emailFieldName);
+        this.setGroupsFieldName(builder.groupsFieldName);
+        this.setLogoutFromOpenidProvider(builder.logoutFromOpenidProvider);
+        this.setPostLogoutRedirectUrl(builder.postLogoutRedirectUrl);
+        this.setEscapeHatchEnabled(builder.escapeHatchEnabled);
+        this.setEscapeHatchUsername(builder.escapeHatchUsername);
+        this.setEscapeHatchSecret(builder.escapeHatchSecret);
+        this.setEscapeHatchGroup(builder.escapeHatchGroup);
     }
 
     public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupsFieldName)
@@ -172,7 +187,7 @@ public class TestRealm extends OicSecurityRealm {
             String userInfoServerUrl,
             String emailFieldName,
             String groupFieldName,
-            String automanualconfigure)
+            boolean automanualconfigure)
             throws IOException {
         this(new Builder(wireMockRule)
                 .WithMinimalDefaults()
@@ -187,7 +202,7 @@ public class TestRealm extends OicSecurityRealm {
             String userInfoServerUrl,
             String emailFieldName,
             String groupFieldName,
-            String automanualconfigure,
+            boolean automanualconfigure,
             boolean escapeHatchEnabled,
             String escapeHatchUsername,
             String escapeHatchSecret,

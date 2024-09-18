@@ -78,13 +78,6 @@ public class OicSecurityRealmTest {
     }
 
     @Test
-    public void testShouldSetNullClientSecretWhenSecretIsNone() throws IOException {
-        TestRealm realm = new TestRealm.Builder(wireMockRule)
-                .WithMinimalDefaults().WithClient("id with none secret", "NoNE").build();
-        assertEquals("none", Secret.toString(realm.getClientSecret()));
-    }
-
-    @Test
     public void testGetValidRedirectUrl() throws IOException {
         // root url is http://localhost:????/jenkins/
         final String rootUrl = jenkinsRule.jenkins.getRootUrl();
