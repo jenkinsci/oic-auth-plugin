@@ -1546,7 +1546,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
         String username = determineStringField(userNameFieldExpr, parsedIdToken, userInfo);
 
-        if (!expectedUsername.equals(username)) {
+        if (!User.idStrategy().equals(expectedUsername, username)) {
             httpResponse.sendError(
                     HttpServletResponse.SC_UNAUTHORIZED, "User name was not the same after refresh request");
             return false;
