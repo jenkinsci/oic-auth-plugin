@@ -13,6 +13,7 @@ sendScopesInTokenRequest: true
 serverConfiguration:
   manual:
     authorizationServerUrl: "http://localhost/authorize"
+    issuer: "http://localhost/"
     jwksServerUrl: "http://localhost/jwks"
     scopes: "scopes"
     tokenServerUrl: "http://localhost/token"

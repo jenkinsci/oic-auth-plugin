@@ -4,6 +4,7 @@ jenkins:
       serverConfiguration:
         manual:
           authorizationServerUrl: http://localhost/authorize
+          issuer: http://localhost/
           jwksServerUrl: http://localhost/jwks
           tokenAuthMethod: client_secret_post
           tokenServerUrl: http://localhost/token

@@ -43,9 +43,11 @@ public class ConfigurationAsCodeTest {
         assertTrue(realm instanceof OicSecurityRealm);
         OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
 
-        assertEquals(
-                "http://localhost/authorize",
-                oicSecurityRealm.getServerConfiguration().getAuthorizationServerUrl());
+        OicServerManualConfiguration serverConf =
+                (OicServerManualConfiguration) oicSecurityRealm.getServerConfiguration();
+
+        assertEquals("http://localhost/authorize", serverConf.getAuthorizationServerUrl());
+        assertEquals("http://localhost/", serverConf.getIssuer());
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertTrue(oicSecurityRealm.isDisableSslVerification());
@@ -59,18 +61,12 @@ public class ConfigurationAsCodeTest {
         assertEquals("fullNameFieldName", oicSecurityRealm.getFullNameFieldName());
         assertEquals("groupsFieldName", oicSecurityRealm.getGroupsFieldName());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
-        assertEquals("scopes", oicSecurityRealm.getServerConfiguration().getScopes());
-        assertEquals(
-                "http://localhost/token",
-                oicSecurityRealm.getServerConfiguration().getTokenServerUrl());
-        assertEquals(
-                TokenAuthMethod.client_secret_post,
-                oicSecurityRealm.getServerConfiguration().getTokenAuthMethod());
+        assertEquals("scopes", serverConf.getScopes());
+        assertEquals("http://localhost/token", serverConf.getTokenServerUrl());
+        assertEquals(TokenAuthMethod.client_secret_post, serverConf.getTokenAuthMethod());
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isRootURLFromRequest());
-        assertEquals(
-                "http://localhost/jwks",
-                oicSecurityRealm.getServerConfiguration().getJwksServerUrl());
+        assertEquals("http://localhost/jwks", serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
@@ -106,10 +102,11 @@ public class ConfigurationAsCodeTest {
 
         assertTrue(realm instanceof OicSecurityRealm);
         OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
+        OicServerManualConfiguration serverConf =
+                (OicServerManualConfiguration) oicSecurityRealm.getServerConfiguration();
 
-        assertEquals(
-                "http://localhost/authorize",
-                oicSecurityRealm.getServerConfiguration().getAuthorizationServerUrl());
+        assertEquals("http://localhost/authorize", serverConf.getAuthorizationServerUrl());
+        assertEquals("http://localhost/", serverConf.getIssuer());
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
@@ -117,28 +114,26 @@ public class ConfigurationAsCodeTest {
         assertFalse(oicSecurityRealm.isEscapeHatchEnabled());
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
-        assertEquals("openid email", oicSecurityRealm.getServerConfiguration().getScopes());
-        assertEquals(
-                "http://localhost/token",
-                oicSecurityRealm.getServerConfiguration().getTokenServerUrl());
-        assertEquals(
-                TokenAuthMethod.client_secret_post,
-                oicSecurityRealm.getServerConfiguration().getTokenAuthMethod());
+        assertEquals("openid email", serverConf.getScopes());
+        assertEquals("http://localhost/token", serverConf.getTokenServerUrl());
+        assertEquals(TokenAuthMethod.client_secret_post, serverConf.getTokenAuthMethod());
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertFalse(oicSecurityRealm.isRootURLFromRequest());
-        assertEquals(null, oicSecurityRealm.getServerConfiguration().getJwksServerUrl());
+        assertEquals(null, serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
     @Rule(order = 0)
     public final WellKnownMockRule wellKnownMockRule = new WellKnownMockRule(
             "MOCK_PORT",
-            "{\"authorization_endpoint\": \"http://localhost:%1$d/authorize\","
+            "{\"issuer\": \"http://localhost:%1$d/\","
+                    + "\"authorization_endpoint\": \"http://localhost:%1$d/authorize\","
                     + "\"token_endpoint\":\"http://localhost:%1$d/token\","
                     + "\"userinfo_endpoint\":\"http://localhost:%1$d/user\","
                     + "\"jwks_uri\":\"http://localhost:%1$d/jwks\","
-                    + "\"scopes_supported\": null,"
+                    + "\"scopes_supported\": [\"openid\",\"email\"],"
+                    + "\"subject_types_supported\": [\"public\"],"
                     + "\"end_session_endpoint\":\"http://localhost:%1$d/logout\"}");
 
     @Test
@@ -148,36 +143,26 @@ public class ConfigurationAsCodeTest {
         assertThat(realm, instanceOf(OicSecurityRealm.class));
         OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
 
+        assertThat(oicSecurityRealm.getServerConfiguration(), instanceOf(OicServerWellKnownConfiguration.class));
+        OicServerWellKnownConfiguration serverConf =
+                (OicServerWellKnownConfiguration) oicSecurityRealm.getServerConfiguration();
+
         String urlBase = String.format("http://localhost:%d", wellKnownMockRule.port());
 
-        assertThat(oicSecurityRealm.getServerConfiguration(), instanceOf(OicServerWellKnownConfiguration.class));
-        assertEquals(
-                urlBase + "/well.known",
-                ((OicServerWellKnownConfiguration) oicSecurityRealm.getServerConfiguration())
-                        .getWellKnownOpenIDConfigurationUrl());
-        assertEquals(
-                urlBase + "/authorize",
-                oicSecurityRealm.getServerConfiguration().getAuthorizationServerUrl());
-        assertEquals(
-                urlBase + "/token", oicSecurityRealm.getServerConfiguration().getTokenServerUrl());
-        assertEquals(
-                urlBase + "/jwks", oicSecurityRealm.getServerConfiguration().getJwksServerUrl());
-        assertEquals("clientId", oicSecurityRealm.getClientId());
-        assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
         assertNull(oicSecurityRealm.getEmailFieldName());
         assertFalse(oicSecurityRealm.isEscapeHatchEnabled());
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
-        assertEquals("openid email", oicSecurityRealm.getServerConfiguration().getScopes());
-        assertEquals(
-                urlBase + "/token", oicSecurityRealm.getServerConfiguration().getTokenServerUrl());
-        assertEquals(
-                TokenAuthMethod.client_secret_post,
-                oicSecurityRealm.getServerConfiguration().getTokenAuthMethod());
+
+        assertEquals("clientId", oicSecurityRealm.getClientId());
+        assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
+
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
+
+        assertEquals(urlBase + "/well.known", serverConf.getWellKnownOpenIDConfigurationUrl());
     }
 
     /** Class to setup WireMockRule for well known with stub and setting port in env variable

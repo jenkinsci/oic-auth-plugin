@@ -2,8 +2,8 @@ package org.jenkinsci.plugins.oic;
 
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.google.api.client.json.GenericJson;
 import java.util.HashMap;
+import java.util.Map;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -24,7 +24,7 @@ public class FieldTest {
         HashMap<String, Object> user = new HashMap<>();
         user.put("id", "100");
 
-        GenericJson payload = new GenericJson();
+        Map<String, Object> payload = new HashMap<>();
         payload.put("email", "myemail@example.com");
         payload.put("user", user);
         payload.put("none", null);
@@ -44,7 +44,7 @@ public class FieldTest {
         HashMap<String, Object> user = new HashMap<>();
         user.put("id", "100");
 
-        GenericJson payload = new GenericJson();
+        Map<String, Object> payload = new HashMap<>();
         payload.put("email", "myemail@example.com");
         payload.put("user", user);
         payload.put("none", null);
@@ -67,7 +67,7 @@ public class FieldTest {
         user.put("name", "john");
         user.put("surname", "dow");
 
-        GenericJson payload = new GenericJson();
+        Map<String, Object> payload = new HashMap<>();
         payload.put("user", user);
 
         TestRealm realm = new TestRealm(wireMockRule);
@@ -77,7 +77,7 @@ public class FieldTest {
 
     @Test
     public void testInvalidFieldName() throws Exception {
-        GenericJson payload = new GenericJson();
+        Map<String, Object> payload = new HashMap<>();
         payload.put("user", "john");
 
         TestRealm realm = new TestRealm(wireMockRule);
