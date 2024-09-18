@@ -7,8 +7,15 @@ import hudson.util.Secret;
 import io.burt.jmespath.Expression;
 import java.io.IOException;
 import java.io.ObjectStreamException;
-import org.kohsuke.stapler.HttpResponse;
+import java.net.URISyntaxException;
+import java.text.ParseException;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
+import org.pac4j.core.context.WebContext;
+import org.pac4j.core.context.session.SessionStore;
+import org.pac4j.jee.context.JEEContextFactory;
+import org.pac4j.jee.context.session.JEESessionStoreFactory;
+import org.pac4j.oidc.client.OidcClient;
 
 public class TestRealm extends OicSecurityRealm {
 
@@ -16,10 +23,12 @@ public class TestRealm extends OicSecurityRealm {
     public static final String EMAIL_FIELD = "email";
     public static final String FULL_NAME_FIELD = "fullName";
     public static final String GROUPS_FIELD = "groups";
+    public static final String ISSUER = "https://localhost/";
 
     public static class Builder {
         public String clientId = CLIENT_ID;
         public Secret clientSecret = Secret.fromString("secret");
+        public String issuer = ISSUER;
         public String wellKnownOpenIDConfigurationUrl;
         public String tokenServerUrl;
         public String jwksServerUrl = null;
@@ -42,6 +51,7 @@ public class TestRealm extends OicSecurityRealm {
         public Secret escapeHatchSecret = null;
         public String escapeHatchGroup = null;
         public boolean automanualconfigure = false;
+        public boolean disableTokenValidation = true; // opt in for some specific tests
 
         public Builder(WireMockRule wireMockRule) throws IOException {
             this("http://localhost:" + wireMockRule.port() + "/");
@@ -56,6 +66,11 @@ public class TestRealm extends OicSecurityRealm {
         public Builder WithClient(String clientId, String clientSecret) {
             this.clientId = clientId;
             this.clientSecret = clientSecret == null ? null : Secret.fromString(clientSecret);
+            return this;
+        }
+
+        public Builder WithIssuer(String issuer) {
+            this.issuer = issuer;
             return this;
         }
 
@@ -116,6 +131,11 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
+        public Builder WithDisableTokenValidation(boolean disableTokenValidation) {
+            this.disableTokenValidation = disableTokenValidation;
+            return this;
+        }
+
         public TestRealm build() throws IOException {
             return new TestRealm(this);
         }
@@ -131,7 +151,7 @@ public class TestRealm extends OicSecurityRealm {
                     return conf;
                 }
                 OicServerManualConfiguration conf =
-                        new OicServerManualConfiguration(tokenServerUrl, authorizationServerUrl);
+                        new OicServerManualConfiguration(issuer, tokenServerUrl, authorizationServerUrl);
                 conf.setTokenAuthMethod(tokenAuthMethod);
                 conf.setUserInfoServerUrl(userInfoServerUrl);
                 if (scopes != null) {
@@ -164,6 +184,11 @@ public class TestRealm extends OicSecurityRealm {
         this.setEscapeHatchUsername(builder.escapeHatchUsername);
         this.setEscapeHatchSecret(builder.escapeHatchSecret);
         this.setEscapeHatchGroup(builder.escapeHatchGroup);
+        this.setDisableTokenVerification(builder.disableTokenValidation);
+        // need to call the following method annotated with @PostConstruct and called
+        // from readResolve and as such
+        // is only called in regular use not code use.
+        super.createProxyAwareResourceRetriver();
     }
 
     public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupsFieldName)
@@ -223,12 +248,19 @@ public class TestRealm extends OicSecurityRealm {
     }
 
     @Override
-    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
-        OicSession.getCurrent().state = "state";
+    public void doFinishLogin(StaplerRequest request, StaplerResponse response)
+            throws IOException, ParseException, URISyntaxException {
+        /*
+         * PluginTest uses a hardCoded nonce "nonce"
+         */
         if (!isNonceDisabled()) {
-            OicSession.getCurrent().nonce = "nonce";
+            // only hack the nonce if the nonce is enabled
+            WebContext webContext = JEEContextFactory.INSTANCE.newContext(request, response);
+            SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
+            OidcClient oidcClient = buildOidcClient();
+            sessionStore.set(webContext, oidcClient.getNonceSessionAttributeName(), "nonce");
         }
-        return super.doFinishLogin(request);
+        super.doFinishLogin(request, response);
     }
 
     public String getStringFieldFromJMESPath(Object object, String jmespathField) {

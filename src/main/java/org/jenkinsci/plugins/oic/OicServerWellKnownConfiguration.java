@@ -1,12 +1,10 @@
 package org.jenkinsci.plugins.oic;
 
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpHeaders;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpResponseException;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.gson.JsonParseException;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
+import com.nimbusds.jose.util.ResourceRetriever;
+import com.nimbusds.oauth2.sdk.ParseException;
+import com.nimbusds.oauth2.sdk.Scope;
+import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
+import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import hudson.Extension;
 import hudson.RelativePath;
 import hudson.Util;
@@ -15,21 +13,25 @@ import hudson.util.FormValidation;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
-import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
+import org.pac4j.core.exception.TechnicalException;
+import org.pac4j.oidc.config.OidcConfiguration;
 
 public class OicServerWellKnownConfiguration extends OicServerConfiguration {
 
@@ -40,19 +42,12 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
     private final String wellKnownOpenIDConfigurationUrl;
     private String scopesOverride;
 
-    private transient String authorizationServerUrl;
-    private transient String tokenServerUrl;
-    private transient String jwksServerUrl;
-    private transient String endSessionUrl;
-    private transient String scopes;
-    private transient String userInfoServerUrl;
-    private transient boolean useRefreshTokens;
-    private transient TokenAuthMethod tokenAuthMethod;
-
     /**
      * Time of the wellknown configuration expiration
      */
     private transient LocalDateTime wellKnownExpires = null;
+
+    private transient volatile OIDCProviderMetadata oidcProviderMetadata;
 
     @DataBoundConstructor
     public OicServerWellKnownConfiguration(String wellKnownOpenIDConfigurationUrl) {
@@ -64,42 +59,6 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
         this.scopesOverride = Util.fixEmptyAndTrim(scopesOverride);
     }
 
-    @Override
-    public String getAuthorizationServerUrl() {
-        loadWellKnownConfigIfNeeded();
-        return authorizationServerUrl;
-    }
-
-    @Override
-    @CheckForNull
-    public String getEndSessionUrl() {
-        loadWellKnownConfigIfNeeded();
-        return endSessionUrl;
-    }
-
-    @Override
-    public String getJwksServerUrl() {
-        loadWellKnownConfigIfNeeded();
-        return jwksServerUrl;
-    }
-
-    /**
-     * Returns {@link #getScopesOverride()} if set, otherwise the scopes from the published metadata if set, otherwise "openid email".
-     */
-    @Override
-    public String getScopes() {
-        loadWellKnownConfigIfNeeded();
-        if (scopesOverride != null) {
-            return scopesOverride;
-        }
-        if (scopes != null) {
-            return scopes;
-        }
-        // server did not advertise anything and no overrides set.
-        // email may not be supported, but it is relatively common so try anyway
-        return "openid email";
-    }
-
     public String getScopesOverride() {
         return scopesOverride;
     }
@@ -108,89 +67,89 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
         return wellKnownOpenIDConfigurationUrl;
     }
 
-    @Override
-    public String getTokenServerUrl() {
-        loadWellKnownConfigIfNeeded();
-        return tokenServerUrl;
-    }
-
-    @Override
-    public String getUserInfoServerUrl() {
-        loadWellKnownConfigIfNeeded();
-        return userInfoServerUrl;
-    }
-
-    @Override
-    public boolean isUseRefreshTokens() {
-        loadWellKnownConfigIfNeeded();
-        return useRefreshTokens;
-    }
-
-    @Override
-    public TokenAuthMethod getTokenAuthMethod() {
-        loadWellKnownConfigIfNeeded();
-        return tokenAuthMethod;
+    @Restricted(NoExternalUse.class) // for testing only
+    void invalidateProviderMetadata() {
+        // TODO XXX test code should be refactored to not make changes
+        oidcProviderMetadata = null;
     }
 
     /**
      * Obtain the provider configuration from the configured well known URL if it
      * has not yet been obtained or requires a refresh.
      */
-    private void loadWellKnownConfigIfNeeded() {
+    @Override
+    public OIDCProviderMetadata toProviderMetadata() {
+        // we perform this download manually rather than letting pac4j perform it
+        // so that we can cache and expire the result.
+        // pac4j will cache the result yet never expire it.
         LocalDateTime now = LocalDateTime.now();
         if (this.wellKnownExpires != null && this.wellKnownExpires.isBefore(now)) {
             // configuration is still fresh
-            return;
+            return oidcProviderMetadata;
         }
 
-        // Get the well-known configuration from the specified URL
+        // Download OIDC metadata
+        // we need to configure timeouts, headers as well as SSL (hostname verifier etc..)
+        // which may be disabled in the configuration
+        ResourceRetriever rr = ((OicSecurityRealm) (Jenkins.get().getSecurityRealm())).getResourceRetriever();
         try {
-            URL url = new URL(wellKnownOpenIDConfigurationUrl);
-            OicSecurityRealm realm = (OicSecurityRealm) Jenkins.get().getSecurityRealm();
-            HttpRequest request =
-                    realm.getHttpTransport().createRequestFactory().buildGetRequest(new GenericUrl(url));
-
-            com.google.api.client.http.HttpResponse response = request.execute();
-            WellKnownOpenIDConfigurationResponse config = GsonFactory.getDefaultInstance()
-                    .fromInputStream(
-                            response.getContent(),
-                            Charset.defaultCharset(),
-                            WellKnownOpenIDConfigurationResponse.class);
-
-            this.authorizationServerUrl = config.getAuthorizationEndpoint();
-            this.tokenServerUrl = config.getTokenEndpoint();
-            this.jwksServerUrl = config.getJwksUri();
-            this.tokenAuthMethod = config.getPreferredTokenAuthMethod();
-            this.userInfoServerUrl = config.getUserinfoEndpoint();
-            if (config.getScopesSupported() != null
-                    && !config.getScopesSupported().isEmpty()) {
-                this.scopes = StringUtils.join(config.getScopesSupported(), " ");
+            OIDCProviderMetadata _oidcProviderMetadata =
+                    OIDCProviderMetadata.parse(rr.retrieveResource(new URL(wellKnownOpenIDConfigurationUrl))
+                            .getContent());
+            String _scopesOverride = getScopesOverride();
+            if (_scopesOverride != null) {
+                // split the scopes by space
+                String[] splitScopes = _scopesOverride.split("\\s+");
+                _oidcProviderMetadata.setScopes(new Scope(splitScopes));
             }
-            this.endSessionUrl = config.getEndSessionEndpoint();
-
-            if (config.getGrantTypesSupported() != null) {
-                this.useRefreshTokens = config.getGrantTypesSupported().contains("refresh_token");
-            } else {
-                this.useRefreshTokens = false;
+            // we do not expose enough to be able to configure all authentication methods,
+            // so limit supported auth methods to CLIENT_SECRET_BASIC / CLIENT_SECRET_POST
+            List<ClientAuthenticationMethod> tokenEndpointAuthMethods =
+                    _oidcProviderMetadata.getTokenEndpointAuthMethods();
+            if (tokenEndpointAuthMethods != null) {
+                List<ClientAuthenticationMethod> filteredEndpointAuthMethods =
+                        new ArrayList<>(tokenEndpointAuthMethods);
+                filteredEndpointAuthMethods.removeIf(cam -> cam != ClientAuthenticationMethod.CLIENT_SECRET_BASIC
+                        && cam != ClientAuthenticationMethod.CLIENT_SECRET_POST);
+                if (filteredEndpointAuthMethods.isEmpty()) {
+                    LOGGER.log(
+                            Level.WARNING,
+                            "OIDC well-known configuration reports only unsupported token authentication methods (authentication may not work): "
+                                    + tokenEndpointAuthMethods.stream()
+                                            .map(Object::toString)
+                                            .collect(Collectors.joining(",", "[", "]")));
+                    _oidcProviderMetadata.setTokenEndpointAuthMethods(null);
+                } else {
+                    _oidcProviderMetadata.setTokenEndpointAuthMethods(filteredEndpointAuthMethods);
+                }
             }
 
-            setWellKnownExpires(response.getHeaders());
+            oidcProviderMetadata = _oidcProviderMetadata;
+            // TODO XXX need to obtain the expiry!
+            setWellKnownExpires(/*response.getHeaders()*/ );
+            return oidcProviderMetadata;
         } catch (MalformedURLException e) {
             LOGGER.log(Level.SEVERE, "Invalid WellKnown OpenID Configuration URL", e);
-        } catch (HttpResponseException e) {
-            LOGGER.log(Level.SEVERE, "Could not get wellknown OpenID Configuration", e);
-        } catch (JsonParseException e) {
+        } catch (ParseException e) {
             LOGGER.log(Level.SEVERE, "Could not parse wellknown OpenID Configuration", e);
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error while loading wellknown OpenID Configuration", e);
         }
+        if (oidcProviderMetadata != null) {
+            // return the previously downloaded but expired copy with the hope it still works.
+            // although if the well known url is down it is unlikely the rest of the provider is healthy, still. we can
+            // hope.
+            return oidcProviderMetadata;
+        }
+        throw new IllegalStateException("Well known configuration could not be loaded, login can not preceed.");
     }
 
     /**
      * Parse headers to determine expiration date
      */
-    private void setWellKnownExpires(HttpHeaders headers) {
-        String expires = Util.fixEmptyAndTrim(headers.getExpires());
+    // XXX TODO
+    private void setWellKnownExpires(/* HttpHeaders headers*/ ) {
+        String expires = "0"; // Util.fixEmptyAndTrim(headers.getExpires());
         // expires 0 means no cache
         // we could (should?) have a look at Cache-Control header and max-age but for
         // simplicity
@@ -226,35 +185,23 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
                 return FormValidation.error(Messages.OicSecurityRealm_NotAValidURL());
             }
             try {
-                URL url = new URL(wellKnownOpenIDConfigurationUrl);
-                HttpRequest request = OicSecurityRealm.constructHttpTransport(disableSslVerification)
-                        .createRequestFactory()
-                        .buildGetRequest(new GenericUrl(url));
-                com.google.api.client.http.HttpResponse response = request.execute();
+                // TODO XXX handle disabling SSL Verification etc..
+                OidcConfiguration configuration = new OidcConfiguration();
+                configuration.setClientId("ignored-but-requred");
+                configuration.setSecret("ignored-but-required");
+                configuration.setDiscoveryURI(wellKnownOpenIDConfigurationUrl);
 
-                // Try to parse the response. If it's not valid, a JsonParseException will be
-                // thrown indicating
-                // that it's not a valid JSON describing an OpenID Connect endpoint
-                WellKnownOpenIDConfigurationResponse config = GsonFactory.getDefaultInstance()
-                        .fromInputStream(
-                                response.getContent(),
-                                Charset.defaultCharset(),
-                                WellKnownOpenIDConfigurationResponse.class);
-                if (config.getAuthorizationEndpoint() == null || config.getTokenEndpoint() == null) {
+                OIDCProviderMetadata providerMetadata = configuration.findProviderMetadata();
+
+                if (providerMetadata.getAuthorizationEndpointURI() == null
+                        || providerMetadata.getTokenEndpointURI() == null) {
                     return FormValidation.warning(Messages.OicSecurityRealm_URLNotAOpenIdEnpoint());
                 }
-
                 return FormValidation.ok();
-            } catch (MalformedURLException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
-            } catch (HttpResponseException e) {
-                return FormValidation.error(
-                        e,
-                        Messages.OicSecurityRealm_CouldNotRetreiveWellKnownConfig(
-                                e.getStatusCode(), e.getStatusMessage()));
-            } catch (JsonParseException e) {
-                return FormValidation.error(e, Messages.OicSecurityRealm_CouldNotParseResponse());
-            } catch (IOException e) {
+            } catch (TechnicalException e) {
+                if (e.getCause() instanceof ParseException) {
+                    return FormValidation.error(e, Messages.OicSecurityRealm_URLNotAOpenIdEnpoint());
+                }
                 return FormValidation.error(e, Messages.OicSecurityRealm_ErrorRetreivingWellKnownConfig());
             }
         }

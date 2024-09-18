@@ -3,6 +3,7 @@ jenkins:
     oic:
       serverConfiguration:
         manual:
+          issuer: http://localhost/
           authorizationServerUrl: http://localhost/authorize
           tokenServerUrl: http://localhost/token
       clientId: clientId

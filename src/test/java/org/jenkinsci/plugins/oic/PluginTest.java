@@ -1,15 +1,17 @@
 package org.jenkinsci.plugins.oic;
 
+import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import com.google.api.client.json.webtoken.JsonWebToken;
-import com.google.api.client.util.Clock;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
+import com.nimbusds.oauth2.sdk.GrantType;
+import com.nimbusds.oauth2.sdk.Scope;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -28,6 +30,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -47,6 +50,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.DisableOnDebug;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Url;
 import org.kohsuke.stapler.Stapler;
@@ -82,9 +86,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * goes through a login scenario, the openid provider is mocked and always returns state. We aren't checking
- * if if openid connect or if the openid connect implementation works. Rather we are only
- * checking if the jenkins interaction works and if the plugin code works.
+ * goes through a login scenario, the openid provider is mocked and always
+ * returns state. We aren't checking if if openid connect or if the openid
+ * connect implementation works. Rather we are only checking if the jenkins
+ * interaction works and if the plugin code works.
  */
 @Url("https://jenkins.io/blog/2018/01/13/jep-200/")
 public class PluginTest {
@@ -97,7 +102,11 @@ public class PluginTest {
             List.of(Map.of("id", "id1", "name", "group1"), Map.of("id", "id2", "name", "group2"));
 
     @Rule
-    public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(), true);
+    public WireMockRule wireMockRule = new WireMockRule(
+            new WireMockConfiguration()
+                    .dynamicPort()
+                    .notifier(new ConsoleNotifier(new DisableOnDebug(null).isDebugging())),
+            true);
 
     @Rule
     public JenkinsRule jenkinsRule = new JenkinsRule();
@@ -109,6 +118,9 @@ public class PluginTest {
     public void setUp() {
         jenkins = jenkinsRule.getInstance();
         webClient = jenkinsRule.createWebClient();
+        if (new DisableOnDebug(null).isDebugging()) {
+            webClient.getOptions().setTimeout(0);
+        }
     }
 
     @Test
@@ -128,8 +140,7 @@ public class PluginTest {
         verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*&scope=.*")));
         webClient.executeOnServer(() -> {
             HttpSession session = Stapler.getCurrentRequest().getSession();
-            assertNull(OicSession.getCurrent());
-            assertNotNull(OicSecurityRealm.getStateAttribute(session));
+            assertNotNull(((OicSecurityRealm) Jenkins.get().getSecurityRealm()).getStateAttribute(session));
             return null;
         });
     }
@@ -166,13 +177,17 @@ public class PluginTest {
     private void mockAuthorizationRedirectsToFinishLogin() {
         wireMockRule.stubFor(get(urlPathEqualTo("/authorization"))
                 .willReturn(aResponse()
+                        .withTransformers("response-template")
                         .withStatus(302)
                         .withHeader("Content-Type", "text/html; charset=utf-8")
                         .withHeader(
-                                "Location", jenkins.getRootUrl() + "securityRealm/finishLogin?state=state&code=code")));
+                                "Location",
+                                jenkins.getRootUrl()
+                                        + "securityRealm/finishLogin?state={{request.query.state}}&code=code")));
     }
 
     @Test
+    @Ignore("there is no configuration option for this and the spec does not have scopes in a token endpoint")
     public void testLoginWithScopesInTokenRequest() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithGroup();
@@ -197,13 +212,13 @@ public class PluginTest {
         verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(matching(".*&code_verifier=[^&]+.*")));
 
         // check PKCE
-        //   - get codeChallenge
+        // - get codeChallenge
         final String codeChallenge = findAll(getRequestedFor(urlPathEqualTo("/authorization")))
                 .get(0)
                 .queryParameter("code_challenge")
                 .values()
                 .get(0);
-        //   - get verifierCode
+        // - get verifierCode
         Matcher m = Pattern.compile(".*&code_verifier=([^&]+).*")
                 .matcher(findAll(postRequestedFor(urlPathEqualTo("/token")))
                         .get(0)
@@ -211,7 +226,7 @@ public class PluginTest {
         assertTrue(m.find());
         final String codeVerifier = m.group(1);
 
-        //   - hash verifierCode
+        // - hash verifierCode
         byte[] bytes = codeVerifier.getBytes();
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(bytes, 0, bytes.length);
@@ -306,18 +321,25 @@ public class PluginTest {
         jenkins.setSecurityRealm(oicsr);
         assertEquals(
                 "All scopes of WellKnown should be used",
-                "openid profile scope1 scope2 scope3",
-                oicsr.getServerConfiguration().getScopes());
+                new Scope("openid", "profile", "scope1", "scope2", "scope3"),
+                oicsr.getServerConfiguration().toProviderMetadata().getScopes());
         OicServerWellKnownConfiguration serverConfig = (OicServerWellKnownConfiguration) oicsr.getServerConfiguration();
 
         serverConfig.setScopesOverride("openid profile scope2 other");
-        assertEquals("scopes should be completely overridden", "openid profile scope2 other", serverConfig.getScopes());
+        serverConfig.invalidateProviderMetadata(); // XXX should not be used as it is not a normal code flow, rather the
+        // code should create a new ServerConfig
+        assertEquals(
+                "scopes should be completely overridden",
+                new Scope("openid", "profile", "scope2", "other"),
+                serverConfig.toProviderMetadata().getScopes());
 
+        serverConfig.invalidateProviderMetadata(); // XXX should not be used as it is not a normal code flow, rather the
+        // code should create a new ServerConfig
         serverConfig.setScopesOverride("");
         assertEquals(
                 "All scopes of WellKnown should be used",
-                "openid profile scope1 scope2 scope3",
-                oicsr.getServerConfiguration().getScopes());
+                new Scope("openid", "profile", "scope1", "scope2", "scope3"),
+                serverConfig.toProviderMetadata().getScopes());
     }
 
     @Test
@@ -328,7 +350,10 @@ public class PluginTest {
         jenkins.setSecurityRealm(oicsr);
         assertTrue(
                 "Refresh token should be enabled",
-                oicsr.getServerConfiguration().isUseRefreshTokens());
+                oicsr.getServerConfiguration()
+                        .toProviderMetadata()
+                        .getGrantTypes()
+                        .contains(GrantType.REFRESH_TOKEN));
     }
 
     @Test
@@ -521,7 +546,6 @@ public class PluginTest {
                     60L,
                     1L,
                     60L));
-
             return null;
         });
     }
@@ -598,6 +622,7 @@ public class PluginTest {
         jenkins.setSecurityRealm(new TestRealm.Builder(wireMockRule)
                 .WithUserInfoServerUrl("http://localhost:" + wireMockRule.port() + "/userinfo")
                         .WithJwksServerUrl("http://localhost:" + wireMockRule.port() + "/jwks")
+                        .WithDisableTokenValidation(false)
                         .build());
 
         assertAnonymous();
@@ -839,24 +864,38 @@ public class PluginTest {
             @CheckForNull String endSessionUrl,
             @CheckForNull List<String> scopesSupported,
             @CheckForNull String... grantTypesSupported) {
+        // scopes_supported may not be null, but is not required to be present.
+        // if present it must minimally be "openid"
+        // Claims with zero elements MUST be omitted from the response.
+
+        Map<String, Object> values = new HashMap<>();
+        values.putAll(Map.of(
+                "authorization_endpoint",
+                "http://localhost:" + wireMockRule.port() + "/authorization",
+                "token_endpoint",
+                "http://localhost:" + wireMockRule.port() + "/token",
+                "userinfo_endpoint",
+                "http://localhost:" + wireMockRule.port() + "/userinfo",
+                "jwks_uri",
+                "http://localhost:" + wireMockRule.port() + "/jwks",
+                "issuer",
+                TestRealm.ISSUER,
+                "subject_types_supported",
+                List.of("public")));
+        if (scopesSupported != null && !scopesSupported.isEmpty()) {
+            values.put("scopes_supported", scopesSupported);
+        }
+        if (endSessionUrl != null) {
+            values.put("end_session_endpoint", endSessionUrl);
+        }
+        if (grantTypesSupported.length != 0) {
+            values.put("grant_types_supported", grantTypesSupported);
+        }
+
         wireMockRule.stubFor(get(urlPathEqualTo("/well.known"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "text/html; charset=utf-8")
-                        .withBody(toJson(Map.of(
-                                "authorization_endpoint",
-                                "http://localhost:" + wireMockRule.port() + "/authorization",
-                                "token_endpoint",
-                                "http://localhost:" + wireMockRule.port() + "/token",
-                                "userinfo_endpoint",
-                                "http://localhost:" + wireMockRule.port() + "/userinfo",
-                                "jwks_uri",
-                                JsonNull.INSTANCE,
-                                "scopes_supported",
-                                scopesSupported == null ? JsonNull.INSTANCE : scopesSupported,
-                                "end_session_endpoint",
-                                endSessionUrl == null ? JsonNull.INSTANCE : endSessionUrl,
-                                "grant_types_supported",
-                                grantTypesSupported)))));
+                        .withBody(toJson(values))));
     }
 
     @Test
@@ -914,13 +953,13 @@ public class PluginTest {
     private String createIdToken(PrivateKey privateKey, Map<String, Object> keyValues) throws Exception {
         JsonWebSignature.Header header =
                 new JsonWebSignature.Header().setAlgorithm("RS256").setKeyId("jwks_key_id");
-        long now = Clock.SYSTEM.currentTimeMillis() / 1000;
+        long now = Clock.systemUTC().millis() / 1000;
         IdToken.Payload payload = new IdToken.Payload()
                 .setExpirationTimeSeconds(now + 60L)
                 .setIssuedAtTimeSeconds(now)
-                .setIssuer("issuer")
+                .setIssuer(TestRealm.ISSUER)
                 .setSubject(TEST_USER_USERNAME)
-                .setAudience(Collections.singletonList("clientId"))
+                .setAudience(Collections.singletonList(TestRealm.CLIENT_ID))
                 .setNonce("nonce");
         for (Map.Entry<String, Object> keyValue : keyValues.entrySet()) {
             payload.set(keyValue.getKey(), keyValue.getValue());
@@ -963,7 +1002,7 @@ public class PluginTest {
         mockTokenReturnsIdToken("This is not an IdToken");
         jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, null, null));
         assertAnonymous();
-        webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 403);
+        webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 500);
     }
 
     @Test
@@ -1098,9 +1137,7 @@ public class PluginTest {
     private static @NonNull Map<String, Object> setUpKeyValuesNested() {
         return Map.of(
                 "nested",
-                Map.of(
-                        EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS,
-                        GROUPS_FIELD, TEST_USER_GROUPS),
+                Map.of(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS, GROUPS_FIELD, TEST_USER_GROUPS),
                 FULL_NAME_FIELD,
                 TEST_USER_FULL_NAME);
     }
@@ -1178,7 +1215,7 @@ public class PluginTest {
             @CheckForNull String idToken, @CheckForNull Consumer<Map<String, String>>... tokenAcceptors) {
         var token = new HashMap<String, String>();
         token.put("access_token", "AcCeSs_ToKeN");
-        token.put("token_type", "example");
+        token.put("token_type", "Bearer");
         token.put("expires_in", "3600");
         token.put("refresh_token", "ReFrEsH_ToKeN");
         token.put("example_parameter", "example_value");

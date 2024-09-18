@@ -50,10 +50,18 @@ public class OicServerWellKnownConfigurationTest {
                 descriptor.doCheckWellKnownOpenIDConfigurationUrl(
                         jenkinsRule.jenkins.getRootUrl() + "/api/json", false),
                 allOf(
-                        hasKind(FormValidation.Kind.WARNING),
-                        withMessage("URL does not seem to describe OpenID Connect endpoints")));
+                        hasKind(FormValidation.Kind.ERROR),
+                        withMessageContaining("URL does not seem to describe OpenID Connect endpoints")));
+
         assertThat(
                 descriptor.doCheckWellKnownOpenIDConfigurationUrl(jenkinsRule.jenkins.getRootUrl() + "/api/xml", false),
+                allOf(
+                        hasKind(FormValidation.Kind.ERROR),
+                        withMessageContaining("URL does not seem to describe OpenID Connect endpoints")));
+
+        assertThat(
+                descriptor.doCheckWellKnownOpenIDConfigurationUrl(
+                        jenkinsRule.jenkins.getRootUrl() + "/does/not/exist", false),
                 allOf(
                         hasKind(FormValidation.Kind.ERROR),
                         withMessageContaining("Error when retrieving well-known config")));
@@ -79,6 +87,7 @@ public class OicServerWellKnownConfigurationTest {
         String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
         String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
         String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
+        String issuer = "http://localhost:" + wireMockRule.port() + "/";
         String jwksUrl = "null";
         String endSessionUrl = "null";
 
@@ -86,10 +95,11 @@ public class OicServerWellKnownConfigurationTest {
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "text/html; charset=utf-8")
                         .withBody(String.format(
-                                "{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
+                                "{\"authorization_endpoint\": \"%s\", \"issuer\" :\"%s\", \"token_endpoint\":\"%s\", "
                                         + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": null, "
+                                        + "\"subject_types_supported\": [ \"public\" ], "
                                         + "\"end_session_endpoint\":\"%s\"}",
-                                authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))));
+                                authUrl, issuer, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))));
     }
 
     private static DescriptorImpl getDescriptor() {
