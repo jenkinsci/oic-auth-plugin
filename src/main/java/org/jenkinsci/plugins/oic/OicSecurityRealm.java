@@ -23,40 +23,23 @@
  */
 package org.jenkinsci.plugins.oic;
 
-import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
-import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
-import com.google.api.client.auth.oauth2.BearerToken;
-import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
-import com.google.api.client.auth.oauth2.Credential.AccessMethod;
-import com.google.api.client.auth.oauth2.RefreshTokenRequest;
-import com.google.api.client.auth.oauth2.TokenErrorResponse;
-import com.google.api.client.auth.oauth2.TokenResponseException;
-import com.google.api.client.auth.openidconnect.HttpTransportFactory;
-import com.google.api.client.auth.openidconnect.IdToken;
-import com.google.api.client.http.BasicAuthentication;
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpExecuteInterceptor;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestFactory;
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.http.HttpResponseException;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.GenericJson;
-import com.google.api.client.json.JsonObjectParser;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.client.json.webtoken.JsonWebSignature;
-import com.google.api.client.util.ArrayMap;
-import com.google.api.client.util.Data;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.oauth2.sdk.GrantType;
+import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
+import com.nimbusds.oauth2.sdk.pkce.CodeChallengeMethod;
+import com.nimbusds.oauth2.sdk.token.AccessToken;
+import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
+import com.nimbusds.oauth2.sdk.token.RefreshToken;
+import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
+import hudson.model.Failure;
 import hudson.model.User;
 import hudson.security.ChainedServletFilter;
 import hudson.security.SecurityRealm;
@@ -71,14 +54,16 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
+import java.text.ParseException;
 import java.time.Clock;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -88,6 +73,7 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import javax.annotation.PostConstruct;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -100,19 +86,34 @@ import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.SecurityListener;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Header;
-import org.kohsuke.stapler.HttpRedirect;
-import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.HttpResponses;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.pac4j.core.context.WebContext;
+import org.pac4j.core.context.session.SessionStore;
+import org.pac4j.core.credentials.Credentials;
+import org.pac4j.core.exception.TechnicalException;
+import org.pac4j.core.exception.http.HttpAction;
+import org.pac4j.core.exception.http.RedirectionAction;
+import org.pac4j.core.http.callback.NoParameterCallbackUrlResolver;
+import org.pac4j.core.profile.creator.ProfileCreator;
+import org.pac4j.jee.context.JEEContextFactory;
+import org.pac4j.jee.context.session.JEESessionStoreFactory;
+import org.pac4j.jee.http.adapter.JEEHttpActionAdapter;
+import org.pac4j.oidc.client.OidcClient;
+import org.pac4j.oidc.config.OidcConfiguration;
+import org.pac4j.oidc.credentials.authenticator.OidcAuthenticator;
+import org.pac4j.oidc.profile.OidcProfile;
+import org.pac4j.oidc.redirect.OidcRedirectionActionBuilder;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -139,13 +140,24 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
 
     public static enum TokenAuthMethod {
-        client_secret_basic,
-        client_secret_post
+        client_secret_basic(ClientAuthenticationMethod.CLIENT_SECRET_BASIC),
+        client_secret_post(ClientAuthenticationMethod.CLIENT_SECRET_POST);
+
+        private ClientAuthenticationMethod clientAuthMethod;
+
+        TokenAuthMethod(ClientAuthenticationMethod clientAuthMethod) {
+            this.clientAuthMethod = clientAuthMethod;
+        }
+
+        ClientAuthenticationMethod toClientAuthenticationMethod() {
+            return clientAuthMethod;
+        }
     };
 
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
     private static final String NO_SECRET = "none";
+    private static final String SESSION_POST_LOGIN_REDIRECT_URL_KEY = "oic-redirect-on-login-url";
 
     private final String clientId;
     private final Secret clientSecret;
@@ -215,7 +227,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     private OicServerConfiguration serverConfiguration;
 
-    /** @deprecated see {@link OicServerWellKnownConfiguration#getScopes()} */
+    /** @deprecated with no replacement.  See sub classes of {@link OicServerConfiguration} */
     @Deprecated
     private String overrideScopes = null;
 
@@ -259,12 +271,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @Deprecated
     private transient String endSessionUrl;
 
-    /** Verification of IdToken and UserInfo (in jwt case)
-     */
-    private transient OicJsonWebTokenVerifier jwtVerifier;
-
-    private transient HttpTransport httpTransport = null;
-
     /** Random generator needed for robust random wait
      */
     private static final Random RANDOM = new Random();
@@ -278,6 +284,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private static final JmesPath<Object> JMESPATH = new JcfRuntime(
             new RuntimeConfiguration.Builder().withSilentTypeErrors(true).build());
 
+    /**
+     * Resource retriever configured with an appropriate SSL Factory based on {@link #isDisableSslVerification()}
+     */
+    private transient ProxyAwareResourceRetriever proxyAwareResourceRetriever;
+
     @DataBoundConstructor
     public OicSecurityRealm(
             String clientId,
@@ -287,7 +298,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             throws IOException {
         // Needed in DataBoundSetter
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
-        this.httpTransport = constructHttpTransport(this.disableSslVerification);
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.serverConfiguration = serverConfiguration;
@@ -295,9 +305,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @SuppressWarnings("deprecated")
     protected Object readResolve() throws ObjectStreamException {
-        if (httpTransport == null) {
-            httpTransport = constructHttpTransport(isDisableSslVerification());
-        }
         if (!Strings.isNullOrEmpty(endSessionUrl)) {
             this.endSessionEndpoint = endSessionUrl + "/";
         }
@@ -327,8 +334,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     conf.setScopesOverride(this.overrideScopes);
                     serverConfiguration = conf;
                 } else {
-                    OicServerManualConfiguration conf =
-                            new OicServerManualConfiguration(tokenServerUrl, authorizationServerUrl);
+                    OicServerManualConfiguration conf = new OicServerManualConfiguration(
+                            /* TODO */ "migrated", tokenServerUrl, authorizationServerUrl);
                     if (tokenAuthMethod != null) {
                         conf.setTokenAuthMethod(tokenAuthMethod);
                     }
@@ -348,32 +355,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             ose.initCause(e);
             throw ose;
         }
+        createProxyAwareResourceRetriver();
         return this;
-    }
-
-    static HttpTransport constructHttpTransport(boolean disableSslVerification) {
-        NetHttpTransport.Builder builder = new NetHttpTransport.Builder();
-        builder.setConnectionFactory(new JenkinsAwareConnectionFactory());
-
-        if (disableSslVerification) {
-            try {
-                builder.doNotValidateCertificate();
-            } catch (GeneralSecurityException ex) {
-                // we do not handle this exception...
-            }
-        }
-
-        return builder.build();
-    }
-
-    /**
-     * Obtain the shared HttpTransport.
-     * The transport may be invalidated if the realm is saved so should not be cached.
-     * @return the shared {@code HttpTransport}.
-     */
-    @Restricted(NoExternalUse.class)
-    HttpTransport getHttpTransport() {
-        return httpTransport;
     }
 
     public String getClientId() {
@@ -473,6 +456,62 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return allowedTokenExpirationClockSkewSeconds;
     }
 
+    @PostConstruct
+    @Restricted(NoExternalUse.class)
+    public void createProxyAwareResourceRetriver() {
+        proxyAwareResourceRetriever =
+                ProxyAwareResourceRetriever.createProxyAwareResourceRetriver(isDisableSslVerification());
+    }
+
+    ProxyAwareResourceRetriever getResourceRetriever() {
+        return proxyAwareResourceRetriever;
+    }
+
+    private OidcConfiguration buildOidcConfiguration() {
+        // TODO cache this and use the well known if available.
+        OidcConfiguration conf = new OidcConfiguration();
+        conf.setClientId(clientId);
+        conf.setSecret(clientSecret.getPlainText());
+
+        // TODO what do we prefer?
+        // conf.setPreferredJwsAlgorithm(JWSAlgorithm.HS256);
+        // set many more as needed...
+
+        OIDCProviderMetadata oidcProviderMetadata = serverConfiguration.toProviderMetadata();
+        if (this.isDisableTokenVerification()) {
+            conf.setAllowUnsignedIdTokens(true);
+            conf.setTokenValidator(new AnythingGoesTokenValidator());
+        }
+        conf.setProviderMetadata(oidcProviderMetadata);
+        if (oidcProviderMetadata.getScopes() != null) {
+            // auto configuration does not need to supply scopes
+            conf.setScope(oidcProviderMetadata.getScopes().toString());
+        }
+        conf.setUseNonce(!this.nonceDisabled);
+        if (allowedTokenExpirationClockSkewSeconds != null) {
+            conf.setMaxClockSkew(allowedTokenExpirationClockSkewSeconds.intValue());
+        }
+        conf.setResourceRetriever(getResourceRetriever());
+        if (this.isPkceEnabled()) {
+            conf.setPkceMethod(CodeChallengeMethod.S256);
+        }
+        return conf;
+    }
+
+    @Restricted(NoExternalUse.class) // exposed for testing only
+    protected OidcClient buildOidcClient() {
+        OidcConfiguration oidcConfiguration = buildOidcConfiguration();
+        OidcClient client = new OidcClient(oidcConfiguration);
+        // add the extra settings for the client...
+        client.setCallbackUrl(buildOAuthRedirectUrl());
+        client.setAuthenticator(new OidcAuthenticator(oidcConfiguration, client));
+        // when building the redirect URL by default pac4j adds the "client_name=DOidcClient" query parameter to the
+        // redirectURL.
+        // OPs will reject this for existing clients as the redirect URL is not the same as previously configured
+        client.setCallbackUrlResolver(new NoParameterCallbackUrlResolver());
+        return client;
+    }
+
     @DataBoundSetter
     public void setUserNameField(String userNameField) {
         this.userNameField = Util.fixNull(Util.fixEmptyAndTrim(userNameField), "sub");
@@ -521,8 +560,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return null;
     }
 
-    private Object applyJMESPath(Expression<Object> expression, GenericJson json) {
-        return expression.search(json);
+    private Object applyJMESPath(Expression<Object> expression, Object map) {
+        return expression.search(map);
     }
 
     @DataBoundSetter
@@ -681,29 +720,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         });
     }
 
-    /** Build authorization code flow
-     */
-    protected AuthorizationCodeFlow buildAuthorizationCodeFlow() {
-        AccessMethod tokenAccessMethod = BearerToken.queryParameterAccessMethod();
-        HttpExecuteInterceptor authInterceptor =
-                new ClientParametersAuthentication(clientId, Secret.toString(clientSecret));
-        if (TokenAuthMethod.client_secret_basic.equals(serverConfiguration.getTokenAuthMethod())) {
-            tokenAccessMethod = BearerToken.authorizationHeaderAccessMethod();
-            authInterceptor = new BasicAuthentication(clientId, Secret.toString(clientSecret));
-        }
-        AuthorizationCodeFlow.Builder builder = new AuthorizationCodeFlow.Builder(
-                        tokenAccessMethod,
-                        httpTransport,
-                        GsonFactory.getDefaultInstance(),
-                        new GenericUrl(serverConfiguration.getTokenServerUrl()),
-                        authInterceptor,
-                        clientId,
-                        serverConfiguration.getAuthorizationServerUrl())
-                .setScopes(Arrays.asList(serverConfiguration.getScopes()));
-
-        return builder.build();
-    }
-
     /**
      * Validate post-login redirect URL
      *
@@ -736,122 +752,27 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
      * @param from the relative URL to the page that the user has just come from
      * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
-     * @return an {@link HttpResponse} object
+     * @throws URISyntaxException if the provided data is invalid
      */
     @Restricted(DoNotUse.class) // stapler only
-    public HttpResponse doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer) {
+    public void doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer)
+            throws URISyntaxException {
+
+        OidcClient client = buildOidcClient();
+        // add the extra params for the client...
         final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer);
 
-        return new OicSession(from, buildOAuthRedirectUrl()) {
-            @Override
-            public HttpResponse onSuccess(String authorizationCode, AuthorizationCodeFlow flow) {
-                try {
-                    AuthorizationCodeTokenRequest tokenRequest = flow.newTokenRequest(authorizationCode)
-                            .setRedirectUri(buildOAuthRedirectUrl())
-                            .setResponseClass(OicTokenResponse.class);
-                    if (this.pkceVerifierCode != null) {
-                        tokenRequest.set("code_verifier", this.pkceVerifierCode);
-                    }
-                    if (!sendScopesInTokenRequest) {
-                        tokenRequest.setScopes(Collections.emptyList());
-                    }
+        OidcRedirectionActionBuilder builder = new OidcRedirectionActionBuilder(client);
+        WebContext webContext =
+                JEEContextFactory.INSTANCE.newContext(Stapler.getCurrentRequest(), Stapler.getCurrentResponse());
+        SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
+        RedirectionAction redirectionAction =
+                builder.getRedirectionAction(webContext, sessionStore).orElseThrow();
 
-                    OicTokenResponse response = (OicTokenResponse) tokenRequest.execute();
-
-                    if (response.getIdToken() == null) {
-                        return HttpResponses.errorWithoutStack(500, Messages.OicSecurityRealm_NoIdTokenInResponse());
-                    }
-                    IdToken idToken;
-                    try {
-                        idToken = response.parseIdToken();
-                    } catch (IllegalArgumentException e) {
-                        return HttpResponses.errorWithoutStack(403, Messages.OicSecurityRealm_IdTokenParseError());
-                    }
-                    if (!validateIdToken(idToken)) {
-                        return HttpResponses.errorWithoutStack(401, "Unauthorized");
-                    }
-                    if (!isNonceDisabled() && !validateNonce(idToken)) {
-                        return HttpResponses.errorWithoutStack(401, "Unauthorized");
-                    }
-
-                    if (failedCheckOfTokenField(idToken)) {
-                        throw new FailedCheckOfTokenException(
-                                maybeOpenIdLogoutEndpoint(response.getIdToken(), state, buildOauthCommenceLogin()));
-                    }
-
-                    GenericJson userInfo = null;
-                    if (!Strings.isNullOrEmpty(getServerConfiguration().getUserInfoServerUrl())) {
-                        userInfo = getUserInfo(flow, response.getAccessToken());
-                        if (userInfo == null) {
-                            return HttpResponses.errorWithoutStack(401, "Unauthorized");
-                        }
-                    }
-
-                    String username = determineStringField(userNameFieldExpr, idToken, userInfo);
-                    if (username == null) {
-                        return HttpResponses.error(500, Messages.OicSecurityRealm_UsernameNotFound(userNameField));
-                    }
-
-                    flow.createAndStoreCredential(response, null);
-
-                    OicCredentials credentials = new OicCredentials(
-                            response.getAccessToken(),
-                            response.getIdToken(),
-                            response.getRefreshToken(),
-                            response.getExpiresInSeconds(),
-                            CLOCK.millis(),
-                            OicSecurityRealm.this.getAllowedTokenExpirationClockSkewSeconds());
-
-                    loginAndSetUserData(username.toString(), idToken, userInfo, credentials);
-
-                    return new HttpRedirect(redirectOnFinish);
-
-                } catch (IOException e) {
-                    return HttpResponses.error(500, Messages.OicSecurityRealm_TokenRequestFailure(e));
-                }
-            }
-        }.withNonceDisabled(isNonceDisabled())
-                .withPkceEnabled(isPkceEnabled())
-                .commenceLogin(buildAuthorizationCodeFlow());
-    }
-
-    /** Create OicJsonWebTokenVerifier if needed */
-    private OicJsonWebTokenVerifier getJwksVerifier() {
-        if (isDisableTokenVerification()) {
-            return null;
-        }
-        if (jwtVerifier == null) {
-            jwtVerifier = new OicJsonWebTokenVerifier(
-                    serverConfiguration.getJwksServerUrl(),
-                    new OicJsonWebTokenVerifier.Builder()
-                            .setHttpTransportFactory(new HttpTransportFactory() {
-                                @Override
-                                public HttpTransport create() {
-                                    return httpTransport;
-                                }
-                            })
-                            .setIssuer(getServerConfiguration().getIssuer())
-                            .setAudience(List.of(clientId)));
-        }
-        return jwtVerifier;
-    }
-
-    /** Validate UserInfo signature if available */
-    private boolean validateUserInfo(JsonWebSignature userinfo) throws IOException {
-        OicJsonWebTokenVerifier verifier = getJwksVerifier();
-        if (verifier == null) {
-            return true;
-        }
-        return verifier.verifyUserInfo(userinfo);
-    }
-
-    /** Validate IdToken signature if available */
-    private boolean validateIdToken(IdToken idtoken) throws IOException {
-        OicJsonWebTokenVerifier verifier = getJwksVerifier();
-        if (verifier == null) {
-            return true;
-        }
-        return verifier.verifyIdToken(idtoken);
+        // store the redirect url for after the login.
+        sessionStore.set(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY, redirectOnFinish);
+        JEEHttpActionAdapter.INSTANCE.adapt(redirectionAction, webContext);
+        return;
     }
 
     @SuppressFBWarnings(
@@ -866,52 +787,23 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
     }
 
-    private GenericJson getUserInfo(final AuthorizationCodeFlow flow, final String accessToken) throws IOException {
-        HttpRequestFactory requestFactory = flow.getTransport().createRequestFactory(new HttpRequestInitializer() {
-            @Override
-            public void initialize(HttpRequest request) throws IOException {
-                request.getHeaders().setAuthorization("Bearer " + accessToken);
-            }
-        });
-        HttpRequest request =
-                requestFactory.buildGetRequest(new GenericUrl(serverConfiguration.getUserInfoServerUrl()));
-        request.setThrowExceptionOnExecuteError(false);
-        com.google.api.client.http.HttpResponse response = request.execute();
-        if (response.isSuccessStatusCode()) {
-            if (response.getHeaders().getContentType().contains("application/jwt")) {
-                String token = response.parseAsString();
-                JsonWebSignature jws = JsonWebSignature.parse(flow.getJsonFactory(), token);
-                if (!validateUserInfo(jws)) {
-                    return null;
-                }
-                return jws.getPayload();
-            }
-
-            JsonObjectParser parser = new JsonObjectParser(flow.getJsonFactory());
-            return parser.parseAndClose(response.getContent(), response.getContentCharset(), GenericJson.class);
-        }
-        throw new HttpResponseException(response);
-    }
-
-    private boolean failedCheckOfTokenField(IdToken idToken) {
+    private boolean failedCheckOfTokenField(JWT idToken) throws ParseException {
         if (tokenFieldToCheckKey == null || tokenFieldToCheckValue == null) {
             return false;
         }
-
         if (idToken == null) {
             return true;
         }
-
-        String value = getStringField(idToken.getPayload(), tokenFieldToCheckExpr);
+        String value = getStringField(idToken.getJWTClaimsSet().getClaims(), tokenFieldToCheckExpr);
         if (value == null) {
             return true;
         }
-
         return !tokenFieldToCheckValue.equals(value);
     }
 
     private UsernamePasswordAuthenticationToken loginAndSetUserData(
-            String userName, IdToken idToken, GenericJson userInfo, OicCredentials credentials) throws IOException {
+            String userName, JWT idToken, Map<String, Object> userInfo, OicCredentials credentials)
+            throws IOException, ParseException {
 
         List<GrantedAuthority> grantedAuthorities = determineAuthorities(idToken, userInfo);
         if (LOGGER.isLoggable(Level.FINEST)) {
@@ -953,7 +845,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return token;
     }
 
-    private String determineStringField(Expression<Object> fieldExpr, IdToken idToken, GenericJson userInfo) {
+    private String determineStringField(Expression<Object> fieldExpr, JWT idToken, Map userInfo) throws ParseException {
         if (fieldExpr != null) {
             if (userInfo != null) {
                 Object field = fieldExpr.search(userInfo);
@@ -965,7 +857,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 }
             }
             if (idToken != null) {
-                String fieldValue = Util.fixEmptyAndTrim(getStringField(idToken.getPayload(), fieldExpr));
+                String fieldValue = Util.fixEmptyAndTrim(
+                        getStringField(idToken.getJWTClaimsSet().getClaims(), fieldExpr));
                 if (fieldValue != null) {
                     return fieldValue;
                 }
@@ -984,7 +877,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return null;
     }
 
-    private List<GrantedAuthority> determineAuthorities(IdToken idToken, GenericJson userInfo) {
+    private List<GrantedAuthority> determineAuthorities(JWT idToken, Map<String, Object> userInfo)
+            throws ParseException {
         List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
         if (this.groupsFieldExpr == null) {
@@ -1003,7 +897,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             groupsObject = this.groupsFieldExpr.search(userInfo);
         }
         if (groupsObject == null && idToken != null) {
-            groupsObject = this.groupsFieldExpr.search(idToken.getPayload());
+            groupsObject = this.groupsFieldExpr.search(idToken.getJWTClaimsSet().getClaims());
         }
         if (groupsObject == null) {
             LOGGER.warning("idToken and userInfo did not contain group field name: " + this.groupsFieldName);
@@ -1028,7 +922,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /** Ensure group field object returns is string or list of string
      */
     private List<String> ensureString(Object field) {
-        if (field == null || Data.isNull(field)) {
+        if (field == null) {
             LOGGER.warning("userInfo did not contain a valid group field content, got null");
             return Collections.<String>emptyList();
         } else if (field instanceof String) {
@@ -1044,13 +938,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 }
             }
             return result;
-        } else if (field instanceof ArrayList) {
+        } else if (field instanceof List) {
             List<String> result = new ArrayList<>();
             List<Object> groups = (List<Object>) field;
             for (Object group : groups) {
                 if (group instanceof String) {
                     result.add(group.toString());
-                } else if (group instanceof ArrayMap) {
+                } else if (group instanceof Map) {
                     // if its a Map, we use the nestedGroupFieldName to grab the groups
                     Map<String, String> groupMap = (Map<String, String>) group;
                     if (nestedGroupFieldName != null && groupMap.keySet().contains(nestedGroupFieldName)) {
@@ -1080,7 +974,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         OicCredentials credentials = user.getProperty(OicCredentials.class);
 
         if (credentials != null) {
-            if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(serverConfiguration.getEndSessionUrl())) {
+            if (this.logoutFromOpenidProvider
+                    && serverConfiguration.toProviderMetadata().getEndSessionEndpointURI() != null) {
                 // This ensures that token will be expired at the right time with API Key calls, but no refresh can be
                 // made.
                 user.addProperty(new OicCredentials(null, null, null, CLOCK.millis()));
@@ -1090,10 +985,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         super.doLogout(req, rsp);
-    }
-
-    static void ensureStateAttribute(@NonNull HttpSession session, @NonNull String state) {
-        session.setAttribute(STATE_REQUEST_ATTRIBUTE, state);
     }
 
     @Override
@@ -1109,15 +1000,23 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @VisibleForTesting
-    static Object getStateAttribute(HttpSession session) {
-        return session.getAttribute(STATE_REQUEST_ATTRIBUTE);
+    Object getStateAttribute(HttpSession session) {
+        // return null;
+        OidcClient client = buildOidcClient();
+        WebContext webContext =
+                JEEContextFactory.INSTANCE.newContext(Stapler.getCurrentRequest(), Stapler.getCurrentResponse());
+        SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
+        return client.getConfiguration()
+                .getValueRetriever()
+                .retrieve(client.getStateSessionAttributeName(), client, webContext, sessionStore)
+                .orElse(null);
     }
 
     @CheckForNull
     private String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
-        final String url = serverConfiguration.getEndSessionUrl();
-        if (this.logoutFromOpenidProvider && !Strings.isNullOrEmpty(url)) {
-            StringBuilder openidLogoutEndpoint = new StringBuilder(url);
+        final URI url = serverConfiguration.toProviderMetadata().getEndSessionEndpointURI();
+        if (this.logoutFromOpenidProvider && url != null) {
+            StringBuilder openidLogoutEndpoint = new StringBuilder(url.toString());
 
             if (!Strings.isNullOrEmpty(idToken)) {
                 openidLogoutEndpoint.append("?id_token_hint=").append(idToken).append("&");
@@ -1171,15 +1070,60 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /**
      * This is where the user comes back to at the end of the OpenID redirect ping-pong.
      * @param request The user's request
-     * @return an HttpResponse
+     * @throws ParseException if the JWT (or other response) could not be parsed.
      */
-    public HttpResponse doFinishLogin(StaplerRequest request) throws IOException {
-        OicSession currentSession = OicSession.getCurrent();
-        if (currentSession == null) {
-            LOGGER.fine("No session to resume (perhaps jenkins was restarted?)");
-            return HttpResponses.errorWithoutStack(401, "Unauthorized");
+    public void doFinishLogin(StaplerRequest request, StaplerResponse response) throws IOException, ParseException {
+        OidcClient client = buildOidcClient();
+
+        WebContext webContext = JEEContextFactory.INSTANCE.newContext(request, response);
+        SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
+
+        try {
+            // NB: TODO this also handles back channel logout if "logoutendpoint" parameter is set
+            // see  org.pac4j.oidc.credentials.extractor.OidcExtractor.extract(WebContext, SessionStore)
+            // but we probably need to hookup a special LogoutHandler in the clients configuration to do all the special
+            // Jenkins stuff correctly
+            // also should have its own URL to make the code easier to follow :)
+
+            Credentials credentials = client.getCredentials(webContext, sessionStore)
+                    .orElseThrow(() -> new Failure("Could not extract credentials from request"));
+
+            ProfileCreator profileCreator = client.getProfileCreator();
+
+            // creating the profile performs validation of the token
+            OidcProfile profile = (OidcProfile) profileCreator
+                    .create(credentials, webContext, sessionStore)
+                    .orElseThrow(() -> new Failure("Could not build user profile"));
+
+            AccessToken accessToken = profile.getAccessToken();
+            JWT idToken = profile.getIdToken();
+            RefreshToken refreshToken = profile.getRefreshToken();
+
+            String username = determineStringField(userNameFieldExpr, idToken, profile.getAttributes());
+            if (failedCheckOfTokenField(idToken)) {
+                throw new FailedCheckOfTokenException(client.getConfiguration().findLogoutUrl());
+            }
+
+            OicCredentials oicCredentials = new OicCredentials(
+                    accessToken == null ? null : accessToken.getValue(), // XXX (how) can the access token be null?
+                    idToken.getParsedString(),
+                    refreshToken != null ? refreshToken.getValue() : null,
+                    accessToken == null ? 0 : accessToken.getLifetime(),
+                    CLOCK.millis(),
+                    getAllowedTokenExpirationClockSkewSeconds());
+
+            loginAndSetUserData(username, idToken, profile.getAttributes(), oicCredentials);
+
+            String redirectUrl = (String) sessionStore
+                    .get(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY)
+                    .orElse(Jenkins.get().getRootUrl());
+            response.sendRedirect(HttpURLConnection.HTTP_MOVED_TEMP, redirectUrl);
+
+        } catch (HttpAction e) {
+            // this may be an OK flow for logout login is handled upstream.
+            JEEHttpActionAdapter.INSTANCE.adapt(e, webContext);
+            return;
         }
-        return currentSession.finishLogin(request, buildAuthorizationCodeFlow());
     }
 
     /**
@@ -1227,7 +1171,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         if (isExpired(credentials)) {
-            if (serverConfiguration.isUseRefreshTokens() && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
+            if (serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
+                    && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
                 return refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
             } else if (!isTokenExpirationCheckDisabled()) {
                 redirectOrRejectRequest(httpRequest, httpResponse);
@@ -1262,113 +1207,75 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse)
             throws IOException {
-        AuthorizationCodeFlow flow = buildAuthorizationCodeFlow();
 
-        RefreshTokenRequest request = new RefreshTokenRequest(
-                        flow.getTransport(),
-                        flow.getJsonFactory(),
-                        new GenericUrl(flow.getTokenServerEncodedUrl()),
-                        credentials.getRefreshToken())
-                .setClientAuthentication(flow.getClientAuthentication())
-                .setResponseClass(OicTokenResponse.class);
-
+        WebContext webContext = JEEContextFactory.INSTANCE.newContext(httpRequest, httpResponse);
+        SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
+        OidcClient client = buildOidcClient();
         try {
-            OicTokenResponse tokenResponse = (OicTokenResponse) request.execute();
+            OidcProfile profile = new OidcProfile();
+            // JSONObject json = (JSONObject) JSONUtils.parseJSON(credentials.getAccessToken());
+            profile.setAccessToken(new BearerAccessToken(credentials.getAccessToken()));
+            profile.setIdTokenString(credentials.getIdToken());
+            profile.setRefreshToken(new RefreshToken(credentials.getRefreshToken()));
 
-            LOGGER.log(Level.FINE, "Token refresh request", httpRequest.getRequestURI());
+            profile = (OidcProfile) client.renewUserProfile(profile, webContext, sessionStore)
+                    .orElseThrow(() -> new IllegalStateException("Could not renew user profile"));
 
-            return handleTokenRefreshResponse(flow, expectedUsername, credentials, tokenResponse, httpResponse);
-        } catch (TokenResponseException e) {
-            handleTokenRefreshException(e, httpResponse);
-            return false;
-        }
-    }
-
-    private boolean handleTokenRefreshResponse(
-            AuthorizationCodeFlow flow,
-            String expectedUsername,
-            OicCredentials credentials,
-            OicTokenResponse tokenResponse,
-            HttpServletResponse httpResponse)
-            throws IOException {
-        String refreshToken = tokenResponse.getRefreshToken();
-        String idToken = tokenResponse.getIdToken();
-
-        // Refresh Token Flow is not required to send new ID or Refresh Token, so re-use if not received
-        if (idToken == null) {
-            idToken = credentials.getIdToken();
-            tokenResponse.setIdToken(credentials.getIdToken());
-        }
-
-        if (refreshToken == null) {
-            refreshToken = credentials.getRefreshToken();
-        }
-
-        OicCredentials refreshedCredentials = new OicCredentials(
-                tokenResponse.getAccessToken(),
-                idToken,
-                refreshToken,
-                tokenResponse.getExpiresInSeconds(),
-                CLOCK.millis(),
-                getAllowedTokenExpirationClockSkewSeconds());
-
-        GenericJson userInfo = null;
-        IdToken parsedIdToken;
-
-        try {
-            parsedIdToken = tokenResponse.parseIdToken();
-        } catch (IllegalArgumentException e) {
-            httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, Messages.OicSecurityRealm_IdTokenParseError());
-            return false;
-        }
-
-        if (!validateIdToken(parsedIdToken)) {
-            httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
-            return false;
-        }
-
-        if (failedCheckOfTokenField(parsedIdToken)) {
-            httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
-            return false;
-        }
-
-        if (!Strings.isNullOrEmpty(serverConfiguration.getUserInfoServerUrl())) {
-            userInfo = getUserInfo(flow, tokenResponse.getAccessToken());
-        }
-
-        String username = determineStringField(userNameFieldExpr, parsedIdToken, userInfo);
-
-        if (!User.idStrategy().equals(expectedUsername, username)) {
-            httpResponse.sendError(
-                    HttpServletResponse.SC_UNAUTHORIZED, "User name was not the same after refresh request");
-            return false;
-        }
-
-        loginAndSetUserData(username, parsedIdToken, userInfo, refreshedCredentials);
-
-        return true;
-    }
-
-    private void handleTokenRefreshException(TokenResponseException e, HttpServletResponse httpResponse)
-            throws IOException {
-        TokenErrorResponse details = e.getDetails();
-
-        if ("invalid_grant".equals(details.getError())) {
-            // RT expired or session terminated
-            if (!isTokenExpirationCheckDisabled()) {
-                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
+            AccessToken accessToken = profile.getAccessToken();
+            JWT idToken = profile.getIdToken();
+            RefreshToken refreshToken = profile.getRefreshToken();
+            String username = determineStringField(userNameFieldExpr, idToken, profile.getAttributes());
+            if (!User.idStrategy().equals(expectedUsername, username)) {
+                httpResponse.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED, "User name was not the same after refresh request");
+                return false;
             }
-        } else {
-            LOGGER.warning("Token response error: " + details.getError() + ", error description: "
-                    + details.getErrorDescription());
+
+            if (failedCheckOfTokenField(idToken)) {
+                throw new FailedCheckOfTokenException(client.getConfiguration().findLogoutUrl());
+            }
+
+            OicCredentials refreshedCredentials = new OicCredentials(
+                    accessToken.getValue(),
+                    idToken.getParsedString(),
+                    refreshToken.getValue(),
+                    accessToken.getLifetime(),
+                    CLOCK.millis(),
+                    getAllowedTokenExpirationClockSkewSeconds());
+
+            loginAndSetUserData(username, idToken, profile.getAttributes(), refreshedCredentials);
+            return true;
+        } catch (TechnicalException e) {
+            if (isTokenExpirationCheckDisabled() && StringUtils.contains(e.getMessage(), "error=invalid_grant")) {
+                // the code is lost from the TechnicalException so we need to resort to string matching
+                // to retain the same flow :-(
+                LOGGER.log(
+                        Level.INFO,
+                        "Failed to refresh expired token because grant is invalid, proceeding as \"Token Expiration Check Disabled\" is set");
+                return false;
+            }
+            LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);
             httpResponse.sendError(
-                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Token refresh error, check server logs");
+                    HttpServletResponse.SC_UNAUTHORIZED, Messages.OicSecurityRealm_TokenRefreshFailure());
+            return false;
+        } catch (ParseException e) {
+            LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);
+            // could not renew
+            httpResponse.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED, Messages.OicSecurityRealm_TokenRefreshFailure());
+            return false;
+        } catch (IllegalStateException e) {
+            LOGGER.log(Level.WARNING, "Failed to refresh expired token, profile was null", e);
+            // could not renew
+            httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            return false;
         }
     }
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
 
+        @Override
         public String getDisplayName() {
             return Messages.OicSecurityRealm_DisplayName();
         }
