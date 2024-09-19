@@ -100,7 +100,6 @@ import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.SecurityListener;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -278,79 +277,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     private static final JmesPath<Object> JMESPATH = new JcfRuntime(
             new RuntimeConfiguration.Builder().withSilentTypeErrors(true).build());
-
-    /**
-     * @deprecated retained for backwards binary compatibility.
-     */
-    @Deprecated
-    public OicSecurityRealm(
-            String clientId,
-            String clientSecret,
-            String wellKnownOpenIDConfigurationUrl,
-            String tokenServerUrl,
-            String jwksServerUrl,
-            String tokenAuthMethod,
-            String authorizationServerUrl,
-            String userInfoServerUrl,
-            String userNameField,
-            String tokenFieldToCheckKey,
-            String tokenFieldToCheckValue,
-            String fullNameFieldName,
-            String emailFieldName,
-            String scopes,
-            String groupsFieldName,
-            Boolean disableSslVerification,
-            Boolean logoutFromOpenidProvider,
-            String endSessionEndpoint,
-            String postLogoutRedirectUrl,
-            Boolean escapeHatchEnabled,
-            String escapeHatchUsername,
-            String escapeHatchSecret,
-            String escapeHatchGroup,
-            String automanualconfigure)
-            throws IOException {
-        this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
-        this.httpTransport = constructHttpTransport(this.disableSslVerification);
-
-        this.clientId = clientId;
-        this.clientSecret = clientSecret != null && !clientSecret.toLowerCase().equals(NO_SECRET)
-                ? Secret.fromString(clientSecret)
-                : null;
-        // last known config
-        this.authorizationServerUrl = authorizationServerUrl;
-        this.tokenServerUrl = tokenServerUrl;
-        this.tokenAuthMethod =
-                TokenAuthMethod.valueOf(StringUtils.defaultIfBlank(tokenAuthMethod, "client_secret_post"));
-        this.userInfoServerUrl = userInfoServerUrl;
-        this.jwksServerUrl = jwksServerUrl;
-        this.scopes = scopes;
-        this.endSessionEndpoint = endSessionEndpoint;
-
-        if ("auto".equals(automanualconfigure)
-                || (Util.fixNull(automanualconfigure).isEmpty()
-                        && !Util.fixNull(wellKnownOpenIDConfigurationUrl).isEmpty())) {
-            this.automanualconfigure = "auto";
-            this.wellKnownOpenIDConfigurationUrl = Util.fixEmptyAndTrim(wellKnownOpenIDConfigurationUrl);
-        } else {
-            this.automanualconfigure = "manual";
-            this.wellKnownOpenIDConfigurationUrl = null; // Remove the autoconfig URL
-        }
-
-        this.setTokenFieldToCheckKey(tokenFieldToCheckKey);
-        this.setTokenFieldToCheckValue(tokenFieldToCheckValue);
-        this.setUserNameField(userNameField);
-        this.setFullNameFieldName(fullNameFieldName);
-        this.setEmailFieldName(emailFieldName);
-        this.setGroupsFieldName(groupsFieldName);
-        this.logoutFromOpenidProvider = Util.fixNull(logoutFromOpenidProvider, Boolean.TRUE);
-        this.postLogoutRedirectUrl = postLogoutRedirectUrl;
-        this.escapeHatchEnabled = Util.fixNull(escapeHatchEnabled, Boolean.FALSE);
-        this.escapeHatchUsername = Util.fixEmptyAndTrim(escapeHatchUsername);
-        this.setEscapeHatchSecret(Secret.fromString(escapeHatchSecret));
-        this.escapeHatchGroup = Util.fixEmptyAndTrim(escapeHatchGroup);
-        // hack to avoid rewriting lots of tests :-)
-        readResolve();
-    }
 
     @DataBoundConstructor
     public OicSecurityRealm(

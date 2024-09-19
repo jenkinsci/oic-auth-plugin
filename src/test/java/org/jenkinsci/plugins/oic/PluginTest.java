@@ -72,11 +72,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
-import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -275,7 +273,7 @@ public class PluginTest {
         mockTokenReturnsIdTokenWithGroup();
         mockUserInfoWithTestGroups();
         configureWellKnown(null, null);
-        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true));
         assertAnonymous();
         browseLoginPage();
         var user = assertTestUser();
@@ -289,10 +287,10 @@ public class PluginTest {
         mockTokenReturnsIdTokenWithValues(setUpKeyValuesNoGroup());
         mockUserInfoWithGroups(null);
         configureWellKnown(null, null);
-        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true));
         assertAnonymous();
         configureWellKnown(null, null);
-        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true));
         assertAnonymous();
         browseLoginPage();
         var user = assertTestUser();
@@ -304,7 +302,7 @@ public class PluginTest {
     public void testConfigurationWithAutoConfiguration_withScopeOverride() throws Exception {
         configureWellKnown(null, List.of("openid", "profile", "scope1", "scope2", "scope3"));
         TestRealm oicsr = new TestRealm.Builder(wireMockRule)
-                .WithMinimalDefaults().WithAutomanualconfigure("auto").build();
+                .WithMinimalDefaults().WithAutomanualconfigure(true).build();
         jenkins.setSecurityRealm(oicsr);
         assertEquals(
                 "All scopes of WellKnown should be used",
@@ -326,7 +324,7 @@ public class PluginTest {
     public void testConfigurationWithAutoConfiguration_withRefreshToken() throws Exception {
         configureWellKnown(null, null, "authorization_code", "refresh_token");
         TestRealm oicsr = new TestRealm.Builder(wireMockRule)
-                .WithMinimalDefaults().WithAutomanualconfigure("auto").build();
+                .WithMinimalDefaults().WithAutomanualconfigure(true).build();
         jenkins.setSecurityRealm(oicsr);
         assertTrue(
                 "Refresh token should be enabled",
@@ -337,7 +335,7 @@ public class PluginTest {
     public void testRefreshToken_validAndExtendedToken() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         configureWellKnown(null, null, "authorization_code", "refresh_token");
-        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true));
         // user groups on first login
         mockTokenReturnsIdTokenWithGroup();
         mockUserInfoWithTestGroups();
@@ -412,7 +410,7 @@ public class PluginTest {
     public void testRefreshTokenAndTokenExpiration_withoutRefreshToken() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         configureWellKnown(null, null, "authorization_code");
-        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true));
         // login
         mockTokenReturnsIdTokenWithGroup(PluginTest::withoutRefreshToken);
         mockUserInfoWithTestGroups();
@@ -430,7 +428,7 @@ public class PluginTest {
     public void testRefreshTokenWithTokenExpirationCheckDisabled_withoutRefreshToken() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         configureWellKnown(null, null, "authorization_code");
-        var realm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD);
+        var realm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true);
         realm.setTokenExpirationCheckDisabled(true);
         jenkins.setSecurityRealm(realm);
         // login
@@ -449,7 +447,7 @@ public class PluginTest {
     public void testRefreshTokenWithTokenExpirationCheckDisabled_expiredRefreshToken() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         configureWellKnown(null, null, "authorization_code", "refresh_token");
-        TestRealm testRealm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD);
+        TestRealm testRealm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true);
         testRealm.setTokenExpirationCheckDisabled(true);
         jenkins.setSecurityRealm(testRealm);
         // login
@@ -473,7 +471,7 @@ public class PluginTest {
     public void testRefreshTokenAndTokenExpiration_expiredRefreshToken() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         configureWellKnown(null, null, "authorization_code", "refresh_token");
-        TestRealm testRealm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD);
+        TestRealm testRealm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true);
         jenkins.setSecurityRealm(testRealm);
         // login
         mockTokenReturnsIdTokenWithGroup();
@@ -496,7 +494,7 @@ public class PluginTest {
     public void testTokenExpiration_withoutExpiresInValue() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         configureWellKnown(null, null, "authorization_code", "refresh_token");
-        TestRealm testRealm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD);
+        TestRealm testRealm = new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true);
         jenkins.setSecurityRealm(testRealm);
         // login
         mockTokenReturnsIdTokenWithGroup(PluginTest::withoutExpiresIn);
@@ -536,7 +534,7 @@ public class PluginTest {
 
         configureWellKnown(null, null);
 
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, true);
         jenkins.setSecurityRealm(realm);
 
         assertEquals(realm, realm.readResolve());
@@ -548,7 +546,7 @@ public class PluginTest {
         mockTokenReturnsIdTokenWithGroup();
         mockUserInfoWithTestGroups();
         configureWellKnown("http://localhost/endSession", null);
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
+        TestRealm realm = new TestRealm(wireMockRule, null, null, null, true);
         jenkins.setSecurityRealm(realm);
         assertEquals(realm, realm.readResolve());
     }
@@ -802,7 +800,7 @@ public class PluginTest {
 
         mockTokenReturnsIdTokenWithValues(setUpKeyValuesWithGroup());
 
-        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, MANUAL_CONFIG_FIELD));
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, false));
 
         assertAnonymous();
 
@@ -993,7 +991,7 @@ public class PluginTest {
     public void testAccessUsingJenkinsApiTokens() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         configureWellKnown(null, null, "authorization_code");
-        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AUTO_CONFIG_FIELD));
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, true));
         // explicitly ensure allowTokenAccessWithoutOicSession is disabled
         TestRealm testRealm = (TestRealm) jenkins.getSecurityRealm();
         testRealm.setAllowTokenAccessWithoutOicSession(false);
