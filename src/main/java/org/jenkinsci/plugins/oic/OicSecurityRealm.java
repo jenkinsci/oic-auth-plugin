@@ -1438,7 +1438,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             if (isUseRefreshTokens() && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
                 return refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
             } else if (!isTokenExpirationCheckDisabled()) {
-                redirectOrRejectRequest(httpRequest, httpResponse);
+                redirectToLoginUrl(httpRequest, httpResponse);
                 return false;
             }
         }
@@ -1446,7 +1446,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return true;
     }
 
-    private void redirectOrRejectRequest(HttpServletRequest req, HttpServletResponse res)
+    private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res)
             throws IOException, ServletException {
         if (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
             req.getSession().invalidate();
@@ -1564,7 +1564,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             // RT expired or session terminated
             if (!isTokenExpirationCheckDisabled()) {
                 try {
-                    redirectOrRejectRequest(httpRequest, httpResponse);
+                    redirectToLoginUrl(httpRequest, httpResponse);
                 } catch (ServletException ex) {
                     httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
                 }
