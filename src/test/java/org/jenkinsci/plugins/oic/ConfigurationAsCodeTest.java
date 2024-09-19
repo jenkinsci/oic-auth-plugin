@@ -22,11 +22,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.jenkins.plugins.casc.misc.Util.getJenkinsRoot;
 import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
 import static io.jenkins.plugins.casc.misc.Util.toYamlString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class ConfigurationAsCodeTest {
@@ -42,7 +43,9 @@ public class ConfigurationAsCodeTest {
         assertTrue(realm instanceof OicSecurityRealm);
         OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
 
-        assertEquals("http://localhost/authorize", oicSecurityRealm.getAuthorizationServerUrl());
+        assertEquals(
+                "http://localhost/authorize",
+                oicSecurityRealm.getServerConfiguration().getAuthorizationServerUrl());
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertTrue(oicSecurityRealm.isDisableSslVerification());
@@ -56,12 +59,18 @@ public class ConfigurationAsCodeTest {
         assertEquals("fullNameFieldName", oicSecurityRealm.getFullNameFieldName());
         assertEquals("groupsFieldName", oicSecurityRealm.getGroupsFieldName());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
-        assertEquals("scopes", oicSecurityRealm.getScopes());
-        assertEquals("http://localhost/token", oicSecurityRealm.getTokenServerUrl());
-        assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
+        assertEquals("scopes", oicSecurityRealm.getServerConfiguration().getScopes());
+        assertEquals(
+                "http://localhost/token",
+                oicSecurityRealm.getServerConfiguration().getTokenServerUrl());
+        assertEquals(
+                TokenAuthMethod.client_secret_post,
+                oicSecurityRealm.getServerConfiguration().getTokenAuthMethod());
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isRootURLFromRequest());
-        assertEquals("http://localhost/jwks", oicSecurityRealm.getJwksServerUrl());
+        assertEquals(
+                "http://localhost/jwks",
+                oicSecurityRealm.getServerConfiguration().getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
@@ -98,7 +107,9 @@ public class ConfigurationAsCodeTest {
         assertTrue(realm instanceof OicSecurityRealm);
         OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
 
-        assertEquals("http://localhost/authorize", oicSecurityRealm.getAuthorizationServerUrl());
+        assertEquals(
+                "http://localhost/authorize",
+                oicSecurityRealm.getServerConfiguration().getAuthorizationServerUrl());
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
@@ -106,13 +117,17 @@ public class ConfigurationAsCodeTest {
         assertFalse(oicSecurityRealm.isEscapeHatchEnabled());
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
-        assertEquals("openid email", oicSecurityRealm.getScopes());
-        assertEquals("http://localhost/token", oicSecurityRealm.getTokenServerUrl());
-        assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
+        assertEquals("openid email", oicSecurityRealm.getServerConfiguration().getScopes());
+        assertEquals(
+                "http://localhost/token",
+                oicSecurityRealm.getServerConfiguration().getTokenServerUrl());
+        assertEquals(
+                TokenAuthMethod.client_secret_post,
+                oicSecurityRealm.getServerConfiguration().getTokenAuthMethod());
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertFalse(oicSecurityRealm.isRootURLFromRequest());
-        assertEquals(null, oicSecurityRealm.getJwksServerUrl());
+        assertEquals(null, oicSecurityRealm.getServerConfiguration().getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
@@ -130,16 +145,23 @@ public class ConfigurationAsCodeTest {
     @ConfiguredWithCode("ConfigurationAsCodeMinimalWellKnown.yml")
     public void testMinimalWellKnown() throws Exception {
         SecurityRealm realm = Jenkins.get().getSecurityRealm();
-
-        assertTrue(realm instanceof OicSecurityRealm);
+        assertThat(realm, instanceOf(OicSecurityRealm.class));
         OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
 
         String urlBase = String.format("http://localhost:%d", wellKnownMockRule.port());
 
-        assertEquals(urlBase + "/well.known", oicSecurityRealm.getWellKnownOpenIDConfigurationUrl());
-        assertEquals(urlBase + "/authorize", oicSecurityRealm.getAuthorizationServerUrl());
-        assertEquals(urlBase + "/token", oicSecurityRealm.getTokenServerUrl());
-        assertEquals(urlBase + "/jwks", oicSecurityRealm.getJwksServerUrl());
+        assertThat(oicSecurityRealm.getServerConfiguration(), instanceOf(OicServerWellKnownConfiguration.class));
+        assertEquals(
+                urlBase + "/well.known",
+                ((OicServerWellKnownConfiguration) oicSecurityRealm.getServerConfiguration())
+                        .getWellKnownOpenIDConfigurationUrl());
+        assertEquals(
+                urlBase + "/authorize",
+                oicSecurityRealm.getServerConfiguration().getAuthorizationServerUrl());
+        assertEquals(
+                urlBase + "/token", oicSecurityRealm.getServerConfiguration().getTokenServerUrl());
+        assertEquals(
+                urlBase + "/jwks", oicSecurityRealm.getServerConfiguration().getJwksServerUrl());
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
@@ -147,9 +169,12 @@ public class ConfigurationAsCodeTest {
         assertFalse(oicSecurityRealm.isEscapeHatchEnabled());
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
-        assertEquals("openid email", oicSecurityRealm.getScopes());
-        assertEquals(urlBase + "/token", oicSecurityRealm.getTokenServerUrl());
-        assertEquals(TokenAuthMethod.client_secret_post, oicSecurityRealm.getTokenAuthMethod());
+        assertEquals("openid email", oicSecurityRealm.getServerConfiguration().getScopes());
+        assertEquals(
+                urlBase + "/token", oicSecurityRealm.getServerConfiguration().getTokenServerUrl());
+        assertEquals(
+                TokenAuthMethod.client_secret_post,
+                oicSecurityRealm.getServerConfiguration().getTokenAuthMethod());
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());

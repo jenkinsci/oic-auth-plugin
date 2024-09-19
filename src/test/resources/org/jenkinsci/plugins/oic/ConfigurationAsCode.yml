@@ -1,7 +1,13 @@
 jenkins:
   securityRealm:
     oic:
-      authorizationServerUrl: http://localhost/authorize
+      serverConfiguration:
+        manual:
+          authorizationServerUrl: http://localhost/authorize
+          jwksServerUrl: http://localhost/jwks
+          tokenAuthMethod: client_secret_post
+          tokenServerUrl: http://localhost/token
+          scopes: scopes
       clientId: clientId
       clientSecret: clientSecret
       disableSslVerification: true
@@ -12,11 +18,7 @@ jenkins:
       escapeHatchUsername: escapeHatchUsername
       fullNameFieldName: fullNameFieldName
       groupsFieldName: groupsFieldName
-      jwksServerUrl: http://localhost/jwks
       logoutFromOpenidProvider: true
-      scopes: scopes
-      tokenAuthMethod: client_secret_post
-      tokenServerUrl: http://localhost/token
       userNameField: userNameField
       rootURLFromRequest: true
       sendScopesInTokenRequest: true

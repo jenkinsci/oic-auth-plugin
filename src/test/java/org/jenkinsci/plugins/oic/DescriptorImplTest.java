@@ -1,7 +1,5 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.util.FormValidation;
 import java.io.IOException;
 import jenkins.model.Jenkins;
@@ -11,20 +9,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.jenkinsci.plugins.oic.TestRealm.AUTO_CONFIG_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.MANUAL_CONFIG_FIELD;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class DescriptorImplTest {
-
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(), true);
 
     @Rule
     public JenkinsRule jenkinsRule = new JenkinsRule();
@@ -38,10 +31,7 @@ public class DescriptorImplTest {
 
     @Test
     public void testOicSecurityRealmDescriptorImplManual() throws Exception {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, MANUAL_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
+        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) jenkins.getDescriptor(OicSecurityRealm.class);
 
         assertNotNull(descriptor);
 
@@ -56,27 +46,22 @@ public class DescriptorImplTest {
                 "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
 
-        assertFalse(descriptor.isAuto());
-        assertFalse(descriptor.isManual());
-
+        TestRealm realm = new TestRealm(
+                new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(MANUAL_CONFIG_FIELD));
         jenkins.setSecurityRealm(realm);
 
         descriptor = (DescriptorImpl) realm.getDescriptor();
-
         assertNotNull(descriptor);
 
-        assertFalse(descriptor.isAuto());
-        assertTrue(descriptor.isManual());
+        assertThat(
+                getConfiguredSecuritySecurityRealm().getServerConfiguration(),
+                instanceOf(OicServerManualConfiguration.class));
     }
 
     @Test
     public void testOicSecurityRealmDescriptorImplAuto() throws Exception {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-
-        assertNotNull(descriptor);
+        OicSecurityRealm.DescriptorImpl descriptor =
+                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
         assertEquals("Login with Openid Connect", descriptor.getDisplayName());
         assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
@@ -89,66 +74,23 @@ public class DescriptorImplTest {
                 "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
 
+        TestRealm realm =
+                new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(AUTO_CONFIG_FIELD));
         jenkins.setSecurityRealm(realm);
 
-        descriptor = (DescriptorImpl) realm.getDescriptor();
+        descriptor = (DescriptorImpl) jenkins.getSecurityRealm().getDescriptor();
 
         assertNotNull(descriptor);
 
-        assertTrue(descriptor.isAuto());
-        assertFalse(descriptor.isManual());
-    }
-
-    @Test
-    public void doCheckTokenServerUrl() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-
-        assertNotNull(descriptor);
-        assertEquals(
-                "Token Server Url Key is required.",
-                descriptor.doCheckTokenServerUrl(null).getMessage());
-        assertTrue(descriptor.doCheckTokenServerUrl("").getMessage().contains("is required."));
-        assertEquals(FormValidation.ok(), descriptor.doCheckTokenServerUrl("http://localhost"));
-    }
-
-    @Test
-    public void doCheckAuthorizationServerUrl() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-
-        assertNotNull(descriptor);
-        assertEquals(
-                "Token Server Url Key is required.",
-                descriptor.doCheckAuthorizationServerUrl(null).getMessage());
-        assertTrue(descriptor.doCheckAuthorizationServerUrl("").getMessage().contains("Not a valid url."));
-        assertEquals(FormValidation.ok(), descriptor.doCheckAuthorizationServerUrl("http://localhost"));
-    }
-
-    @Test
-    public void doCheckJwksServerUrl() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-
-        assertNotNull(descriptor);
-        assertEquals(FormValidation.ok(), descriptor.doCheckJwksServerUrl(null));
-        assertEquals(FormValidation.ok(), descriptor.doCheckJwksServerUrl(""));
-        assertEquals(FormValidation.ok(), descriptor.doCheckJwksServerUrl("http://localhost/jwks"));
+        assertThat(
+                getConfiguredSecuritySecurityRealm().getServerConfiguration(),
+                instanceOf(OicServerWellKnownConfiguration.class));
     }
 
     @Test
     public void doCheckUserNameField() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-        assertNotNull(descriptor);
+        OicSecurityRealm.DescriptorImpl descriptor =
+                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
         assertEquals(
                 FormValidation.ok("Using 'sub'.").getMessage(),
@@ -161,11 +103,8 @@ public class DescriptorImplTest {
 
     @Test
     public void doCheckFullNameFieldName() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-        assertNotNull(descriptor);
+        OicSecurityRealm.DescriptorImpl descriptor =
+                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
         assertEquals(FormValidation.ok(), descriptor.doCheckFullNameFieldName(""));
         assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckFullNameFieldName("]not valid").kind);
@@ -174,11 +113,8 @@ public class DescriptorImplTest {
 
     @Test
     public void doCheckEmailFieldName() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-        assertNotNull(descriptor);
+        OicSecurityRealm.DescriptorImpl descriptor =
+                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
         assertEquals(FormValidation.ok(), descriptor.doCheckEmailFieldName(""));
         assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckEmailFieldName("]not valid").kind);
@@ -187,11 +123,8 @@ public class DescriptorImplTest {
 
     @Test
     public void doCheckGroupsFieldName() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-        assertNotNull(descriptor);
+        OicSecurityRealm.DescriptorImpl descriptor =
+                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
         assertEquals(FormValidation.ok(), descriptor.doCheckGroupsFieldName(""));
         assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckGroupsFieldName("]not valid").kind);
@@ -200,11 +133,8 @@ public class DescriptorImplTest {
 
     @Test
     public void doCheckTokenFieldToCheckKey() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-        assertNotNull(descriptor);
+        OicSecurityRealm.DescriptorImpl descriptor =
+                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
         assertEquals(FormValidation.ok(), descriptor.doCheckTokenFieldToCheckKey(""));
         assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckTokenFieldToCheckKey("]not valid").kind);
@@ -212,54 +142,9 @@ public class DescriptorImplTest {
     }
 
     @Test
-    public void doCheckScopes() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-        assertNotNull(descriptor);
-
-        assertEquals(
-                FormValidation.ok("Using 'openid email'.").getMessage(),
-                descriptor.doCheckScopes(null).getMessage());
-        assertEquals(
-                FormValidation.ok("Using 'openid email'.").getMessage(),
-                descriptor.doCheckScopes("").getMessage());
-
-        assertEquals(
-                FormValidation.warning("Are you sure you don't want to include 'openid' as an scope?")
-                        .getMessage(),
-                descriptor.doCheckScopes("email username").getMessage());
-
-        assertEquals(FormValidation.ok(), descriptor.doCheckScopes("openid"));
-    }
-
-    @Test
-    public void doCheckEndSessionEndpoint() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-        assertNotNull(descriptor);
-
-        assertEquals(
-                "End Session URL Key is required.",
-                descriptor.doCheckEndSessionEndpoint(null).getMessage());
-        assertEquals(
-                "End Session URL Key is required.",
-                descriptor.doCheckEndSessionEndpoint("").getMessage());
-        assertTrue(
-                descriptor.doCheckEndSessionEndpoint("not a url").getMessage().contains("Not a valid url."));
-        assertEquals(FormValidation.ok(), descriptor.doCheckEndSessionEndpoint("http://localhost"));
-    }
-
-    @Test
     public void doCheckPostLogoutRedirectUrl() throws IOException {
-        configureWellKnown();
-        TestRealm realm = new TestRealm(wireMockRule, null, null, null, AUTO_CONFIG_FIELD);
-
-        OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) realm.getDescriptor();
-        assertNotNull(descriptor);
+        OicSecurityRealm.DescriptorImpl descriptor =
+                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(null));
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl(""));
@@ -270,20 +155,7 @@ public class DescriptorImplTest {
         assertEquals(FormValidation.ok(), descriptor.doCheckPostLogoutRedirectUrl("http://localhost"));
     }
 
-    private void configureWellKnown() {
-        String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
-        String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
-        String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
-        String jwksUrl = "null";
-        String endSessionUrl = "null";
-
-        wireMockRule.stubFor(get(urlPathEqualTo("/well.known"))
-                .willReturn(aResponse()
-                        .withHeader("Content-Type", "text/html; charset=utf-8")
-                        .withBody(String.format(
-                                "{\"authorization_endpoint\": \"%s\", \"token_endpoint\":\"%s\", "
-                                        + "\"userinfo_endpoint\":\"%s\",\"jwks_uri\":\"%s\", \"scopes_supported\": null, "
-                                        + "\"end_session_endpoint\":\"%s\"}",
-                                authUrl, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))));
+    private OicSecurityRealm getConfiguredSecuritySecurityRealm() {
+        return (OicSecurityRealm) jenkins.getSecurityRealm();
     }
 }

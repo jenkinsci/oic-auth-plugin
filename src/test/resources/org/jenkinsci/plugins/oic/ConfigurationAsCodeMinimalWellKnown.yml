@@ -1,6 +1,8 @@
 jenkins:
   securityRealm:
     oic:
-      wellKnownOpenIDConfigurationUrl: http://localhost:${MOCK_PORT}/well.known
       clientId: clientId
       clientSecret: clientSecret
+      serverConfiguration:
+        wellKnown:
+          wellKnownOpenIDConfigurationUrl: http://localhost:${MOCK_PORT}/well.known
