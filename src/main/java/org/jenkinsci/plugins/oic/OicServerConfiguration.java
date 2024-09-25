@@ -33,5 +33,8 @@ public abstract class OicServerConfiguration extends AbstractDescribableImpl<Oic
     @CheckForNull
     public abstract String getEndSessionUrl();
 
+    @CheckForNull
+    public abstract String getIssuer();
+
     public abstract boolean isUseRefreshTokens();
 }

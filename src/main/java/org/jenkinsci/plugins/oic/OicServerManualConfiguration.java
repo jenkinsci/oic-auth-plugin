@@ -32,6 +32,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     private String scopes = "openid email";
     private String userInfoServerUrl;
     private boolean useRefreshTokens;
+    private String issuer;
 
     @DataBoundConstructor
     public OicServerManualConfiguration(String tokenServerUrl, String authorizationServerUrl) throws FormException {
@@ -47,6 +48,11 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     @DataBoundSetter
     public void setEndSessionUrl(@Nullable String endSessionUrl) {
         this.endSessionUrl = endSessionUrl;
+    }
+
+    @DataBoundSetter
+    public void setIssuer(@Nullable String issuer) {
+        this.issuer = Util.fixEmptyAndTrim(issuer);
     }
 
     @DataBoundSetter
@@ -78,6 +84,12 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     @CheckForNull
     public String getEndSessionUrl() {
         return endSessionUrl;
+    }
+
+    @Override
+    @CheckForNull
+    public String getIssuer() {
+        return issuer;
     }
 
     @Override
@@ -152,6 +164,15 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
             } catch (MalformedURLException e) {
                 return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
             }
+        }
+
+        @POST
+        public FormValidation doCheckIssuer(@QueryParameter String issuer) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(issuer) == null) {
+                return FormValidation.warning(Messages.OicSecurityRealm_IssuerRecommended());
+            }
+            return FormValidation.ok();
         }
 
         @POST

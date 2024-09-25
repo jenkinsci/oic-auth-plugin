@@ -12,6 +12,9 @@
             checked="${instance.tokenAuthMethod == null || instance.tokenAuthMethod == 'client_secret_post'}" value="client_secret_post" inline="true" help="${null}"/>
     </f:entry>
 
+    <f:entry title="${%Issuer}" field="issuer">
+      <f:textbox/>
+    </f:entry>
     <f:entry title="${%AuthorizationServerUrl}" field="authorizationServerUrl">
         <f:textbox />
     </f:entry>

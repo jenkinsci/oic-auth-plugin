@@ -21,6 +21,9 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
     @Key("authorization_endpoint")
     private String authorizationEndpoint;
 
+    @Key("issuer")
+    private String issuer;
+
     @Key("token_endpoint")
     private String tokenEndpoint;
 
@@ -41,6 +44,10 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
 
     @Key("end_session_endpoint")
     private String endSessionEndpoint;
+
+    public String getIssuer() {
+        return issuer;
+    }
 
     public String getAuthorizationEndpoint() {
         return authorizationEndpoint;
@@ -120,6 +127,9 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
         if (!Objects.equal(authorizationEndpoint, obj.getAuthorizationEndpoint())) {
             return false;
         }
+        if (!Objects.equal(issuer, obj.getIssuer())) {
+            return false;
+        }
         if (!Objects.equal(tokenEndpoint, obj.getTokenEndpoint())) {
             return false;
         }
@@ -148,6 +158,7 @@ public class WellKnownOpenIDConfigurationResponse extends GenericJson {
     @Override
     public int hashCode() {
         return (authorizationEndpoint
+                        + issuer
                         + tokenAuthMethods
                         + tokenEndpoint
                         + userinfoEndpoint

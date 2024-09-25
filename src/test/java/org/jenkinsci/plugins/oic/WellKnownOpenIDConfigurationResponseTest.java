@@ -75,6 +75,7 @@ public class WellKnownOpenIDConfigurationResponseTest {
             Set.of("token_endpoint_auth_methods_supported", "scopes_supported", "grant_types_supported");
     private static final List<String> FIELDS = List.of(
             "authorization_endpoint",
+            "issuer",
             "token_endpoint",
             "userinfo_endpoint",
             "jwks_uri",

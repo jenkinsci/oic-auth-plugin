@@ -47,6 +47,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Url;
 import org.kohsuke.stapler.Stapler;
@@ -981,6 +982,58 @@ public class PluginTest {
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithGroup();
         configureTestRealm(belongsToGroup("missing-group"));
+        assertAnonymous();
+        webClient.setThrowExceptionOnFailingStatusCode(false);
+        browseLoginPage();
+        assertAnonymous();
+    }
+
+    @Test
+    @Issue("SECURITY-3441")
+    public void loginWithIncorrectIssuerFails() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        jenkins.setSecurityRealm(
+                new TestRealm.Builder(wireMockRule).WithIssuer("another_issuer").build());
+        assertAnonymous();
+        webClient.setThrowExceptionOnFailingStatusCode(false);
+        browseLoginPage();
+        assertAnonymous();
+    }
+
+    @Test
+    @Issue("SECURITY-3441")
+    public void loginWithoutIssuerSetSucceeds() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        jenkins.setSecurityRealm(
+                new TestRealm.Builder(wireMockRule).WithIssuer(null).build());
+        assertAnonymous();
+        webClient.setThrowExceptionOnFailingStatusCode(false);
+        browseLoginPage();
+        assertTestUser();
+    }
+
+    @Test
+    @Issue("SECURITY-3441")
+    public void loginWithEmptyIssuerSetSucceeds() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        jenkins.setSecurityRealm(
+                new TestRealm.Builder(wireMockRule).WithIssuer(null).build());
+        assertAnonymous();
+        webClient.setThrowExceptionOnFailingStatusCode(false);
+        browseLoginPage();
+        assertTestUser();
+    }
+
+    @Test
+    @Issue("SECURITY-3441")
+    public void loginWithIncorrectAudienceFails() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        jenkins.setSecurityRealm(new TestRealm.Builder(wireMockRule)
+                .WithClient("another_client_id", "client_secret").build());
         assertAnonymous();
         webClient.setThrowExceptionOnFailingStatusCode(false);
         browseLoginPage();

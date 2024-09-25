@@ -48,6 +48,7 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
     private transient String userInfoServerUrl;
     private transient boolean useRefreshTokens;
     private transient TokenAuthMethod tokenAuthMethod;
+    private transient String issuer;
 
     /**
      * Time of the wellknown configuration expiration
@@ -75,6 +76,13 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
     public String getEndSessionUrl() {
         loadWellKnownConfigIfNeeded();
         return endSessionUrl;
+    }
+
+    @Override
+    @CheckForNull
+    public String getIssuer() {
+        loadWellKnownConfigIfNeeded();
+        return issuer;
     }
 
     @Override
@@ -158,6 +166,7 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
                             WellKnownOpenIDConfigurationResponse.class);
 
             this.authorizationServerUrl = config.getAuthorizationEndpoint();
+            this.issuer = config.getIssuer();
             this.tokenServerUrl = config.getTokenEndpoint();
             this.jwksServerUrl = config.getJwksUri();
             this.tokenAuthMethod = config.getPreferredTokenAuthMethod();

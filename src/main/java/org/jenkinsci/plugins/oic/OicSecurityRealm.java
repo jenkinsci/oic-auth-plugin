@@ -823,12 +823,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (jwtVerifier == null) {
             jwtVerifier = new OicJsonWebTokenVerifier(
                     serverConfiguration.getJwksServerUrl(),
-                    new OicJsonWebTokenVerifier.Builder().setHttpTransportFactory(new HttpTransportFactory() {
-                        @Override
-                        public HttpTransport create() {
-                            return httpTransport;
-                        }
-                    }));
+                    new OicJsonWebTokenVerifier.Builder()
+                            .setHttpTransportFactory(new HttpTransportFactory() {
+                                @Override
+                                public HttpTransport create() {
+                                    return httpTransport;
+                                }
+                            })
+                            .setIssuer(getServerConfiguration().getIssuer())
+                            .setAudience(List.of(clientId)));
         }
         return jwtVerifier;
     }

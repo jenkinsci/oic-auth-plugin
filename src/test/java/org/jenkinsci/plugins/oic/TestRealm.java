@@ -20,6 +20,7 @@ public class TestRealm extends OicSecurityRealm {
     public static class Builder {
         public String clientId = CLIENT_ID;
         public Secret clientSecret = Secret.fromString("secret");
+        public String issuer = "issuer";
         public String wellKnownOpenIDConfigurationUrl;
         public String tokenServerUrl;
         public String jwksServerUrl = null;
@@ -56,6 +57,11 @@ public class TestRealm extends OicSecurityRealm {
         public Builder WithClient(String clientId, String clientSecret) {
             this.clientId = clientId;
             this.clientSecret = clientSecret == null ? null : Secret.fromString(clientSecret);
+            return this;
+        }
+
+        public Builder WithIssuer(String issuer) {
+            this.issuer = issuer;
             return this;
         }
 
@@ -139,6 +145,7 @@ public class TestRealm extends OicSecurityRealm {
                 }
                 conf.setJwksServerUrl(jwksServerUrl);
                 conf.setEndSessionUrl(endSessionEndpoint);
+                conf.setIssuer(issuer);
                 return conf;
             } catch (Exception e) {
                 throw new IllegalArgumentException(e);
