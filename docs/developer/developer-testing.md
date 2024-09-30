@@ -23,3 +23,5 @@ It is recommended to create a static client for the tests.
 
 Several OpenID Providers (OPs) are freely available in order to setup and test changes locally.
 Notable providers are [KeyCloak](https://www.keycloak.org/), [Dex](https://dexidp.io/), and [Google](https://developers.google.com/identity/openid-connect/openid-connect).
+
+Active Directory Federation Service ([AD FS](https://learn.microsoft.com/en-us/windows-server/identity/ad-fs/ad-fs-overview)) is another provider, however creating a test instance of this is complicated and is documented in [this page](./AD-FS/setup-test-instance.md).
