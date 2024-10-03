@@ -92,8 +92,7 @@ New-SelfSignedCertificate -DnsName @("$env:computername.$env:userdnsdomain") -Ce
 3. In the notification about the "Configuration required for Active Directory Federation Services" click "Configure the federation service on this server". ![Configure the federation service](adfs-images/ADFS_configure_adfs.png)
 4. In the wizard select "create the first federation server in a federation server farm". ![Create first federation server farm](adfs-images/ADFS_create-first-server.png)
 5. When asked for a user with permissions to perform the configuration continue as the Administrator and click "Next". ![Connect as User](adfs-images/ADFS_configuration-user.png)
-6. Select the SSL certificate you generated earlier (this should be the only option), the federation service name will be selected from the certificate. 
-![Server SSL Certificacte](adfs-images/ADFS_ssl-cert-choice.png)
+6. Select the SSL certificate you generated earlier (this should be the only option), the federation service name will be selected from the certificate. ![Server SSL Certificacte](adfs-images/ADFS_ssl-cert-choice.png)
 7. Optionally choose a nice name for the Display Name and click "Next"
 ![Server display name](adfs-images/ADFS_display-name.png)
 8. When promoted for an account to use, use the local Administrator account by choosing "Select". ![Select Account](adfs-images/ADFS_select-account-1.png)
@@ -135,8 +134,10 @@ Choose Close, and reboot the machine.
 4. Select "Send LDAP Attributes as Claims" and click "Next". ![LDAP Claim rule](adfs-groups-images/ADFS_groups_transform-rules-2.png)
 5. Enter "Add Groups" as the rule name, and choose "Active Directory" as the `Attribute Store`. ![Rule Name and Store](adfs-groups-images/ADFS_groups_transform-rules-3.png)
 6. Use "Token-Groups - Unqualified Names" as the `LDAP Attribute` and in the `Outgoing Claim Type` enter the text "groups" (this should not match any exiting claim type) and choose Finish. ![Add Rule mapping](adfs-groups-images/ADFS_groups_transform-rules-4.png)
-7. Click "OK" to save the changes. ![Save](adfs-groups-images/ADFS_groups_transform-rules-5.png)
-8. Click "OK" to close the dialog. ![Save](adfs-groups-images/ADFS_groups_transform-rules-6.png)
+7. Click "OK" to save the changes.
+![Save](adfs-groups-images/ADFS_groups_transform-rules-5.png)
+8. Click "OK" to close the dialog.
+![Save](adfs-groups-images/ADFS_groups_transform-rules-6.png)
 
 
 #### Fixup missing Permissions
