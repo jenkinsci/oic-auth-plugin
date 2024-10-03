@@ -37,7 +37,7 @@ This guide will walk through the setup of Windows 2022 using an ISO as it is the
 
 Congratulations, Windows Server 2022 is now installed!
 
-### Install Services
+## Install Services
 
 AD FS is not Active Directory (AD), however we will use AD as the authentication provider for AD FS so it and DNS will be installed here as well as AD FS.
 
@@ -59,29 +59,7 @@ AD FS is not Active Directory (AD), however we will use AD as the authentication
 15. The installation will now start. ![installing](setup-images/roles_installing.png)
 16. Wait for the installation to complete, you can then close the wizard. ![alt text](setup-images/roles_install-complete.png)
 
-### Configure DNS 
-
-> **Note**
-> probably not needed!
-
-
-DNS needs to be configured in order to be able to configure AD DS.
-For this example we will be using `adfs.test` as the domain.
-
-1. Launch the DNS Manager by selectting Tools -> DNS in the Server Manager. ![Launch DNS](dns-images/launch-dns-manager.png)
-2. In DNS Manager select "Action" -> "New Zone". ![Create New Zone](dns-images/new-zone.png)
-3. In the wizard click "Next" to continue. ![Wizard Start](dns-images/wizarard-start-next.png)
-4. Ensure "Primary Zone" is selected and choose "Next". ![Primary Zone option](dns-images/select-primary-zone.png)
-4. Ensure "Primary Zone" is selected and choose "Next". ![Primary Zone option](dns-images/select-primary-zone.png)
-5. Select "Forward Lookup Zone" to create the new Domain and choose "Next". ![Forward Lookup Zone](dns-images/forward-lookup-zone-option.png)
-6. In the "Zone Name" enter `adfs.test` then choose "Next". ![alt text](dns-images/zone-name.png)
-7. Choose the option to create a new File and accept the suggested name, then click "Next". ![Zone Filename option](dns-images/filename-option.png)
-8. Select the option to not allow dynamic updates and click "Next". ![Dynamic update options](dns-images/dynamic-updates.png)
-9. Select "Finish" to create the zone. ![Create the Zone](dns-images/forward-zone-finish.png).
-
-
-
-### Configure Active Directory
+## Configure Active Directory
 
 1. In Server Manager DashBoard Select the Notification flag to show the post deployment options.
 2. In the notification about the "Configuration required for Active Directory Domain Services" click "Promote this server to a domain controller" ![AD DS Promote to DC](adds-images/adds_promote-to-dc.png)
@@ -98,7 +76,11 @@ For this example we will be using `adfs.test` as the domain.
 10. The install will start, after a short while you will be signed out and Windows restarted. 
 The restart will take longer than normal when reconfiguring the system.
 
-### Configure Active Directory Federation Services
+> **Note**
+> Use the "Active Directory Users and Groups" snap in to create users and groups for testing.
+To test groups the Group Type should be a "Security Group"
+
+## Configure Active Directory Federation Services
 
 The fun part.....
 
@@ -126,14 +108,14 @@ The check should succeed (the text will become underlined), and then click "OK".
 14. The install may generate some warnings, these can most probabably be ignored![Huh](adfs-images/ADFS_post_install_warnings.png)
 Choose Close, and reboot the machine.
 
-## Create a new OpenID Connect Client in AD FS
+### Create a new OpenID Connect Client in AD FS
 
 1. Login, and start the "AD FS Management" tool. ![AD FS Management](adfs-client-images/ADFS_post-install-start-tool.png)
 2. Create a new Application Group by selecting the menu Actions -> Add Application Group. ![Create a new Application Group](adfs-client-images/ADFS_create-application-gropup.png)
 3. Enter a name and description for the group and choose "Server Application accessing a web API" before clicking "Next". ![Create Application Group Options](adfs-client-images/ADFS_create-application-group-1.png)
-4. Enter the redirect URL for the Jenkins instance you will be connected to as observed by your web browser (not the ADFS Server) this will be `${JENKINS_ROOT_URL}/securityRealm/finishLogin` (e.g. for `mvn hpi:run` this will be `http://localhost:8080/jenkins/securityRealm/finishLogin`). **Note down the client ID, you will need this to configure Jenkins later!**.  Once you have noted down the client identifier click "Next".  ![Create client and redirect URI](adfs-client-images/ADFS_create-client-and-redirect-uri.png)
+4. Enter the redirect URL for the Jenkins instance you will be connected to as observed by your web browser (not the ADFS Server) this will be `${JENKINS_ROOT_URL}/securityRealm/finishLogin` (e.g. for `mvn hpi:run` this will be `http://localhost:8080/jenkins/securityRealm/finishLogin`) and click "Add". **Note down the client ID, you will need this to configure Jenkins later!**.  Once you have noted down the client identifier click "Next".  ![Create client and redirect URI](adfs-client-images/ADFS_create-client-and-redirect-uri.png)
 5. Choose "Generate a shared secret" and record this along with the cient ID. You will need this to configure Jenkins later! Then click "Next". ![Create shared secret](adfs-client-images/ADFS_create-shared-secret.png)
-6. In Configure Web API enter the URL of your Jenkins server and click "Next". ![Configure Web API](adfs-client-images/ADFS_configure-web-api.png)
+6. In Configure Web API "Identifier" enter `client id` that was created earlier and click "Add", then "Next". ![Configure Web API](adfs-client-images/ADFS_configure-web-api.png)
 7. Check that the Access Control policy is set to Grant access to everyone, then click "Next".  ![Allow everyone to access](adfs-client-images/ADFS_access-controll-permit-everyone.png)
 8. Check the following claims and click "Next"
 * allatclaims
@@ -145,10 +127,36 @@ Choose Close, and reboot the machine.
 9. Review the options, and then click "Next". ![Review Options](adfs-images/ADFS_review-options.png)
 10. The Application group should have been created correctly and the wizard can now be closed.  ![Wizard Complete](adfs-client-images/ADFS_complete-wizard.png)
 
+#### Expose Groups as Claims
+
+1. In the AD FS Management tool, Select "Application Groups" in the tree on the left, then double click on the "Jenkins Application Group" in the main panel. ![Application Group](adfs-groups-images/ADFS_groups-application-group.png)
+2. Select the "Jenkins Application Group - Web API" entry in the "Web API" section and click "Edit". ![Edit WebAPI](adfs-groups-images/ADFS_groups-edit-web-api.png)
+3. Switch to the "Issuance Transform Rules" tab and then click "Add Rule". ![transform rules](adfs-groups-images/ADFS_groups_transform-rules-1.png)
+4. Select "Send LDAP Attributes as Claims" and click "Next". ![LDAP Claim rule](adfs-groups-images/ADFS_groups_transform-rules-2.png)
+5. Enter "Add Groups" as the rule name, and choose "Active Directory" as the `Attribute Store`. ![Rule Name and Store](adfs-groups-images/ADFS_groups_transform-rules-3.png)
+6. Use "Token-Groups - Unqualified Names" as the `LDAP Attribute` and in the `Outgoing Claim Type` enter the text "groups" (this should not match any exiting claim type) and choose Finish. ![Add Rule mapping](adfs-groups-images/ADFS_groups_transform-rules-4.png)
+7. Click "OK" to save the changes. ![Save](adfs-groups-images/ADFS_groups_transform-rules-5.png)
+8. Click "OK" to close the dialog. ![Save](adfs-groups-images/ADFS_groups_transform-rules-6.png)
+
+
+#### Fixup missing Permissions
 
 > **Note**
-> We may need to grant some extra perms with powershell.. need to check the group options.
+> even though we did everything in the UI and granted scopes, there are still some missing permissions.
+Without setting this you will have trouble authenticating (`The client 'your-client-id' is forbidden to access the resource 'http://schemas.microsoft.com/ws/2009/12/identityserver/selfscope'`) or will be missing profile information.
 
+<!-- see https://community.ibm.com/community/user/security/blogs/laurent-lapiquionne1/2020/07/21/how-to-configure-igi-service-center-to-authent --> 
+
+Start powershell and run the following script: (enter the client ID for the client we previously created when prompted)
+
+```powershell
+$clientid = Read-Host -Prompt 'Input your Client ID we created earlier for Jenkins'
+Grant-AdfsApplicationPermission -ClientRoleIdentifier $clientid -ServerRoleIdentifier http://schemas.microsoft.com/ws/2009/12/identityserver/selfscope
+Get-AdfsApplicationPermission -ServerRoleIdentifiers "http://schemas.microsoft.com/ws/2009/12/identityserver/selfscope"
+$objId=Get-AdfsApplicationPermission -ServerRoleIdentifiers "http://schemas.microsoft.com/ws/2009/12/identityserver/selfscope" | Where-Object -Property ClientRoleIdentifier -eq $clientid | Select -ExpandProperty "ObjectIdentifier"
+Set-AdfsApplicationPermission -TargetIdentifier $objId -AddScope ('openid', 'aza')
+
+```
 
 ## Configure Jenkins to use this client
 
@@ -169,5 +177,3 @@ The resulting trust store can then be used by passing the `javax.net.ssl.trustSt
 5. The "Full name field name" field should be set to `something`
 6. The "Email field name" should be set to `something`
 7. The "Groups field name" should be set to `something`
-
-XXX TODO missing scope / permission for `aza` and groups are not set....
