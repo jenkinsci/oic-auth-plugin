@@ -15,9 +15,9 @@ import org.jvnet.hudson.test.recipes.LocalData;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 public class OicSecurityRealmFipsTest {
 
@@ -75,7 +75,7 @@ public class OicSecurityRealmFipsTest {
     @Test
     @LocalData
     public void failsOnMigrationTest() {
-        assertTrue("We should get a ReactorException, startup failed", j.getError() instanceof ReactorException);
+        assertThat("We should get a ReactorException, startup failed", j.getError(), instanceOf(ReactorException.class));
     }
 
     // Simple JenkinsRule extension that doesn't make test fail on startup errors, so we can check the error.
