@@ -1,0 +1,28 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+    <disabledAdministrativeMonitors/>
+    <version>2.426.3</version>
+    <numExecutors>2</numExecutors>
+    <mode>NORMAL</mode>
+    <useSecurity>true</useSecurity>
+    <securityRealm class="org.jenkinsci.plugins.oic.OicSecurityRealm" plugin="oic-auth@4.999999-SNAPSHOT">
+        <clientId>client-id</clientId>
+        <clientSecret>{AQAAABAAAAAQ6eIZw98uUCRkQ7ug3nSTzQ4EKjZWLpSQFIxRg9AMWNo=}</clientSecret>
+        <userNameField>sub</userNameField>
+        <disableSslVerification>false</disableSslVerification>
+        <logoutFromOpenidProvider>false</logoutFromOpenidProvider>
+        <escapeHatchEnabled>false</escapeHatchEnabled>
+        <escapeHatchSecret>{AQAAABAAAABAPfWEOWZptuocLQqIjwfXTQ6Ky/3yq4CIWvdUYhH4jX1CuCzrFvr2ICIiBIIpp79McMBCTHq9QhVjfgbPN9XPEbjsFiWihgKHZYF+3+wz3kM=}</escapeHatchSecret>
+        <serverConfiguration class="org.jenkinsci.plugins.oic.OicServerWellKnownConfiguration">
+            <wellKnownOpenIDConfigurationUrl>https://example.test</wellKnownOpenIDConfigurationUrl>
+        </serverConfiguration>
+        <rootURLFromRequest>false</rootURLFromRequest>
+        <sendScopesInTokenRequest>false</sendScopesInTokenRequest>
+        <pkceEnabled>false</pkceEnabled>
+        <disableTokenVerification>true</disableTokenVerification>
+        <nonceDisabled>false</nonceDisabled>
+        <tokenExpirationCheckDisabled>false</tokenExpirationCheckDisabled>
+        <allowTokenAccessWithoutOicSession>false</allowTokenAccessWithoutOicSession>
+        <allowedTokenExpirationClockSkewSeconds>0</allowedTokenExpirationClockSkewSeconds>
+    </securityRealm>
+</hudson>
