@@ -26,7 +26,7 @@
     <f:entry title="${%JwksServerUrl}" field="jwksServerUrl">
         <f:textbox />
     </f:entry>
-    <f:entry title="${%EndSessionUrl}" field="endSessionEndpoint">
+    <f:entry title="${%EndSessionUrl}" field="endSessionUrl">
         <f:textbox />
     </f:entry>
     <f:entry title="${%Scopes}" field="scopes">

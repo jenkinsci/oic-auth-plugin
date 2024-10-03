@@ -46,6 +46,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     private String scopes = "openid email";
     private String userInfoServerUrl;
     private boolean useRefreshTokens;
+    private String issuer;
 
     @DataBoundConstructor
     public OicServerManualConfiguration(String issuer, String tokenServerUrl, String authorizationServerUrl)
@@ -225,6 +226,15 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
             } catch (MalformedURLException e) {
                 return FormValidation.error(e, Messages.OicSecurityRealm_NotAValidURL());
             }
+        }
+
+        @POST
+        public FormValidation doCheckIssuer(@QueryParameter String issuer) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(issuer) == null) {
+                return FormValidation.warning(Messages.OicSecurityRealm_IssuerRequired());
+            }
+            return FormValidation.ok();
         }
 
         @POST
