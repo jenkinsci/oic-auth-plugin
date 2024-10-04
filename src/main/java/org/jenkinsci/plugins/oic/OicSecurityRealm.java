@@ -469,7 +469,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     private OidcConfiguration buildOidcConfiguration() {
         // TODO cache this and use the well known if available.
-        OidcConfiguration conf = new OidcConfiguration();
+        OidcConfiguration conf = new CustomOidcConfiguration(this.isDisableSslVerification());
         conf.setClientId(clientId);
         conf.setSecret(clientSecret.getPlainText());
 

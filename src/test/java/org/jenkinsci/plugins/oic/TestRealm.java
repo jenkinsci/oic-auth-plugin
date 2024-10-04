@@ -52,8 +52,15 @@ public class TestRealm extends OicSecurityRealm {
         public boolean automanualconfigure = false;
         public boolean disableTokenValidation = true; // opt in for some specific tests
 
+        public Builder(WireMockRule wireMockRule, boolean useTLS) throws IOException {
+            this(
+                    useTLS
+                            ? "https://localhost:" + wireMockRule.httpsPort() + "/"
+                            : "http://localhost:" + wireMockRule.port() + "/");
+        }
+
         public Builder(WireMockRule wireMockRule) throws IOException {
-            this("http://localhost:" + wireMockRule.port() + "/");
+            this(wireMockRule, false);
         }
 
         public Builder(String rootUrl) throws IOException {
@@ -132,6 +139,11 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithDisableTokenValidation(boolean disableTokenValidation) {
             this.disableTokenValidation = disableTokenValidation;
+            return this;
+        }
+
+        public Builder WithDisableSslVerification(boolean disableSslVerification) {
+            this.disableSslVerification = disableSslVerification;
             return this;
         }
 
