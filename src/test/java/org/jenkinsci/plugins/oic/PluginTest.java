@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLException;
 import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
@@ -84,6 +85,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -106,6 +108,7 @@ public class PluginTest {
     public WireMockRule wireMockRule = new WireMockRule(
             new WireMockConfiguration()
                     .dynamicPort()
+                    .dynamicHttpsPort()
                     .notifier(new ConsoleNotifier(new DisableOnDebug(null).isDebugging())),
             true);
 
@@ -144,6 +147,30 @@ public class PluginTest {
             assertNotNull(((OicSecurityRealm) Jenkins.get().getSecurityRealm()).getStateAttribute(session));
             return null;
         });
+    }
+
+    @Test
+    public void testLoginWithDefaultsUntrustedTLSFails() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        TestRealm.Builder builder = new TestRealm.Builder(wireMockRule, true).WithMinimalDefaults();
+        jenkins.setSecurityRealm(builder.build());
+        assertThrows(SSLException.class, () -> browseLoginPage());
+    }
+
+    @Test
+    public void testLoginWithDefaultsUntrustedTLSPassesWhenTLSChecksDisabled() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        TestRealm.Builder builder =
+                new TestRealm.Builder(wireMockRule, true).WithMinimalDefaults().WithDisableSslVerification(true);
+        jenkins.setSecurityRealm(builder.build());
+        // webclient talks to the OP via SSL so we need to disable Webclients TLS validation also
+        webClient.getOptions().setUseInsecureSSL(true);
+        browseLoginPage();
+        var user = assertTestUser();
+        assertTestUserEmail(user);
+        assertTestUserIsMemberOfTestGroups(user);
     }
 
     private void browseLoginPage() throws IOException, SAXException {

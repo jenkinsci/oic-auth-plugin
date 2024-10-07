@@ -28,7 +28,8 @@ public class OicServerWellKnownConfigurationTest {
     public static JenkinsRule jenkinsRule = new JenkinsRule();
 
     @Rule
-    public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(), true);
+    public WireMockRule wireMockRule =
+            new WireMockRule(new WireMockConfiguration().dynamicPort().dynamicHttpsPort(), true);
 
     @Test
     public void doCheckWellKnownOpenIDConfigurationUrl() throws IOException {
@@ -43,8 +44,19 @@ public class OicServerWellKnownConfigurationTest {
                 allOf(hasKind(FormValidation.Kind.ERROR), withMessage("Not a valid url.")));
         assertThat(
                 descriptor.doCheckWellKnownOpenIDConfigurationUrl(
-                        wireMockRule.url("/.well-known/openid-configuration"), false),
+                        "http://localhost:" + wireMockRule.port() + ("/.well-known/openid-configuration"), false),
                 hasKind(FormValidation.Kind.OK));
+        assertThat(
+                descriptor.doCheckWellKnownOpenIDConfigurationUrl(
+                        wireMockRule.url("/.well-known/openid-configuration"), true), // disable TLS
+                hasKind(FormValidation.Kind.OK));
+        // TLS error.
+        assertThat(
+                descriptor.doCheckWellKnownOpenIDConfigurationUrl(
+                        wireMockRule.url("/.well-known/openid-configuration"), false),
+                allOf(
+                        hasKind(FormValidation.Kind.ERROR),
+                        withMessageContaining("The server presented an invalid or incorrect TLS certificate")));
 
         assertThat(
                 descriptor.doCheckWellKnownOpenIDConfigurationUrl(

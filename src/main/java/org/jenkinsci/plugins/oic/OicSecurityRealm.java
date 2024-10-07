@@ -94,7 +94,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.Header;
-import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
@@ -229,7 +228,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     private OicServerConfiguration serverConfiguration;
 
-    /** @deprecated see {@link OicServerWellKnownConfiguration#getScopes()} */
+    /** @deprecated with no replacement.  See sub classes of {@link OicServerConfiguration} */
     @Deprecated
     private String overrideScopes = null;
 
@@ -484,7 +483,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     private OidcConfiguration buildOidcConfiguration() {
         // TODO cache this and use the well known if available.
-        OidcConfiguration conf = new OidcConfiguration();
+        OidcConfiguration conf = new CustomOidcConfiguration(this.isDisableSslVerification());
         conf.setClientId(clientId);
         conf.setSecret(clientSecret.getPlainText());
 
@@ -770,7 +769,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
      * @param from the relative URL to the page that the user has just come from
      * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
-     * @return an {@link HttpResponse} object
      * @throws URISyntaxException if the provided data is invalid
      */
     @Restricted(DoNotUse.class) // stapler only
@@ -780,7 +778,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         OidcClient client = buildOidcClient();
         // add the extra params for the client...
         final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer);
-        client.setCallbackUrl(buildOAuthRedirectUrl());
 
         OidcRedirectionActionBuilder builder = new OidcRedirectionActionBuilder(client);
         WebContext webContext =
@@ -1090,11 +1087,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /**
      * This is where the user comes back to at the end of the OpenID redirect ping-pong.
      * @param request The user's request
-     * @throws ParseException
-     * @throws URISyntaxException
+     * @throws ParseException if the JWT (or other response) could not be parsed.
      */
-    public void doFinishLogin(StaplerRequest request, StaplerResponse response)
-            throws IOException, ParseException, URISyntaxException {
+    public void doFinishLogin(StaplerRequest request, StaplerResponse response) throws IOException, ParseException {
         OidcClient client = buildOidcClient();
 
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(request, response);
@@ -1243,30 +1238,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             profile = (OidcProfile) client.renewUserProfile(profile, webContext, sessionStore)
                     .orElseThrow(() -> new IllegalStateException("Could not renew user profile"));
 
-            /*
-            ((OidcAuthenticator) client.getAuthenticator()).refresh(creds);
-            // if we are successful we will have an access token
-            if (creds.getAccessToken() == null) {
-                LOGGER.log(Level.WARNING, "failed to refresh credentials, access token is null");
-                return false;
-            }
-
-            // Refresh Token Flow is not required to send new ID or Refresh Token, so re-use if not received
-            if (creds.getIdToken() == null) {
-                creds.setIdToken(PlainJWT.parse(credentials.getIdToken()));
-            } else {
-            if (creds.getRefreshToken() == null) {
-                creds.setRefreshToken(new RefreshToken(credentials.getRefreshToken()));
-            }
-
-            ProfileCreator profileCreator = client.getProfileCreator();
-
-            // creating the profile performs validation of the token
-            OidcProfile profile = (OidcProfile) profileCreator
-                    .create(creds, webContext, sessionStore)
-                    .orElseThrow(() -> new TechnicalException("Could not build user profile"));
-             */
-
             AccessToken accessToken = profile.getAccessToken();
             JWT idToken = profile.getIdToken();
             RefreshToken refreshToken = profile.getRefreshToken();
@@ -1293,8 +1264,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             return true;
         } catch (TechnicalException e) {
             if (isTokenExpirationCheckDisabled() && StringUtils.contains(e.getMessage(), "error=invalid_grant")) {
-                // the code is lost from the TechnicalException so we need to restor to string matching to retain the
-                // same flow :-(
+                // the code is lost from the TechnicalException so we need to resort to string matching
+                // to retain the same flow :-(
+
                 LOGGER.log(
                         Level.INFO,
                         "Failed to refresh expired token because grant is invalid, proceeding as \"Token Expiration Check Disabled\" is set");
@@ -1321,6 +1293,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @Extension
     public static final class DescriptorImpl extends Descriptor<SecurityRealm> {
 
+        @Override
         public String getDisplayName() {
             return Messages.OicSecurityRealm_DisplayName();
         }

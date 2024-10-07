@@ -5,6 +5,7 @@ import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Extension;
 import hudson.RelativePath;
 import hudson.Util;
@@ -13,19 +14,22 @@ import hudson.util.FormValidation;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.http.HttpHeaders;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLException;
 import jenkins.model.Jenkins;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -67,9 +71,8 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
         return wellKnownOpenIDConfigurationUrl;
     }
 
-    @Restricted(NoExternalUse.class) // for testing only
+    @Restricted(DoNotUse.class) // for testing only
     void invalidateProviderMetadata() {
-        // TODO XXX test code should be refactored to not make changes
         oidcProviderMetadata = null;
     }
 
@@ -125,8 +128,13 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
             }
 
             oidcProviderMetadata = _oidcProviderMetadata;
-            // TODO XXX need to obtain the expiry!
-            setWellKnownExpires(/*response.getHeaders()*/ );
+            // we have no access to the HTTP Headers to be able to find a expirey headers.
+            // for now use the default expirey of 1hr.
+            // we are already calling HTTP endpoints as part of the flow, so making one extra call an hour
+            // should not cause any issues.
+            // once this is validate, the OicSecurityRealm can be simplified to cache the built client
+            // and have a periodic task to invalidate it when auto config is being used.
+            setWellKnownExpires(null);
             return oidcProviderMetadata;
         } catch (MalformedURLException e) {
             LOGGER.log(Level.SEVERE, "Invalid WellKnown OpenID Configuration URL", e);
@@ -145,18 +153,17 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
     }
 
     /**
-     * Parse headers to determine expiration date
+     * Parse headers to determine expiration date.
+     * Sets the expiry time to 1 hour from the current time if the header is not available.
      */
-    // XXX TODO
-    private void setWellKnownExpires(/* HttpHeaders headers*/ ) {
-        String expires = "0"; // Util.fixEmptyAndTrim(headers.getExpires());
+    private void setWellKnownExpires(@CheckForNull HttpHeaders headers) {
+        Optional<String> expires = headers == null ? Optional.empty() : headers.firstValue("Expires");
+
         // expires 0 means no cache
         // we could (should?) have a look at Cache-Control header and max-age but for
-        // simplicity
-        // we can just leave it default TTL 1h refresh which sounds reasonable for such
-        // file
-        if (expires != null && !"0".equals(expires)) {
-            ZonedDateTime zdt = ZonedDateTime.parse(expires, DateTimeFormatter.RFC_1123_DATE_TIME);
+        // simplicity we can just leave it default TTL 1h refresh which sounds reasonable for such file
+        if (expires.isPresent() && !"0".equals(expires.get())) {
+            ZonedDateTime zdt = ZonedDateTime.parse(expires.get(), DateTimeFormatter.RFC_1123_DATE_TIME);
             if (zdt != null) {
                 this.wellKnownExpires = zdt.toLocalDateTime();
                 return;
@@ -185,24 +192,24 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
                 return FormValidation.error(Messages.OicSecurityRealm_NotAValidURL());
             }
             try {
-                // TODO XXX handle disabling SSL Verification etc..
-                OidcConfiguration configuration = new OidcConfiguration();
-                configuration.setClientId("ignored-but-requred");
-                configuration.setSecret("ignored-but-required");
-                configuration.setDiscoveryURI(wellKnownOpenIDConfigurationUrl);
+                ProxyAwareResourceRetriever prr =
+                        ProxyAwareResourceRetriever.createProxyAwareResourceRetriver(disableSslVerification);
 
-                OIDCProviderMetadata providerMetadata = configuration.findProviderMetadata();
+                OIDCProviderMetadata providerMetadata =
+                        OIDCProviderMetadata.parse(prr.retrieveResource(new URL(wellKnownOpenIDConfigurationUrl))
+                                .getContent());
 
                 if (providerMetadata.getAuthorizationEndpointURI() == null
                         || providerMetadata.getTokenEndpointURI() == null) {
                     return FormValidation.warning(Messages.OicSecurityRealm_URLNotAOpenIdEnpoint());
                 }
                 return FormValidation.ok();
-            } catch (TechnicalException e) {
-                if (e.getCause() instanceof ParseException) {
-                    return FormValidation.error(e, Messages.OicSecurityRealm_URLNotAOpenIdEnpoint());
-                }
+            } catch (SSLException e) {
+                return FormValidation.error(e, Messages.OicSecurityRealm_SSLErrorRetreivingWellKnownConfig());
+            } catch (IOException e) {
                 return FormValidation.error(e, Messages.OicSecurityRealm_ErrorRetreivingWellKnownConfig());
+            } catch (ParseException e) {
+                return FormValidation.error(e, Messages.OicSecurityRealm_URLNotAOpenIdEnpoint());
             }
         }
 

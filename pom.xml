@@ -50,7 +50,7 @@
     <spotless.check.skip>false</spotless.check.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <configuration-as-code.version>1836.vccda_4a_122a_a_e</configuration-as-code.version>
-    <hpi.compatibleSinceVersion>4.356</hpi.compatibleSinceVersion>
+    <hpi.compatibleSinceVersion>4.364</hpi.compatibleSinceVersion>
     <!-- latest 5.x as 6 uses java 17 -->
     <pac4jVersion>5.7.5</pac4jVersion>
   </properties>

@@ -7,7 +7,6 @@ import hudson.util.Secret;
 import io.burt.jmespath.Expression;
 import java.io.IOException;
 import java.io.ObjectStreamException;
-import java.net.URISyntaxException;
 import java.text.ParseException;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -53,8 +52,15 @@ public class TestRealm extends OicSecurityRealm {
         public boolean automanualconfigure = false;
         public boolean disableTokenValidation = true; // opt in for some specific tests
 
+        public Builder(WireMockRule wireMockRule, boolean useTLS) throws IOException {
+            this(
+                    useTLS
+                            ? "https://localhost:" + wireMockRule.httpsPort() + "/"
+                            : "http://localhost:" + wireMockRule.port() + "/");
+        }
+
         public Builder(WireMockRule wireMockRule) throws IOException {
-            this("http://localhost:" + wireMockRule.port() + "/");
+            this(wireMockRule, false);
         }
 
         public Builder(String rootUrl) throws IOException {
@@ -133,6 +139,11 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithDisableTokenValidation(boolean disableTokenValidation) {
             this.disableTokenValidation = disableTokenValidation;
+            return this;
+        }
+
+        public Builder WithDisableSslVerification(boolean disableSslVerification) {
+            this.disableSslVerification = disableSslVerification;
             return this;
         }
 
@@ -248,8 +259,7 @@ public class TestRealm extends OicSecurityRealm {
     }
 
     @Override
-    public void doFinishLogin(StaplerRequest request, StaplerResponse response)
-            throws IOException, ParseException, URISyntaxException {
+    public void doFinishLogin(StaplerRequest request, StaplerResponse response) throws IOException, ParseException {
         /*
          * PluginTest uses a hardCoded nonce "nonce"
          */
