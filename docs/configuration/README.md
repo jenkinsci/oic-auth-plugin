@@ -108,20 +108,25 @@ JCasC configuration can be defined with the following fields:
 jenkins:
   securityRealm:
     oic:
-      automanualconfigure: <string:enum>
-      # Automatic config of endpoint
-      wellKnownOpenIDConfigurationUrl: <url>
-      overrideScopes: <string:space separated words>
-      # Manual config of endpoint
-      tokenServerUrl: <url>
-      authorizationServerUrl: <url>
-      endSessionEndpoint: <url>
-      jwksServerUrl: <url>
-      scopes: <string:space separated words>
+      serverConfiguration:
+        # Automatic config of endpoint
+        wellKnown:
+          wellKnownOpenIDConfigurationUrl: <url>
+          scopesOverride: <string:space separated words>
+        # Manual config of endpoint
+        manual:
+          authorizationServerUrl: <url>
+          endSessionEndpoint: <url>
+          issuer: <string>
+          jwksServerUrl: <url>
+          tokenAuthMethod: <string:enum>
+          tokenServerUrl: <url>
+          scopes: <string:space separated words>
+          userInfoServerUrl: <url>
+          useRefreshTokens: <boolean>
       # Credentials
       clientId: <string>
       clientSecret: <string:secret>
-      tokenAuthMethod: <string:enum>
       # claims
       userNameField: <string:jmes path>
       groupsFieldName: <string:jmes path>
@@ -131,13 +136,17 @@ jenkins:
       logoutFromOpenidProvider: <boolean>
       rootURLFromRequest: <boolean>
       sendScopesInTokenRequest: <boolean>
+      postLogoutRedirectUrl: <url>
       # Security
+      allowTokenAccessWithoutOicSession: <boolean>
+      allowedTokenExpirationClockSkewSeconds: <integer>
       disableSslVerification: <boolean>
       nonceDisabled: <boolean>
       pkceEnabled: <boolean>
       disableTokenVerification: <boolean>
       tokenFieldToCheckKey: <string:jmes path>
       tokenFieldToCheckValue: <string>
+      tokenExpirationCheckDisabled: <boolean>
       # escape hatch
       escapeHatchEnabled: <boolean>
       escapeHatchUsername: escapeHatchUsername
