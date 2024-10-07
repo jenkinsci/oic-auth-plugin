@@ -155,7 +155,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     };
 
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
-    private static final String STATE_REQUEST_ATTRIBUTE = "oic-state";
     private static final String NO_SECRET = "none";
     private static final String SESSION_POST_LOGIN_REDIRECT_URL_KEY = "oic-redirect-on-login-url";
 
