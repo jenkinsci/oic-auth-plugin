@@ -146,6 +146,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
             providerMetadata.setEndSessionEndpointURI(toURIOrNull(endSessionUrl));
             providerMetadata.setAuthorizationEndpointURI(new URI(authorizationServerUrl));
             providerMetadata.setTokenEndpointURI(toURIOrNull(tokenServerUrl));
+            providerMetadata.setJWKSetURI(toURIOrNull(jwksServerUrl));
             providerMetadata.setTokenEndpointAuthMethods(List.of(getClientAuthenticationMethod()));
             providerMetadata.setScopes(Scope.parse(getScopes()));
             // should really be a UI option, but was not previously
