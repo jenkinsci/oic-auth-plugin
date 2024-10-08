@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.oic;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.oauth2.sdk.GrantType;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
 import com.nimbusds.oauth2.sdk.pkce.CodeChallengeMethod;
@@ -1217,9 +1218,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             profile = (OidcProfile) client.renewUserProfile(profile, webContext, sessionStore)
                     .orElseThrow(() -> new IllegalStateException("Could not renew user profile"));
 
+            // During refresh the IDToken may or may not be present.
+            // The refresh token may also not be present.
+            // in these cases we will reuse the original values.
+
             AccessToken accessToken = profile.getAccessToken();
-            JWT idToken = profile.getIdToken();
-            RefreshToken refreshToken = profile.getRefreshToken();
+            JWT idToken = Objects.requireNonNullElse(profile.getIdToken(), JWTParser.parse(credentials.getIdToken()));
+            RefreshToken refreshToken = Objects.requireNonNullElse(
+                    profile.getRefreshToken(), new RefreshToken(credentials.getRefreshToken()));
+
             String username = determineStringField(userNameFieldExpr, idToken, profile.getAttributes());
             if (!User.idStrategy().equals(expectedUsername, username)) {
                 httpResponse.sendError(
