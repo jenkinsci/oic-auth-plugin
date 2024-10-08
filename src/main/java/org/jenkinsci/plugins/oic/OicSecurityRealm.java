@@ -99,6 +99,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
+import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -543,6 +544,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @DataBoundSetter
     public void setEscapeHatchEnabled(boolean escapeHatchEnabled) {
+        if (FIPS140.useCompliantAlgorithms() && escapeHatchEnabled) {
+            throw new IllegalArgumentException("Escape Hatch cannot be enabled in FIPS environment");
+        }
         this.escapeHatchEnabled = escapeHatchEnabled;
     }
 
@@ -1444,6 +1448,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         @Restricted(NoExternalUse.class) // jelly only
         public Descriptor<OicServerConfiguration> getDefaultServerConfigurationType() {
             return Jenkins.get().getDescriptor(OicServerWellKnownConfiguration.class);
+        }
+
+        @Restricted(NoExternalUse.class) // used by jelly only
+        public boolean isFipsEnabled() {
+            return FIPS140.useCompliantAlgorithms();
         }
     }
 }
