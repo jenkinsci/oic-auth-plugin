@@ -1,5 +1,7 @@
 package org.jenkinsci.plugins.oic;
 
+import com.nimbusds.jose.Algorithm;
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.util.ResourceRetriever;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.Scope;
@@ -124,7 +126,13 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
                     _oidcProviderMetadata.setTokenEndpointAuthMethods(filteredEndpointAuthMethods);
                 }
             }
-
+            // do not allow the "none" singing algorithm for security
+            List<JWSAlgorithm> idTokenJWSAlgs = _oidcProviderMetadata.getIDTokenJWSAlgs();
+            if (idTokenJWSAlgs != null && idTokenJWSAlgs.contains(Algorithm.NONE)) {
+                ArrayList<JWSAlgorithm> _idTokenJWSAlgs = new ArrayList<>(idTokenJWSAlgs);
+                _idTokenJWSAlgs.remove(Algorithm.NONE);
+                _oidcProviderMetadata.setIDTokenJWSAlgs(_idTokenJWSAlgs);
+            }
             oidcProviderMetadata = _oidcProviderMetadata;
             // we have no access to the HTTP Headers to be able to find a expirey headers.
             // for now use the default expirey of 1hr.
