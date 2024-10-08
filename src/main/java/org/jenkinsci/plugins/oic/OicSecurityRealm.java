@@ -1170,12 +1170,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         if (isExpired(credentials)) {
-            if (serverConfiguration.toProviderMetadata().getGrantTypes() != null &&
-                    serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
+            if (serverConfiguration.toProviderMetadata().getGrantTypes() != null
+                    && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
                     && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
                 return refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
             } else if (!isTokenExpirationCheckDisabled()) {
-                redirectOrRejectRequest(httpRequest, httpResponse);
+                redirectToLoginUrl(httpRequest, httpResponse);
                 return false;
             }
         }
@@ -1183,14 +1183,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return true;
     }
 
-    private void redirectOrRejectRequest(HttpServletRequest req, HttpServletResponse res)
-            throws IOException, ServletException {
+    private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
         if (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
             req.getSession().invalidate();
-            res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
-        } else {
-            res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
         }
+        res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
     }
 
     public boolean isExpired(OicCredentials credentials) {
@@ -1245,12 +1242,19 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             loginAndSetUserData(username, idToken, profile.getAttributes(), refreshedCredentials);
             return true;
         } catch (TechnicalException e) {
-            if (isTokenExpirationCheckDisabled() && StringUtils.contains(e.getMessage(), "error=invalid_grant")) {
+            if (StringUtils.contains(e.getMessage(), "error=invalid_grant")) {
                 // the code is lost from the TechnicalException so we need to resort to string matching
                 // to retain the same flow :-(
-                LOGGER.log(
-                        Level.INFO,
-                        "Failed to refresh expired token because grant is invalid, proceeding as \"Token Expiration Check Disabled\" is set");
+                if (isTokenExpirationCheckDisabled()) {
+                    // the code is lost from the TechnicalException so we need to resort to string matching to retain
+                    // the same flow :-(
+                    LOGGER.log(
+                            Level.FINE,
+                            "Failed to refresh expired token because grant is invalid, proceeding as \"Token Expiration Check Disabled\" is set");
+                    return false;
+                }
+                LOGGER.log(Level.FINE, "Failed to refresh expired token", e);
+                redirectToLoginUrl(Stapler.getCurrentRequest(), Stapler.getCurrentResponse());
                 return false;
             }
             LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);
