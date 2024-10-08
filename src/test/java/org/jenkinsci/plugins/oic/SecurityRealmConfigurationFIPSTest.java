@@ -24,3 +24,4 @@ public class SecurityRealmConfigurationFIPSTest {
         assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
     }
 }
+
