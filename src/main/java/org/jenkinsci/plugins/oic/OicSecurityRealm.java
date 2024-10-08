@@ -87,6 +87,7 @@ import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.SecurityListener;
+import jenkins.util.SystemProperties;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -264,6 +265,16 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /** Additional number of seconds to add to token expiration
      */
     private Long allowedTokenExpirationClockSkewSeconds = 60L;
+
+    /**
+     * Flag when set to true will cause enforce nonce checking in the refresh flow.
+     * https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse states the nonce claim should not be present
+     * and when faced with a provider that adheres to this if using a nonce, the library attempts to validate the "missing" nonce and fails.
+     * So this is disabled by default, but if the provider does send the nonce in the claim then we do need to verify it.
+     * But there is no way to know ahead of time if the server is going to send this or not.
+     */
+    private static boolean checkNonceInRefreshFlow =
+            SystemProperties.getBoolean(OicSecurityRealm.class.getName() + ".checkNonceInRefreshFlow", false);
 
     /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
@@ -1174,7 +1185,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             if (serverConfiguration.toProviderMetadata().getGrantTypes() != null
                     && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
                     && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
-                return refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
+                LOGGER.log(Level.FINEST, "Attempting to refresh credential for user: {0}", user.getId());
+                boolean retVal = refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
+                LOGGER.log(Level.FINEST, "Refresh credential for user returned {0}", retVal);
+                return retVal;
             } else if (!isTokenExpirationCheckDisabled()) {
                 redirectToLoginUrl(httpRequest, httpResponse);
                 return false;
@@ -1209,6 +1223,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(httpRequest, httpResponse);
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
         OidcClient client = buildOidcClient();
+        // PAC4J maintains the nonce even though servers should not respond with an id token containing the nonce
+        // https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse
+        // it SHOULD NOT have a nonce Claim, even when the ID Token issued at the time of the original authentication
+        // contained nonce;
+        // however, if it is present, its value MUST be the same as in the ID Token issued at the time of the original
+        // authentication
+        // by default we will strip out the nonce unless the user has opted into it.
+        client.getConfiguration().setUseNonce(!nonceDisabled && checkNonceInRefreshFlow);
         try {
             OidcProfile profile = new OidcProfile();
             profile.setAccessToken(new BearerAccessToken(credentials.getAccessToken()));
