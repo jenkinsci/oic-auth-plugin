@@ -1170,7 +1170,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         if (isExpired(credentials)) {
-            if (serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
+            if (serverConfiguration.toProviderMetadata().getGrantTypes() != null &&
+                    serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
                     && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
                 return refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
             } else if (!isTokenExpirationCheckDisabled()) {
@@ -1212,7 +1213,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         OidcClient client = buildOidcClient();
         try {
             OidcProfile profile = new OidcProfile();
-            // JSONObject json = (JSONObject) JSONUtils.parseJSON(credentials.getAccessToken());
             profile.setAccessToken(new BearerAccessToken(credentials.getAccessToken()));
             profile.setIdTokenString(credentials.getIdToken());
             profile.setRefreshToken(new RefreshToken(credentials.getRefreshToken()));
