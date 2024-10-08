@@ -86,6 +86,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
+import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
 import jenkins.util.SystemProperties;
 import org.apache.commons.lang.StringUtils;
@@ -337,6 +338,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.setTokenFieldToCheckKey(this.tokenFieldToCheckKey);
         // ensure escapeHatchSecret is encrypted
         this.setEscapeHatchSecret(this.escapeHatchSecret);
+
+        // validate this option in FIPS env or not
+        try {
+            this.setEscapeHatchEnabled(this.escapeHatchEnabled);
+        } catch (FormException e) {
+            throw new IllegalArgumentException(e);
+        }
+
         try {
             if (automanualconfigure != null) {
                 if ("auto".equals(automanualconfigure)) {
@@ -592,7 +601,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
-    public void setEscapeHatchEnabled(boolean escapeHatchEnabled) {
+    public void setEscapeHatchEnabled(boolean escapeHatchEnabled) throws FormException {
+        if (FIPS140.useCompliantAlgorithms() && escapeHatchEnabled) {
+            throw new FormException("Escape Hatch cannot be enabled in FIPS environment", "escapeHatchEnabled");
+        }
         this.escapeHatchEnabled = escapeHatchEnabled;
     }
 
@@ -1386,6 +1398,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         @Restricted(NoExternalUse.class) // jelly only
         public Descriptor<OicServerConfiguration> getDefaultServerConfigurationType() {
             return Jenkins.get().getDescriptor(OicServerWellKnownConfiguration.class);
+        }
+
+        @Restricted(NoExternalUse.class) // used by jelly only
+        public boolean isFipsEnabled() {
+            return FIPS140.useCompliantAlgorithms();
         }
     }
 }

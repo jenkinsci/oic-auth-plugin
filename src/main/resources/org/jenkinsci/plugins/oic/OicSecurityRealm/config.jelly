@@ -66,22 +66,23 @@
         <f:checkbox/>
       </f:entry>
     </f:advanced>
-
-    <f:block>
-      <table>
-        <f:optionalBlock inline="true" title="${%ConfigureEscapeHatch}" field="escapeHatchEnabled">
-          <f:entry title="${%Username}" field="escapeHatchUsername">
-            <f:textbox/>
-          </f:entry>
-          <f:entry title="${%Secret}" field="escapeHatchSecret">
-            <f:password/>
-          </f:entry>
-          <f:entry title="${%Group}" field="escapeHatchGroup">
-            <f:textbox/>
-          </f:entry>
-        </f:optionalBlock>
-      </table>
-    </f:block>
+    <j:if test="${!descriptor.isFipsEnabled()}">
+      <f:block>
+        <table>
+          <f:optionalBlock inline="true" title="${%ConfigureEscapeHatch}" field="escapeHatchEnabled">
+            <f:entry title="${%Username}" field="escapeHatchUsername">
+              <f:textbox/>
+            </f:entry>
+            <f:entry title="${%Secret}" field="escapeHatchSecret">
+              <f:password/>
+            </f:entry>
+            <f:entry title="${%Group}" field="escapeHatchGroup">
+              <f:textbox/>
+            </f:entry>
+          </f:optionalBlock>
+        </table>
+      </f:block>
+    </j:if>
 
   </f:section>
 
