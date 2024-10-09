@@ -321,6 +321,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // ensure escapeHatchSecret is encrypted
         this.setEscapeHatchSecret(this.escapeHatchSecret);
         try {
+            // validate this option in FIPS env or not
             this.setEscapeHatchEnabled(this.escapeHatchEnabled);
             if (automanualconfigure != null) {
                 if ("auto".equals(automanualconfigure)) {
