@@ -37,7 +37,6 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
 
     private static final long serialVersionUID = 1L;
 
-    private final String issuer;
     private final String authorizationServerUrl;
     private final String tokenServerUrl;
     private TokenAuthMethod tokenAuthMethod = TokenAuthMethod.client_secret_post;
@@ -46,6 +45,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     private String scopes = "openid email";
     private String userInfoServerUrl;
     private boolean useRefreshTokens;
+    private final String issuer;
 
     @DataBoundConstructor
     public OicServerManualConfiguration(String issuer, String tokenServerUrl, String authorizationServerUrl)
@@ -228,6 +228,15 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
         }
 
         @POST
+        public FormValidation doCheckIssuer(@QueryParameter String issuer) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (Util.fixEmptyAndTrim(issuer) == null) {
+                return FormValidation.warning(Messages.OicSecurityRealm_IssuerRequired());
+            }
+            return FormValidation.ok();
+        }
+
+        @POST
         public FormValidation doCheckJwksServerUrl(@QueryParameter String value) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (Util.fixEmptyAndTrim(value) == null) {
@@ -249,15 +258,6 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
             }
             if (!value.toLowerCase(Locale.ROOT).contains("openid")) {
                 return FormValidation.warning(Messages.OicSecurityRealm_RUSureOpenIdNotInScope());
-            }
-            return FormValidation.ok();
-        }
-
-        @POST
-        public FormValidation doCheckIssuer(@QueryParameter String issuer) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(issuer) == null) {
-                return FormValidation.warning(Messages.OicSecurityRealm_IssuerRequired());
             }
             return FormValidation.ok();
         }
