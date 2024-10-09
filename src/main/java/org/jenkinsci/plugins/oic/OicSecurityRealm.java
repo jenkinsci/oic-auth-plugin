@@ -324,10 +324,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // Fail if migrating to a FIPS non-compliant config
         if (FIPS140.useCompliantAlgorithms()) {
             if (isDisableSslVerification()) {
-                throw new IllegalArgumentException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
+                throw new IllegalStateException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
             }
             if (isDisableTokenVerification()) {
-                throw new IllegalArgumentException(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
+                throw new IllegalStateException(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
             }
         }
 
