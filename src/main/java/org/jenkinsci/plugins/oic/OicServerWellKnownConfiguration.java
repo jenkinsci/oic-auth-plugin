@@ -164,7 +164,6 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
      */
     private void setWellKnownExpires(@CheckForNull HttpHeaders headers) {
         Optional<String> expires = headers == null ? Optional.empty() : headers.firstValue("Expires");
-
         // expires 0 means no cache
         // we could (should?) have a look at Cache-Control header and max-age but for
         // simplicity we can just leave it default TTL 1h refresh which sounds reasonable for such file
