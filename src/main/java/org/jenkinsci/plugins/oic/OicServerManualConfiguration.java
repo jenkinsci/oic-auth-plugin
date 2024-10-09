@@ -232,7 +232,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
         public FormValidation doCheckIssuer(@QueryParameter String issuer) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (Util.fixEmptyAndTrim(issuer) == null) {
-                return FormValidation.warning(Messages.OicSecurityRealm_IssuerRequired());
+                return FormValidation.error(Messages.OicSecurityRealm_IssuerRequired());
             }
             return FormValidation.ok();
         }
