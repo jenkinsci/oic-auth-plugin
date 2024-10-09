@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.oic;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.oauth2.sdk.GrantType;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
 import com.nimbusds.oauth2.sdk.pkce.CodeChallengeMethod;
@@ -86,6 +87,7 @@ import javax.annotation.PostConstruct;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.SecurityListener;
+import jenkins.util.SystemProperties;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -266,6 +268,16 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /** Additional number of seconds to add to token expiration
      */
     private Long allowedTokenExpirationClockSkewSeconds = 60L;
+
+    /**
+     * Flag when set to true will cause enforce nonce checking in the refresh flow.
+     * https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse states the nonce claim should not be present
+     * and when faced with a provider that adheres to this if using a nonce, the library attempts to validate the "missing" nonce and fails.
+     * So this is disabled by default, but if the provider does send the nonce in the claim then we do need to verify it.
+     * But there is no way to know ahead of time if the server is going to send this or not.
+     */
+    private static boolean checkNonceInRefreshFlow =
+            SystemProperties.getBoolean(OicSecurityRealm.class.getName() + ".checkNonceInRefreshFlow", false);
 
     /** old field that had an '/' implicitly added at the end,
      * transient because we no longer want to have this value stored
@@ -1178,12 +1190,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         if (isExpired(credentials)) {
-            if (serverConfiguration.toProviderMetadata().getGrantTypes() != null &&
-                    serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
+            if (serverConfiguration.toProviderMetadata().getGrantTypes() != null
+                    && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
                     && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
-                return refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
+                LOGGER.log(Level.FINEST, "Attempting to refresh credential for user: {0}", user.getId());
+                boolean retVal = refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
+                LOGGER.log(Level.FINEST, "Refresh credential for user returned {0}", retVal);
+                return retVal;
             } else if (!isTokenExpirationCheckDisabled()) {
-                redirectOrRejectRequest(httpRequest, httpResponse);
+                redirectToLoginUrl(httpRequest, httpResponse);
                 return false;
             }
         }
@@ -1191,14 +1206,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return true;
     }
 
-    private void redirectOrRejectRequest(HttpServletRequest req, HttpServletResponse res)
-            throws IOException, ServletException {
+    private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
         if (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
             req.getSession().invalidate();
-            res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
-        } else {
-            res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
         }
+        res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
     }
 
     public boolean isExpired(OicCredentials credentials) {
@@ -1221,6 +1233,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore(frameworkParameters);
         CallContext callContext = new CallContext(webContext, sessionStore);
         OidcClient client = buildOidcClient();
+        // PAC4J maintains the nonce even though servers should not respond with an id token containing the nonce
+        // https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse
+        // it SHOULD NOT have a nonce Claim, even when the ID Token issued at the time of the original authentication
+        // contained nonce;
+        // however, if it is present, its value MUST be the same as in the ID Token issued at the time of the original
+        // authentication
+        // by default we will strip out the nonce unless the user has opted into it.
+        client.getConfiguration().setUseNonce(!nonceDisabled && checkNonceInRefreshFlow);
         try {
             OidcProfile profile = new OidcProfile();
             profile.setAccessToken(new BearerAccessToken(credentials.getAccessToken()));
@@ -1230,9 +1250,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             profile = (OidcProfile) client.renewUserProfile(callContext, profile)
                     .orElseThrow(() -> new IllegalStateException("Could not renew user profile"));
 
+            // During refresh the IDToken may or may not be present.
+            // The refresh token may also not be present.
+            // in these cases we will reuse the original values.
+
             AccessToken accessToken = profile.getAccessToken();
-            JWT idToken = profile.getIdToken();
-            RefreshToken refreshToken = profile.getRefreshToken();
+            JWT idToken = Objects.requireNonNullElse(profile.getIdToken(), JWTParser.parse(credentials.getIdToken()));
+            RefreshToken refreshToken = Objects.requireNonNullElse(
+                    profile.getRefreshToken(), new RefreshToken(credentials.getRefreshToken()));
+
             String username = determineStringField(userNameFieldExpr, idToken, profile.getAttributes());
             if (!User.idStrategy().equals(expectedUsername, username)) {
                 httpResponse.sendError(
@@ -1255,12 +1281,19 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             loginAndSetUserData(username, idToken, profile.getAttributes(), refreshedCredentials);
             return true;
         } catch (TechnicalException e) {
-            if (isTokenExpirationCheckDisabled() && StringUtils.contains(e.getMessage(), "error=invalid_grant")) {
+            if (StringUtils.contains(e.getMessage(), "error=invalid_grant")) {
                 // the code is lost from the TechnicalException so we need to resort to string matching
                 // to retain the same flow :-(
-                LOGGER.log(
-                        Level.INFO,
-                        "Failed to refresh expired token because grant is invalid, proceeding as \"Token Expiration Check Disabled\" is set");
+                if (isTokenExpirationCheckDisabled()) {
+                    // the code is lost from the TechnicalException so we need to resort to string matching to retain
+                    // the same flow :-(
+                    LOGGER.log(
+                            Level.FINE,
+                            "Failed to refresh expired token because grant is invalid, proceeding as \"Token Expiration Check Disabled\" is set");
+                    return false;
+                }
+                LOGGER.log(Level.FINE, "Failed to refresh expired token", e);
+                redirectToLoginUrl(Stapler.getCurrentRequest(), Stapler.getCurrentResponse());
                 return false;
             }
             LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);

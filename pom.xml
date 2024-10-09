@@ -48,7 +48,7 @@
     <spotless.check.skip>false</spotless.check.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <configuration-as-code.version>1836.vccda_4a_122a_a_e</configuration-as-code.version>
-    <hpi.compatibleSinceVersion>4.364</hpi.compatibleSinceVersion>
+    <hpi.compatibleSinceVersion>4.383</hpi.compatibleSinceVersion>
     <pac4jVersion>6.0.6</pac4jVersion>
   </properties>
 
