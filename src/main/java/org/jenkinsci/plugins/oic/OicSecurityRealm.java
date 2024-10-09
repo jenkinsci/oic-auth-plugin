@@ -543,9 +543,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
-    public void setEscapeHatchEnabled(boolean escapeHatchEnabled) {
+    public void setEscapeHatchEnabled(boolean escapeHatchEnabled) throws FormException {
         if (FIPS140.useCompliantAlgorithms() && escapeHatchEnabled) {
-            throw new IllegalArgumentException("Escape Hatch cannot be enabled in FIPS environment");
+            throw new FormException("Escape Hatch cannot be enabled in FIPS environment", "escapeHatchEnabled");
         }
         this.escapeHatchEnabled = escapeHatchEnabled;
     }
