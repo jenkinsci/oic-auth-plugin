@@ -488,6 +488,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // conf.setPreferredJwsAlgorithm(JWSAlgorithm.HS256);
         // set many more as needed...
 
+        // TODO if we set PreferredJwsAlgo then check for the validation
+        // if(conf.getPreferredJwsAlgorithm() != null && OicAlgorithmValidator.isAlgorithmNotFipsCompliant(
+        //                conf.getPreferredJwsAlgorithm().getName())){
+        //            throw new
+        // IllegalArgumentException(Messages.OicConfigNonCompliantAlgo_ErrorMessage(conf.getPreferredJwsAlgorithm().getName()));
+        //        }
+
         OIDCProviderMetadata oidcProviderMetadata = serverConfiguration.toProviderMetadata();
         if (this.isDisableTokenVerification()) {
             conf.setAllowUnsignedIdTokens(true);

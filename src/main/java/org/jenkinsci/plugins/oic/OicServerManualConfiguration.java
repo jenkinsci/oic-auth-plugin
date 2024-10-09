@@ -156,6 +156,11 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
             ArrayList<JWSAlgorithm> allAlgorthms = new ArrayList<>();
             allAlgorthms.addAll(JWSAlgorithm.Family.HMAC_SHA);
             allAlgorthms.addAll(JWSAlgorithm.Family.SIGNATURE);
+
+            if (!allAlgorthms.isEmpty() && OicAlgorithmValidator.isJwsAlgoFipsNonCompliant(allAlgorthms)) {
+                throw new IllegalArgumentException(
+                        Messages.OicConfigNonCompliantAlgo_ErrorMessage("Non-compliant algo found."));
+            }
             providerMetadata.setIDTokenJWSAlgs(allAlgorthms);
             return providerMetadata;
         } catch (URISyntaxException e) {
