@@ -117,6 +117,7 @@ import org.pac4j.jee.http.adapter.JEEHttpActionAdapter;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.oidc.credentials.authenticator.OidcAuthenticator;
+import org.pac4j.oidc.metadata.OidcOpMetadataResolver;
 import org.pac4j.oidc.profile.OidcProfile;
 import org.pac4j.oidc.redirect.OidcRedirectionActionBuilder;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -495,6 +496,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (this.isDisableTokenVerification()) {
             conf.setAllowUnsignedIdTokens(true);
             conf.setOpMetadataResolver(new AnythingGoesOpMetadataResolver(conf));
+        } else {
+            conf.setOpMetadataResolver(new OidcOpMetadataResolver(conf));
         }
 
         if (oidcProviderMetadata.getScopes() != null) {
