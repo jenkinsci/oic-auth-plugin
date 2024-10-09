@@ -1293,7 +1293,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     return false;
                 }
                 LOGGER.log(Level.FINE, "Failed to refresh expired token", e);
-                redirectToLoginUrl(Stapler.getCurrentRequest(), Stapler.getCurrentResponse());
+                redirectToLoginUrl(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
                 return false;
             }
             LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);
