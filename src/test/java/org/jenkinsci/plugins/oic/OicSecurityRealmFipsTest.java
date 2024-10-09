@@ -1,9 +1,12 @@
 package org.jenkinsci.plugins.oic;
 
+import hudson.Util;
+import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import java.io.IOException;
 import jenkins.security.FIPS140;
+import org.hamcrest.Matcher;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -14,10 +17,13 @@ import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
 
 public class OicSecurityRealmFipsTest {
 
@@ -29,20 +35,20 @@ public class OicSecurityRealmFipsTest {
 
     @Test
     @WithoutJenkins
-    public void settingNonCompliantValuesNotAllowedTest() throws IOException {
+    public void settingNonCompliantValuesNotAllowedTest() throws IOException, Descriptor.FormException {
         OicSecurityRealm realm = new OicSecurityRealm("clientId", Secret.fromString("secret"), null, false);
-        IllegalArgumentException ex = assertThrows(
-                IllegalArgumentException.class,
+        Descriptor.FormException ex = assertThrows(
+                Descriptor.FormException.class,
                 () -> new OicSecurityRealm("clientId", Secret.fromString("secret"), null, true));
         assertThat(
                 "Exception contains the reason",
-                ex.getLocalizedMessage(),
+                ex.getMessage(),
                 containsString("SSL verification can not be disabled"));
         realm.setDisableTokenVerification(false);
-        ex = assertThrows(IllegalArgumentException.class, () -> realm.setDisableTokenVerification(true));
+        ex = assertThrows(Descriptor.FormException.class, () -> realm.setDisableTokenVerification(true));
         assertThat(
                 "Exception contains the reason",
-                ex.getLocalizedMessage(),
+                ex.getMessage(),
                 containsString("Token verification can not be disabled"));
     }
 
@@ -51,20 +57,22 @@ public class OicSecurityRealmFipsTest {
     public void validationWarnsOfInvalidValuesTest() {
         OicSecurityRealm.DescriptorImpl descriptor = new OicSecurityRealm.DescriptorImpl();
         FormValidation response = descriptor.doCheckDisableSslVerification(true);
-        assertThat("Shows an error", response.kind, is(FormValidation.Kind.ERROR));
         assertThat(
                 "States SSL verification can not be disabled",
-                response.getMessage(),
-                containsString("SSL verification can not be disabled"));
+                response,
+                allOf(
+                        hasKind(FormValidation.Kind.ERROR),
+                        withMessageContaining("SSL verification can not be disabled")));
         response = descriptor.doCheckDisableSslVerification(false);
-        assertThat("Validation is ok", response.kind, is(FormValidation.Kind.OK));
+        assertThat("Validation is ok", response, hasKind(FormValidation.Kind.OK));
 
         response = descriptor.doCheckDisableTokenVerification(true);
-        assertThat("Shows an error", response.kind, is(FormValidation.Kind.ERROR));
         assertThat(
                 "States token verification can not be disabled",
-                response.getMessage(),
-                containsString("Token verification can not be disabled"));
+                response,
+                allOf(
+                        hasKind(FormValidation.Kind.ERROR),
+                        withMessageContaining("Token verification can not be disabled")));
         response = descriptor.doCheckDisableTokenVerification(false);
         assertThat("Validation is ok", response.kind, is(FormValidation.Kind.OK));
     }
@@ -75,7 +83,8 @@ public class OicSecurityRealmFipsTest {
     @Test
     @LocalData
     public void failsOnMigrationTest() {
-        assertThat("We should get a ReactorException, startup failed", j.getError(), instanceOf(ReactorException.class));
+        assertThat(
+                "We should get a ReactorException, startup failed", j.getError(), instanceOf(ReactorException.class));
     }
 
     // Simple JenkinsRule extension that doesn't make test fail on startup errors, so we can check the error.
@@ -94,5 +103,10 @@ public class OicSecurityRealmFipsTest {
         public Throwable getError() {
             return error;
         }
+    }
+
+    private static Matcher<FormValidation> withMessageContaining(String message) {
+        // the FormValidation message will be escaped for HTML, so we escape what we expect.
+        return hasProperty("message", containsString(Util.escape(message)));
     }
 }

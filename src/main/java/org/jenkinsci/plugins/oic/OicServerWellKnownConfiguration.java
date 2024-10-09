@@ -34,8 +34,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
-import org.pac4j.core.exception.TechnicalException;
-import org.pac4j.oidc.config.OidcConfiguration;
 
 public class OicServerWellKnownConfiguration extends OicServerConfiguration {
 

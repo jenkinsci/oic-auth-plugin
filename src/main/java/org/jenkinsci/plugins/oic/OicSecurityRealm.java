@@ -296,11 +296,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             Secret clientSecret,
             OicServerConfiguration serverConfiguration,
             Boolean disableSslVerification)
-            throws IOException {
+            throws IOException, FormException {
         // Needed in DataBoundSetter
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
         if (FIPS140.useCompliantAlgorithms() && this.disableSslVerification) {
-            throw new IllegalArgumentException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
+            throw new FormException(
+                    Messages.OicSecurityRealm_DisableSslVerificationFipsMode(), "disableSslVerification");
         }
         this.clientId = clientId;
         this.clientSecret = clientSecret;
@@ -646,9 +647,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
-    public void setDisableTokenVerification(boolean disableTokenVerification) {
+    public void setDisableTokenVerification(boolean disableTokenVerification) throws FormException {
         if (FIPS140.useCompliantAlgorithms() && disableTokenVerification) {
-            throw new IllegalArgumentException(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
+            throw new FormException(
+                    Messages.OicSecurityRealm_DisableTokenVerificationFipsMode(), "disableTokenVerification");
         }
         this.disableTokenVerification = disableTokenVerification;
     }
