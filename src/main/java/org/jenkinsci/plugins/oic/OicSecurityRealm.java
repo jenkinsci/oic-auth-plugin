@@ -482,10 +482,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         OIDCProviderMetadata oidcProviderMetadata = serverConfiguration.toProviderMetadata();
         if (this.isDisableTokenVerification()) {
             conf.setAllowUnsignedIdTokens(true);
-            conf.setTokenValidator(new AnythingGoesTokenValidator());
+            conf.setOpMetadataResolver(new AnythingGoesOpMetadataResolver(conf));
         }
-        // TODO check if it can be removed
-        // conf.setProviderMetadata(oidcProviderMetadata);
+
         if (oidcProviderMetadata.getScopes() != null) {
             // auto configuration does not need to supply scopes
             conf.setScope(oidcProviderMetadata.getScopes().toString());

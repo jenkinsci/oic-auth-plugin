@@ -143,7 +143,7 @@ public class PluginTest {
                 .withQueryParam("nonce", matching(".+")));
         verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*&scope=.*")));
         webClient.executeOnServer(() -> {
-            HttpSession session = Stapler.getCurrentRequest().getSession();
+            HttpSession session = Stapler.getCurrentRequest2().getSession();
             assertNotNull(((OicSecurityRealm) Jenkins.get().getSecurityRealm()).getStateAttribute(session));
             return null;
         });
@@ -933,7 +933,7 @@ public class PluginTest {
 
         String[] logoutURL = new String[1];
         jenkinsRule.executeOnServer(() -> {
-            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest2(), Jenkins.ANONYMOUS2);
             return null;
         });
         assertEquals("/jenkins/", logoutURL[0]);
@@ -947,7 +947,7 @@ public class PluginTest {
 
         String[] logoutURL = new String[1];
         jenkinsRule.executeOnServer(() -> {
-            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest2(), Jenkins.ANONYMOUS2);
             return null;
         });
         assertEquals("http://provider/logout?state=null", logoutURL[0]);
@@ -964,7 +964,7 @@ public class PluginTest {
 
         String[] logoutURL = new String[1];
         jenkinsRule.executeOnServer(() -> {
-            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest2(), Jenkins.ANONYMOUS2);
             return null;
         });
         assertEquals(
