@@ -1424,33 +1424,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
     }
 
-    /**
-     * Obtain {@code uri} as a string if it is not {@code null} otherwise returns the {@code defaultUri}.
-     * @param uri the possibly null URI
-     * @param defaultUri the URI to use if {@code uri} is null.
-     */
-    private static String fixNullUri(URI uri, String defaultUri) {
-        if (uri != null) {
-            return uri.toASCIIString();
-        }
-        return defaultUri;
-    }
-
-    /**
-     * Obtain the first auth method that we support that is supported by the server.
-     */
-    private static TokenAuthMethod fixTokenAuthMethod(
-            List<ClientAuthenticationMethod> supportedProviderMethods, TokenAuthMethod defaultProviderMethod) {
-        if (supportedProviderMethods == null || supportedProviderMethods.isEmpty()) {
-            return defaultProviderMethod;
-        }
-        return supportedProviderMethods.stream()
-                .map(OicSecurityRealm::toSupportedAuthMode)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(defaultProviderMethod);
-    }
-
     private static TokenAuthMethod toSupportedAuthMode(ClientAuthenticationMethod auth) {
         String value = auth.getValue();
         for (TokenAuthMethod tam : TokenAuthMethod.values()) {

@@ -45,7 +45,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     private String scopes = "openid email";
     private String userInfoServerUrl;
     private boolean useRefreshTokens;
-    private final String issuer;
+    private String issuer;
 
     @DataBoundConstructor
     public OicServerManualConfiguration(String issuer, String tokenServerUrl, String authorizationServerUrl)
