@@ -320,9 +320,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.setTokenFieldToCheckKey(this.tokenFieldToCheckKey);
         // ensure escapeHatchSecret is encrypted
         this.setEscapeHatchSecret(this.escapeHatchSecret);
+
+        // validate this option in FIPS env or not
         try {
-            // validate this option in FIPS env or not
             this.setEscapeHatchEnabled(this.escapeHatchEnabled);
+        } catch (FormException e) {
+            throw new IllegalArgumentException(e);
+        }
+
+        try {
             if (automanualconfigure != null) {
                 if ("auto".equals(automanualconfigure)) {
                     OicServerWellKnownConfiguration conf =
