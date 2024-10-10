@@ -62,12 +62,12 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
 
     @DataBoundSetter
     public void setEndSessionUrl(@Nullable String endSessionUrl) {
-        this.endSessionUrl = endSessionUrl;
+        this.endSessionUrl = Util.fixEmptyAndTrim(endSessionUrl);
     }
 
     @DataBoundSetter
     public void setJwksServerUrl(@Nullable String jwksServerUrl) {
-        this.jwksServerUrl = jwksServerUrl;
+        this.jwksServerUrl = Util.fixEmptyAndTrim(jwksServerUrl);
     }
 
     @DataBoundSetter
@@ -77,7 +77,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
 
     @DataBoundSetter
     public void setUserInfoServerUrl(@Nullable String userInfoServerUrl) {
-        this.userInfoServerUrl = userInfoServerUrl;
+        this.userInfoServerUrl = Util.fixEmptyAndTrim(userInfoServerUrl);
     }
 
     @DataBoundSetter
@@ -178,14 +178,14 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     }
 
     /**
-     * Convert the given string to a URI or null if the string is null;
+     * Convert the given string to a URI or null if the string is null or blank;
      * @param uri a string representing a URI or {@code null}
      * @return a new URI representing the provided string or null.
      * @throws URISyntaxException if {@code uri} can not be converted to a {@link URI}
      */
     @CheckForNull
     private static URI toURIOrNull(String uri) throws URISyntaxException {
-        if (uri == null) {
+        if (uri == null || uri.isBlank()) {
             return null;
         }
         return new URI(uri);
