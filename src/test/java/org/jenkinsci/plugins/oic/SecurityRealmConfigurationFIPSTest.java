@@ -24,4 +24,12 @@ public class SecurityRealmConfigurationFIPSTest {
         oicSecurityRealm.setEscapeHatchEnabled(false);
         assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
     }
+
+    @Test
+    public void readresolve() throws Exception {
+        OicSecurityRealm oicSecurityRealm = new OicSecurityRealm("clientId", null, null, null);
+        oicSecurityRealm.setEscapeHatchEnabled(false);
+        assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
+        oicSecurityRealm.readResolve();
+    }
 }
