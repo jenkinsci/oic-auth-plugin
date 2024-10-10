@@ -165,27 +165,27 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
     protected static void filterNonCompliantAlgorithms(OIDCProviderMetadata oidcProviderMetadata) {
 
         // Filter Jws Algorithms
-        OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(oidcProviderMetadata.getIDTokenJWSAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(oidcProviderMetadata.getTokenEndpointJWSAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(
-                oidcProviderMetadata.getIntrospectionEndpointJWSAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(oidcProviderMetadata.getRevocationEndpointJWSAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(oidcProviderMetadata.getRequestObjectJWSAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(oidcProviderMetadata.getDPoPJWSAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(oidcProviderMetadata.getAuthorizationJWSAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(
-                oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(
-                oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs());
+        List.of(
+                        oidcProviderMetadata.getIDTokenJWSAlgs(),
+                        oidcProviderMetadata.getTokenEndpointJWSAlgs(),
+                        oidcProviderMetadata.getIntrospectionEndpointJWSAlgs(),
+                        oidcProviderMetadata.getRevocationEndpointJWSAlgs(),
+                        oidcProviderMetadata.getRequestObjectJWSAlgs(),
+                        oidcProviderMetadata.getDPoPJWSAlgs(),
+                        oidcProviderMetadata.getAuthorizationJWSAlgs(),
+                        oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs())
+                .forEach(OicAlgorithmValidator::filterFipsNonCompliantJwsAlgorithm);
 
         // Filter Jwe Algorithms
-        OicAlgorithmValidator.filterFipsNonCompliantJweAlgorithm(oidcProviderMetadata.getIDTokenJWEAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJweAlgorithm(oidcProviderMetadata.getRequestObjectJWEAlgs());
-        OicAlgorithmValidator.filterFipsNonCompliantJweAlgorithm(oidcProviderMetadata.getAuthorizationJWEAlgs());
+        List.of(
+                        oidcProviderMetadata.getIDTokenJWEAlgs(),
+                        oidcProviderMetadata.getRequestObjectJWEAlgs(),
+                        oidcProviderMetadata.getAuthorizationJWEAlgs())
+                .forEach(OicAlgorithmValidator::filterFipsNonCompliantJweAlgorithm);
 
         // Filter Encryption methods
-        OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(oidcProviderMetadata.getRequestObjectJWEEncs());
-        OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(oidcProviderMetadata.getAuthorizationJWEEncs());
+        List.of(oidcProviderMetadata.getRequestObjectJWEEncs(), oidcProviderMetadata.getAuthorizationJWEEncs())
+                .forEach(OicAlgorithmValidator::filterFipsNonCompliantEncryptionMethod);
     }
 
     /**

@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
+import com.nimbusds.jose.Algorithm;
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import jenkins.security.FIPS140;
 
 /**
@@ -71,20 +73,8 @@ public class OicAlgorithmValidator {
     /**
      *  Filter FIPS non-compliant Jwe encryption algorithm used for OIC configuration.
      */
-    public static void filterFipsNonCompliantJweAlgorithm(List<JWEAlgorithm> algorithm) {
-        boolean matchNotFound = false;
-        if (isFIPSMode && algorithm != null && !algorithm.isEmpty()) {
-            List<JWEAlgorithm> itemsToBeRemoved = new ArrayList<>();
-            for (JWEAlgorithm jweAlgorithm : algorithm) {
-                matchNotFound = isJweAlgorithmFipsNonCompliant(jweAlgorithm.getName());
-                if (matchNotFound) {
-                    itemsToBeRemoved.add(jweAlgorithm);
-                }
-            }
-            if (!itemsToBeRemoved.isEmpty()) {
-                algorithm.removeAll(itemsToBeRemoved);
-            }
-        }
+    public static void filterFipsNonCompliantJweAlgorithm(List<JWEAlgorithm> algorithms) {
+        filterFipsNonCompliantAlgorithms(algorithms, OicAlgorithmValidator::isJweAlgorithmFipsNonCompliant);
     }
 
     /**
@@ -106,20 +96,8 @@ public class OicAlgorithmValidator {
     /**
      *  Filter FIPS non-compliant Jws encryption algorithm used for OIC configuration.
      */
-    public static void filterFipsNonCompliantJwsAlgorithm(List<JWSAlgorithm> algorithm) {
-        boolean matchNotFound = false;
-        if (isFIPSMode && algorithm != null && !algorithm.isEmpty()) {
-            List<JWSAlgorithm> itemsToBeRemoved = new ArrayList<>();
-            for (JWSAlgorithm jwsAlgorithm : algorithm) {
-                matchNotFound = isJwsAlgorithmFipsNonCompliant(jwsAlgorithm.getName());
-                if (matchNotFound) {
-                    itemsToBeRemoved.add(jwsAlgorithm);
-                }
-            }
-            if (!itemsToBeRemoved.isEmpty()) {
-                algorithm.removeAll(itemsToBeRemoved);
-            }
-        }
+    public static void filterFipsNonCompliantJwsAlgorithm(List<JWSAlgorithm> algorithms) {
+        filterFipsNonCompliantAlgorithms(algorithms, OicAlgorithmValidator::isJwsAlgorithmFipsNonCompliant);
     }
 
     /**
@@ -142,18 +120,28 @@ public class OicAlgorithmValidator {
     /**
      *  Filter FIPS non-compliant encryption algorithm used for OIC configuration.
      */
-    public static void filterFipsNonCompliantEncryptionMethod(List<EncryptionMethod> algorithm) {
-        boolean matchNotFound = false;
-        if (isFIPSMode && algorithm != null && !algorithm.isEmpty()) {
-            List<EncryptionMethod> itemsToBeRemoved = new ArrayList<>();
-            for (EncryptionMethod encryptionMethod : algorithm) {
-                matchNotFound = isEncryptionMethodFipsNonCompliant(encryptionMethod.getName());
-                if (matchNotFound) {
-                    itemsToBeRemoved.add(encryptionMethod);
+    public static void filterFipsNonCompliantEncryptionMethod(List<EncryptionMethod> algorithms) {
+        filterFipsNonCompliantAlgorithms(algorithms, OicAlgorithmValidator::isEncryptionMethodFipsNonCompliant);
+    }
+
+    /**
+     * Filters out FIPS non-compliant algorithms from the provided list.
+     *
+     * @param <T> the type of the algorithm
+     * @param algorithms the list of algorithms to be filtered
+     * @param isNonCompliant a function that checks if an algorithm is FIPS non-compliant
+     */
+    public static <T extends Algorithm> void filterFipsNonCompliantAlgorithms(
+            List<T> algorithms, Function<String, Boolean> isNonCompliant) {
+        if (isFIPSMode && algorithms != null && !algorithms.isEmpty()) {
+            List<T> itemsToBeRemoved = new ArrayList<>();
+            for (T algorithm : algorithms) {
+                if (isNonCompliant.apply(algorithm.getName())) {
+                    itemsToBeRemoved.add(algorithm);
                 }
             }
             if (!itemsToBeRemoved.isEmpty()) {
-                algorithm.removeAll(itemsToBeRemoved);
+                algorithms.removeAll(itemsToBeRemoved);
             }
         }
     }
