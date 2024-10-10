@@ -122,7 +122,7 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
-        public TestRealm build() throws IOException {
+        public TestRealm build() throws Exception {
             return new TestRealm(this);
         }
 
@@ -153,7 +153,7 @@ public class TestRealm extends OicSecurityRealm {
         }
     }
 
-    public TestRealm(Builder builder) throws IOException {
+    public TestRealm(Builder builder) throws Exception {
         super(
                 builder.clientId,
                 builder.clientSecret,
@@ -174,18 +174,18 @@ public class TestRealm extends OicSecurityRealm {
     }
 
     public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupsFieldName)
-            throws IOException {
+            throws Exception {
         this(new Builder(wireMockRule)
                 .WithUserInfoServerUrl(userInfoServerUrl)
                         .WithEmailFieldName(emailFieldName)
                         .WithGroupsFieldName(groupsFieldName));
     }
 
-    public TestRealm(WireMockRule wireMockRule) throws IOException {
+    public TestRealm(WireMockRule wireMockRule) throws Exception {
         this(new Builder(wireMockRule).WithMinimalDefaults());
     }
 
-    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl) throws IOException {
+    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl) throws Exception {
         this(new Builder(wireMockRule).WithMinimalDefaults().WithUserInfoServerUrl(userInfoServerUrl));
     }
 
@@ -195,7 +195,7 @@ public class TestRealm extends OicSecurityRealm {
             String emailFieldName,
             String groupFieldName,
             boolean automanualconfigure)
-            throws IOException {
+            throws Exception {
         this(new Builder(wireMockRule)
                 .WithMinimalDefaults()
                         .WithUserInfoServerUrl(userInfoServerUrl)
@@ -214,7 +214,7 @@ public class TestRealm extends OicSecurityRealm {
             String escapeHatchUsername,
             String escapeHatchSecret,
             String escapeHatchGroup)
-            throws IOException {
+            throws Exception {
         this(new Builder(wireMockRule)
                 .WithMinimalDefaults()
                         .WithUserInfoServerUrl(userInfoServerUrl)

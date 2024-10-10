@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
-import java.io.IOException;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import jenkins.model.Jenkins;
@@ -26,7 +25,7 @@ public class OicSessionTest {
 
     private static final String from = "fromAddy";
 
-    public void init() throws IOException {
+    public void init() throws Exception {
         TestRealm realm = new TestRealm.Builder("http://localhost/")
                 .WithMinimalDefaults().WithScopes("openid").build();
 
