@@ -1114,6 +1114,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             Credentials credentials = client.getCredentials(callContext)
                     .orElseThrow(() -> new Failure("Could not extract credentials from request"));
 
+            credentials = client.getAuthenticator().validate(callContext, credentials).orElseThrow(
+                    () -> new Failure("Could not " + "validate " + "credentials"));
+
             ProfileCreator profileCreator = client.getProfileCreator();
 
             // creating the profile performs validation of the token
