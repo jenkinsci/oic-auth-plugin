@@ -1,5 +1,14 @@
 package org.jenkinsci.plugins.oic;
 
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.oauth2.sdk.GrantType;
+import com.nimbusds.oauth2.sdk.Scope;
+import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
+import com.nimbusds.oauth2.sdk.id.Issuer;
+import com.nimbusds.openid.connect.sdk.SubjectType;
+import com.nimbusds.openid.connect.sdk.federation.registration.ClientRegistrationType;
+import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -9,7 +18,11 @@ import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
 import hudson.util.FormValidation;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import jenkins.model.Jenkins;
@@ -35,7 +48,9 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     private String issuer;
 
     @DataBoundConstructor
-    public OicServerManualConfiguration(String tokenServerUrl, String authorizationServerUrl) throws FormException {
+    public OicServerManualConfiguration(String issuer, String tokenServerUrl, String authorizationServerUrl)
+            throws FormException {
+        this.issuer = validateNonNull("issuer", issuer);
         this.authorizationServerUrl = validateNonNull("authorizationServerUrl", authorizationServerUrl);
         this.tokenServerUrl = validateNonNull("tokenServerUrl", tokenServerUrl);
     }
@@ -47,17 +62,12 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
 
     @DataBoundSetter
     public void setEndSessionUrl(@Nullable String endSessionUrl) {
-        this.endSessionUrl = endSessionUrl;
-    }
-
-    @DataBoundSetter
-    public void setIssuer(@Nullable String issuer) {
-        this.issuer = Util.fixEmptyAndTrim(issuer);
+        this.endSessionUrl = Util.fixEmptyAndTrim(endSessionUrl);
     }
 
     @DataBoundSetter
     public void setJwksServerUrl(@Nullable String jwksServerUrl) {
-        this.jwksServerUrl = jwksServerUrl;
+        this.jwksServerUrl = Util.fixEmptyAndTrim(jwksServerUrl);
     }
 
     @DataBoundSetter
@@ -67,7 +77,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
 
     @DataBoundSetter
     public void setUserInfoServerUrl(@Nullable String userInfoServerUrl) {
-        this.userInfoServerUrl = userInfoServerUrl;
+        this.userInfoServerUrl = Util.fixEmptyAndTrim(userInfoServerUrl);
     }
 
     @DataBoundSetter
@@ -75,51 +85,89 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
         this.useRefreshTokens = useRefreshTokens;
     }
 
-    @Override
     public String getAuthorizationServerUrl() {
         return authorizationServerUrl;
     }
 
-    @Override
-    @CheckForNull
     public String getEndSessionUrl() {
         return endSessionUrl;
     }
 
-    @Override
-    @CheckForNull
     public String getIssuer() {
         return issuer;
     }
 
-    @Override
     public boolean isUseRefreshTokens() {
         return useRefreshTokens;
     }
 
-    @Override
     public String getJwksServerUrl() {
         return jwksServerUrl;
     }
 
-    @Override
     public String getScopes() {
         return scopes;
     }
 
-    @Override
     public TokenAuthMethod getTokenAuthMethod() {
         return tokenAuthMethod;
     }
 
-    @Override
     public String getTokenServerUrl() {
         return tokenServerUrl;
     }
 
-    @Override
     public String getUserInfoServerUrl() {
         return userInfoServerUrl;
+    }
+
+    @Override
+    public OIDCProviderMetadata toProviderMetadata() {
+        try {
+            final OIDCProviderMetadata providerMetadata;
+            if (jwksServerUrl == null) {
+                // will only work if token validation is disabled in the security realm.
+                providerMetadata = new OIDCProviderMetadata(
+                        new Issuer(issuer),
+                        List.of(SubjectType.PUBLIC),
+                        List.of(ClientRegistrationType.AUTOMATIC),
+                        null,
+                        null,
+                        new JWKSet());
+            } else {
+                providerMetadata = new OIDCProviderMetadata(
+                        new Issuer(issuer), List.of(SubjectType.PUBLIC), new URI(jwksServerUrl));
+            }
+            if (isUseRefreshTokens()) {
+                providerMetadata.setGrantTypes(List.of(GrantType.REFRESH_TOKEN));
+            }
+
+            providerMetadata.setUserInfoEndpointURI(toURIOrNull(userInfoServerUrl));
+            providerMetadata.setEndSessionEndpointURI(toURIOrNull(endSessionUrl));
+            providerMetadata.setAuthorizationEndpointURI(new URI(authorizationServerUrl));
+            providerMetadata.setTokenEndpointURI(toURIOrNull(tokenServerUrl));
+            providerMetadata.setJWKSetURI(toURIOrNull(jwksServerUrl));
+            providerMetadata.setTokenEndpointAuthMethods(List.of(getClientAuthenticationMethod()));
+            providerMetadata.setScopes(Scope.parse(getScopes()));
+            // should really be a UI option, but was not previously
+            // server is mandated to support HS256 but if we do not specify things that it produces
+            // then they would never be checked.
+            // rather we just say "I support anything, and let the check for the specific ones fail and fall through
+            ArrayList<JWSAlgorithm> allAlgorthms = new ArrayList<>();
+            allAlgorthms.addAll(JWSAlgorithm.Family.HMAC_SHA);
+            allAlgorthms.addAll(JWSAlgorithm.Family.SIGNATURE);
+            providerMetadata.setIDTokenJWSAlgs(allAlgorthms);
+            return providerMetadata;
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("could not create provider metadata", e);
+        }
+    }
+
+    private ClientAuthenticationMethod getClientAuthenticationMethod() {
+        if (tokenAuthMethod == TokenAuthMethod.client_secret_post) {
+            return ClientAuthenticationMethod.CLIENT_SECRET_POST;
+        }
+        return ClientAuthenticationMethod.CLIENT_SECRET_BASIC;
     }
 
     private static <T> T validateNonNull(String fieldName, T value) throws FormException {
@@ -127,6 +175,20 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
             throw new FormException(fieldName + " is mandatory", fieldName);
         }
         return value;
+    }
+
+    /**
+     * Convert the given string to a URI or null if the string is null or blank;
+     * @param uri a string representing a URI or {@code null}
+     * @return a new URI representing the provided string or null.
+     * @throws URISyntaxException if {@code uri} can not be converted to a {@link URI}
+     */
+    @CheckForNull
+    private static URI toURIOrNull(String uri) throws URISyntaxException {
+        if (uri == null || uri.isBlank()) {
+            return null;
+        }
+        return new URI(uri);
     }
 
     @Extension
@@ -170,7 +232,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
         public FormValidation doCheckIssuer(@QueryParameter String issuer) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (Util.fixEmptyAndTrim(issuer) == null) {
-                return FormValidation.warning(Messages.OicSecurityRealm_IssuerRecommended());
+                return FormValidation.error(Messages.OicSecurityRealm_IssuerRequired());
             }
             return FormValidation.ok();
         }
