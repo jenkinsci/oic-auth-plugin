@@ -1,6 +1,8 @@
 package org.jenkinsci.plugins.oic;
 
 import com.nimbusds.jose.Algorithm;
+import com.nimbusds.jose.EncryptionMethod;
+import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.util.ResourceRetriever;
 import com.nimbusds.oauth2.sdk.ParseException;
@@ -165,26 +167,47 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
     protected static void filterNonCompliantAlgorithms(OIDCProviderMetadata oidcProviderMetadata) {
 
         // Filter Jws Algorithms
-        List.of(
-                        oidcProviderMetadata.getIDTokenJWSAlgs(),
-                        oidcProviderMetadata.getTokenEndpointJWSAlgs(),
-                        oidcProviderMetadata.getIntrospectionEndpointJWSAlgs(),
-                        oidcProviderMetadata.getRevocationEndpointJWSAlgs(),
-                        oidcProviderMetadata.getRequestObjectJWSAlgs(),
-                        oidcProviderMetadata.getDPoPJWSAlgs(),
-                        oidcProviderMetadata.getAuthorizationJWSAlgs(),
-                        oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs())
+        List<List<JWSAlgorithm>> jwsAlgorithmLists = List.of(
+                Optional.ofNullable(oidcProviderMetadata.getIDTokenJWSAlgs()).orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getTokenEndpointJWSAlgs())
+                        .orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getIntrospectionEndpointJWSAlgs())
+                        .orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getRevocationEndpointJWSAlgs())
+                        .orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getRequestObjectJWSAlgs())
+                        .orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getDPoPJWSAlgs()).orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getAuthorizationJWSAlgs())
+                        .orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs())
+                        .orElse(List.of()));
+
+        jwsAlgorithmLists.stream()
+                .filter(Objects::nonNull)
                 .forEach(OicAlgorithmValidator::filterFipsNonCompliantJwsAlgorithm);
 
         // Filter Jwe Algorithms
-        List.of(
-                        oidcProviderMetadata.getIDTokenJWEAlgs(),
-                        oidcProviderMetadata.getRequestObjectJWEAlgs(),
-                        oidcProviderMetadata.getAuthorizationJWEAlgs())
+        List<List<JWEAlgorithm>> jweAlgorithmLists = List.of(
+                Optional.ofNullable(oidcProviderMetadata.getIDTokenJWEAlgs()).orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getRequestObjectJWEAlgs())
+                        .orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getAuthorizationJWEAlgs())
+                        .orElse(List.of()));
+
+        jweAlgorithmLists.stream()
+                .filter(Objects::nonNull)
                 .forEach(OicAlgorithmValidator::filterFipsNonCompliantJweAlgorithm);
 
         // Filter Encryption methods
-        List.of(oidcProviderMetadata.getRequestObjectJWEEncs(), oidcProviderMetadata.getAuthorizationJWEEncs())
+        List<List<EncryptionMethod>> encryptionMethodLists = List.of(
+                Optional.ofNullable(oidcProviderMetadata.getRequestObjectJWEEncs())
+                        .orElse(List.of()),
+                Optional.ofNullable(oidcProviderMetadata.getAuthorizationJWEEncs())
+                        .orElse(List.of()));
+
+        encryptionMethodLists.stream()
+                .filter(Objects::nonNull)
                 .forEach(OicAlgorithmValidator::filterFipsNonCompliantEncryptionMethod);
     }
 
