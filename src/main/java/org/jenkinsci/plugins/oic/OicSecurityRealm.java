@@ -118,7 +118,6 @@ import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.oidc.credentials.authenticator.OidcAuthenticator;
 import org.pac4j.oidc.metadata.OidcOpMetadataResolver;
-import org.pac4j.oidc.metadata.StaticOidcOpMetadataResolver;
 import org.pac4j.oidc.profile.OidcProfile;
 import org.pac4j.oidc.redirect.OidcRedirectionActionBuilder;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -497,11 +496,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         OidcOpMetadataResolver metadataResolver;
         if (this.isDisableTokenVerification()) {
             conf.setAllowUnsignedIdTokens(true);
-            metadataResolver = new AnythingGoesOpMetadataResolver(conf, oidcProviderMetadata);
+            metadataResolver = new OicdPluginOpMetadataResolver(conf, oidcProviderMetadata, true);
         } else {
-            metadataResolver = new StaticOidcOpMetadataResolver(conf, oidcProviderMetadata);
+            metadataResolver = new OicdPluginOpMetadataResolver(conf, oidcProviderMetadata, false);
         }
-        conf = conf.withOpMetadataResolver(metadataResolver);
+        conf.setOpMetadataResolver(metadataResolver);
 
         if (oidcProviderMetadata.getScopes() != null) {
             // auto configuration does not need to supply scopes
@@ -514,6 +513,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         conf.setResourceRetriever(getResourceRetriever());
         if (this.isPkceEnabled()) {
             conf.setPkceMethod(CodeChallengeMethod.S256);
+        } else {
+            conf.setDisablePkce(true);
         }
         return conf;
     }
