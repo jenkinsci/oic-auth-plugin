@@ -2,9 +2,7 @@ package org.jenkinsci.plugins.oic;
 
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import hudson.model.Descriptor;
 import hudson.util.Secret;
-import java.io.IOException;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -66,20 +64,20 @@ public class OicSecurityRealmTest {
     }
 
     @Test
-    public void testGetAuthenticationGatewayUrl() throws IOException, Descriptor.FormException {
+    public void testGetAuthenticationGatewayUrl() throws Exception {
         TestRealm realm = new TestRealm(wireMockRule);
         assertEquals("securityRealm/escapeHatch", realm.getAuthenticationGatewayUrl());
     }
 
     @Test
-    public void testShouldSetNullClientSecretWhenSecretIsNull() throws IOException, Descriptor.FormException {
+    public void testShouldSetNullClientSecretWhenSecretIsNull() throws Exception {
         TestRealm realm = new TestRealm.Builder(wireMockRule)
                 .WithMinimalDefaults().WithClient("id without secret", null).build();
         assertEquals("none", Secret.toString(realm.getClientSecret()));
     }
 
     @Test
-    public void testGetValidRedirectUrl() throws IOException, Descriptor.FormException {
+    public void testGetValidRedirectUrl() throws Exception {
         // root url is http://localhost:????/jenkins/
         final String rootUrl = jenkinsRule.jenkins.getRootUrl();
 
@@ -96,7 +94,7 @@ public class OicSecurityRealmTest {
     }
 
     @Test
-    public void testShouldReturnRootUrlWhenRedirectUrlIsInvalid() throws IOException, Descriptor.FormException {
+    public void testShouldReturnRootUrlWhenRedirectUrlIsInvalid() throws Exception {
         // root url is http://localhost:????/jenkins/
         String rootUrl = jenkinsRule.jenkins.getRootUrl();
 
@@ -111,7 +109,7 @@ public class OicSecurityRealmTest {
     }
 
     @Test
-    public void testShouldCheckEscapeHatchWithPlainPassword() throws IOException, Descriptor.FormException {
+    public void testShouldCheckEscapeHatchWithPlainPassword() throws Exception {
         final String escapeHatchUsername = "aUsername";
         final String escapeHatchPassword = "aSecretPassword";
 
@@ -128,7 +126,7 @@ public class OicSecurityRealmTest {
     }
 
     @Test
-    public void testShouldCheckEscapeHatchWithHashedPassword() throws IOException, Descriptor.FormException {
+    public void testShouldCheckEscapeHatchWithHashedPassword() throws Exception {
         final String escapeHatchUsername = "aUsername";
         final String escapeHatchPassword = "aSecretPassword";
         final String escapeHatchCryptedPassword = BCrypt.hashpw(escapeHatchPassword, BCrypt.gensalt());
