@@ -12,7 +12,7 @@ import org.mockito.MockedStatic;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mockStatic;
 
-public class OicServerWellKnownConfigurationValidationNonFipsTest {
+public class OicSecurityRealmFIPSAlgoTest {
 
     private static MockedStatic<FIPS140> fips140Mock;
 
@@ -29,11 +29,10 @@ public class OicServerWellKnownConfigurationValidationNonFipsTest {
 
     @Test
     public void doCheckAlgorithmFilter() throws IOException, ParseException {
-        OIDCProviderMetadata oidcProviderMetadata =
-                OicServerWellKnownConfigurationValidationFipsTest.getNonCompliantMockObject();
+        OIDCProviderMetadata oidcProviderMetadata = OicSecurityRealmNonFIPSAlgoTest.getNonCompliantMockObject();
         int countIDTokenJWSAlgs = oidcProviderMetadata.getIDTokenJWSAlgs().size();
         int countIDTokenJWEAlgs = oidcProviderMetadata.getIDTokenJWEAlgs().size();
-        OicServerWellKnownConfiguration.filterNonCompliantAlgorithms(oidcProviderMetadata);
+        OicSecurityRealm.filterNonCompliantAlgorithms(oidcProviderMetadata);
         assertEquals(
                 countIDTokenJWSAlgs, oidcProviderMetadata.getIDTokenJWSAlgs().size());
         assertEquals(

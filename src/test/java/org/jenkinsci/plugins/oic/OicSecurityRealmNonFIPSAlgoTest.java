@@ -22,7 +22,7 @@ import org.mockito.MockedStatic;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mockStatic;
 
-public class OicServerWellKnownConfigurationValidationFipsTest {
+public class OicSecurityRealmNonFIPSAlgoTest {
 
     private static MockedStatic<FIPS140> fips140Mock;
 
@@ -42,7 +42,7 @@ public class OicServerWellKnownConfigurationValidationFipsTest {
         OIDCProviderMetadata oidcProviderMetadata = getNonCompliantMockObject();
         int countIDTokenJWSAlgs = oidcProviderMetadata.getIDTokenJWSAlgs().size();
         int countIDTokenJWEAlgs = oidcProviderMetadata.getIDTokenJWEAlgs().size();
-        OicServerWellKnownConfiguration.filterNonCompliantAlgorithms(oidcProviderMetadata);
+        OicSecurityRealm.filterNonCompliantAlgorithms(oidcProviderMetadata);
 
         assertEquals(
                 countIDTokenJWSAlgs - nonCompliantSigningAlgo().size(),
