@@ -307,9 +307,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             Secret clientSecret,
             OicServerConfiguration serverConfiguration,
             Boolean disableSslVerification)
-            throws IOException {
+            throws IOException, FormException {
         // Needed in DataBoundSetter
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
+        if (FIPS140.useCompliantAlgorithms() && this.disableSslVerification) {
+            throw new FormException(
+                    Messages.OicSecurityRealm_DisableSslVerificationFipsMode(), "disableSslVerification");
+        }
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.serverConfiguration = serverConfiguration;
@@ -317,6 +321,16 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @SuppressWarnings("deprecated")
     protected Object readResolve() throws ObjectStreamException {
+        // Fail if migrating to a FIPS non-compliant config
+        if (FIPS140.useCompliantAlgorithms()) {
+            if (isDisableSslVerification()) {
+                throw new IllegalStateException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
+            }
+            if (isDisableTokenVerification()) {
+                throw new IllegalStateException(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
+            }
+        }
+
         if (!Strings.isNullOrEmpty(endSessionUrl)) {
             this.endSessionEndpoint = endSessionUrl + "/";
         }
@@ -655,7 +669,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
-    public void setDisableTokenVerification(boolean disableTokenVerification) {
+    public void setDisableTokenVerification(boolean disableTokenVerification) throws FormException {
+        if (FIPS140.useCompliantAlgorithms() && disableTokenVerification) {
+            throw new FormException(
+                    Messages.OicSecurityRealm_DisableTokenVerificationFipsMode(), "disableTokenVerification");
+        }
         this.disableTokenVerification = disableTokenVerification;
     }
 
@@ -1381,6 +1399,22 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         @RequirePOST
         public FormValidation doCheckTokenFieldToCheckKey(@QueryParameter String tokenFieldToCheckKey) {
             return this.doCheckFieldName(tokenFieldToCheckKey, FormValidation.ok());
+        }
+
+        @RequirePOST
+        public FormValidation doCheckDisableSslVerification(@QueryParameter Boolean disableSslVerification) {
+            if (FIPS140.useCompliantAlgorithms() && disableSslVerification) {
+                return FormValidation.error(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
+            }
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
+        public FormValidation doCheckDisableTokenVerification(@QueryParameter Boolean disableTokenVerification) {
+            if (FIPS140.useCompliantAlgorithms() && disableTokenVerification) {
+                return FormValidation.error(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
+            }
+            return FormValidation.ok();
         }
 
         // method to check fieldName matches JMESPath format
