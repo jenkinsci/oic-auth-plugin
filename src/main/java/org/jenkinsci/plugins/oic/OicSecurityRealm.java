@@ -1423,14 +1423,4 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             return Jenkins.get().getDescriptor(OicServerWellKnownConfiguration.class);
         }
     }
-
-    private static TokenAuthMethod toSupportedAuthMode(ClientAuthenticationMethod auth) {
-        String value = auth.getValue();
-        for (TokenAuthMethod tam : TokenAuthMethod.values()) {
-            if (tam.toString().equals(value)) {
-                return tam;
-            }
-        }
-        return null;
-    }
 }
