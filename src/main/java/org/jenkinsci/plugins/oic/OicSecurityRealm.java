@@ -517,65 +517,65 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // Filter Jws Algorithms
         if (oidcProviderMetadata.getIDTokenJWSAlgs() != null) {
             List<JWSAlgorithm> idTokenJWSAlgs = new ArrayList<>(oidcProviderMetadata.getIDTokenJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(idTokenJWSAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(idTokenJWSAlgs);
             oidcProviderMetadata.setIDTokenJWSAlgs(idTokenJWSAlgs);
         }
 
         if (oidcProviderMetadata.getUserInfoJWSAlgs() != null) {
             List<JWSAlgorithm> userInfoJwsAlgo = new ArrayList<>(oidcProviderMetadata.getUserInfoJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(userInfoJwsAlgo);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(userInfoJwsAlgo);
             oidcProviderMetadata.setUserInfoJWSAlgs(userInfoJwsAlgo);
         }
 
         if (oidcProviderMetadata.getTokenEndpointJWSAlgs() != null) {
             List<JWSAlgorithm> tokenEndpointJWSAlgs = new ArrayList<>(oidcProviderMetadata.getTokenEndpointJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(tokenEndpointJWSAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(tokenEndpointJWSAlgs);
             oidcProviderMetadata.setTokenEndpointJWSAlgs(tokenEndpointJWSAlgs);
         }
 
         if (oidcProviderMetadata.getIntrospectionEndpointJWSAlgs() != null) {
             List<JWSAlgorithm> introspectionEndpointJWSAlgs =
                     new ArrayList<>(oidcProviderMetadata.getIntrospectionEndpointJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(introspectionEndpointJWSAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(introspectionEndpointJWSAlgs);
             oidcProviderMetadata.setIntrospectionEndpointJWSAlgs(introspectionEndpointJWSAlgs);
         }
 
         if (oidcProviderMetadata.getRevocationEndpointJWSAlgs() != null) {
             List<JWSAlgorithm> revocationEndpointJWSAlgs =
                     new ArrayList<>(oidcProviderMetadata.getRevocationEndpointJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(revocationEndpointJWSAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(revocationEndpointJWSAlgs);
             oidcProviderMetadata.setRevocationEndpointJWSAlgs(revocationEndpointJWSAlgs);
         }
 
         if (oidcProviderMetadata.getRequestObjectJWSAlgs() != null) {
             List<JWSAlgorithm> requestObjectJWSAlgs = new ArrayList<>(oidcProviderMetadata.getRequestObjectJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(requestObjectJWSAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(requestObjectJWSAlgs);
             oidcProviderMetadata.setRequestObjectJWSAlgs(requestObjectJWSAlgs);
         }
 
         if (oidcProviderMetadata.getDPoPJWSAlgs() != null) {
             List<JWSAlgorithm> dPoPJWSAlgs = new ArrayList<>(oidcProviderMetadata.getDPoPJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(dPoPJWSAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(dPoPJWSAlgs);
             oidcProviderMetadata.setDPoPJWSAlgs(dPoPJWSAlgs);
         }
 
         if (oidcProviderMetadata.getAuthorizationJWSAlgs() != null) {
             List<JWSAlgorithm> authorizationJWSAlgs = new ArrayList<>(oidcProviderMetadata.getAuthorizationJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(authorizationJWSAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(authorizationJWSAlgs);
             oidcProviderMetadata.setAuthorizationJWSAlgs(authorizationJWSAlgs);
         }
 
         if (oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs() != null) {
             List<JWSAlgorithm> backChannelAuthenticationRequestJWSAlgs =
                     new ArrayList<>(oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(backChannelAuthenticationRequestJWSAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(backChannelAuthenticationRequestJWSAlgs);
             oidcProviderMetadata.setBackChannelAuthenticationRequestJWSAlgs(backChannelAuthenticationRequestJWSAlgs);
         }
 
         if (oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs() != null) {
             List<JWSAlgorithm> clientRegisterationAuth =
                     new ArrayList<>(oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(clientRegisterationAuth);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJwsAlgorithm(clientRegisterationAuth);
             oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegisterationAuth);
         }
     }
@@ -584,25 +584,25 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // Filter Jwe Algorithms
         if (oidcProviderMetadata.getIDTokenJWEAlgs() != null) {
             List<JWEAlgorithm> idTokenJWEAlgs = new ArrayList<>(oidcProviderMetadata.getIDTokenJWEAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJweAlgorithm(idTokenJWEAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJweAlgorithm(idTokenJWEAlgs);
             oidcProviderMetadata.setIDTokenJWEAlgs(idTokenJWEAlgs);
         }
 
         if (oidcProviderMetadata.getUserInfoJWEAlgs() != null) {
             List<JWEAlgorithm> userTokenJWEAlgs = new ArrayList<>(oidcProviderMetadata.getUserInfoJWEAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJweAlgorithm(userTokenJWEAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJweAlgorithm(userTokenJWEAlgs);
             oidcProviderMetadata.setUserInfoJWEAlgs(userTokenJWEAlgs);
         }
 
         if (oidcProviderMetadata.getRequestObjectJWEAlgs() != null) {
             List<JWEAlgorithm> requestObjectJWEAlgs = new ArrayList<>(oidcProviderMetadata.getRequestObjectJWEAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJweAlgorithm(requestObjectJWEAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJweAlgorithm(requestObjectJWEAlgs);
             oidcProviderMetadata.setRequestObjectJWEAlgs(requestObjectJWEAlgs);
         }
 
         if (oidcProviderMetadata.getAuthorizationJWEAlgs() != null) {
             List<JWEAlgorithm> authorizationJWEAlgs = new ArrayList<>(oidcProviderMetadata.getAuthorizationJWEAlgs());
-            OicAlgorithmValidator.filterFipsNonCompliantJweAlgorithm(authorizationJWEAlgs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantJweAlgorithm(authorizationJWEAlgs);
             oidcProviderMetadata.setAuthorizationJWEAlgs(authorizationJWEAlgs);
         }
     }
@@ -612,36 +612,36 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (oidcProviderMetadata.getRequestObjectJWEEncs() != null) {
             List<EncryptionMethod> requestObjectJWEEncs =
                     new ArrayList<>(oidcProviderMetadata.getRequestObjectJWEEncs());
-            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(requestObjectJWEEncs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantEncryptionMethod(requestObjectJWEEncs);
             oidcProviderMetadata.setRequestObjectJWEEncs(requestObjectJWEEncs);
         }
 
         if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
             List<EncryptionMethod> authorizationJWEEncs =
                     new ArrayList<>(oidcProviderMetadata.getAuthorizationJWEEncs());
-            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(authorizationJWEEncs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantEncryptionMethod(authorizationJWEEncs);
             oidcProviderMetadata.setAuthorizationJWEEncs(authorizationJWEEncs);
         }
 
         if (oidcProviderMetadata.getIDTokenJWEEncs() != null) {
             List<EncryptionMethod> idTokenJWEEncs = new ArrayList<>(oidcProviderMetadata.getIDTokenJWEEncs());
-            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(idTokenJWEEncs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantEncryptionMethod(idTokenJWEEncs);
             oidcProviderMetadata.setIDTokenJWEEncs(idTokenJWEEncs);
         }
         if (oidcProviderMetadata.getUserInfoJWEEncs() != null) {
             List<EncryptionMethod> userInfoJWEEncs = new ArrayList<>(oidcProviderMetadata.getUserInfoJWEEncs());
-            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(userInfoJWEEncs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantEncryptionMethod(userInfoJWEEncs);
             oidcProviderMetadata.setUserInfoJWEEncs(userInfoJWEEncs);
         }
         if (oidcProviderMetadata.getRequestObjectJWEEncs() != null) {
             List<EncryptionMethod> requestObjectJweEncs =
                     new ArrayList<>(oidcProviderMetadata.getRequestObjectJWEEncs());
-            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(requestObjectJweEncs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantEncryptionMethod(requestObjectJweEncs);
             oidcProviderMetadata.setRequestObjectJWEEncs(requestObjectJweEncs);
         }
         if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
             List<EncryptionMethod> authJweEncs = new ArrayList<>(oidcProviderMetadata.getAuthorizationJWEEncs());
-            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(authJweEncs);
+            OicAlgorithmValidatorFIPS140.filterFipsNonCompliantEncryptionMethod(authJweEncs);
             oidcProviderMetadata.setAuthorizationJWEEncs(authJweEncs);
         }
     }

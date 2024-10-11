@@ -52,9 +52,9 @@ public class OicAlgorithmValidatorFIPS140 {
     }
 
     /**
-     * Checks if the Jws signing algorithm used for OIC configuration is FIPS compliant.
+     * Checks if the Jws signing algorithm used for OIC configuration is FIPS-140 compliant.
      */
-    public static boolean isJwsAlgorithmFipsNonCompliant(Algorithm algorithm) {
+    public static boolean isJwsAlgorithmFipsCompliant(Algorithm algorithm) {
         boolean matchNotFound = false;
         if (isFIPSMode && algorithm != null) {
             matchNotFound = jwsSupportedAlgorithms.stream().noneMatch(jwsAlgorithm -> jwsAlgorithm.equals(algorithm));
@@ -63,9 +63,9 @@ public class OicAlgorithmValidatorFIPS140 {
     }
 
     /**
-     *  Checks if the Jwe encryption algorithm used for OIC configuration is FIPS compliant.
+     *  Checks if the Jwe encryption algorithm used for OIC configuration is FIPS-140 compliant.
      */
-    public static boolean isJweAlgorithmFipsNonCompliant(Algorithm algorithm) {
+    public static boolean isJweAlgorithmFipsCompliant(Algorithm algorithm) {
         boolean matchNotFound = false;
         if (isFIPSMode && algorithm != null) {
             matchNotFound = jweSupportedAlgorithms.stream().noneMatch(jweAlgorithm -> jweAlgorithm.equals(algorithm));
@@ -74,39 +74,23 @@ public class OicAlgorithmValidatorFIPS140 {
     }
 
     /**
-     *  Filter FIPS non-compliant Jwe encryption algorithm used for OIC configuration.
+     *  Filter FIPS-140 non-compliant Jwe encryption algorithm used for OIC configuration.
      */
     public static void filterFipsNonCompliantJweAlgorithm(List<JWEAlgorithm> algorithms) {
-        filterFipsNonCompliantAlgorithms(algorithms, OicAlgorithmValidator::isJweAlgorithmFipsNonCompliant);
+        filterFipsNonCompliantAlgorithms(algorithms, algorithm -> !isJweAlgorithmFipsCompliant(algorithm));
     }
 
     /**
-     *  validate FIPS non-compliant Jwe encryption algorithm used for OIC configuration.
-     */
-    public static boolean isJwsAlgoFipsNonCompliant(List<JWSAlgorithm> algorithm) {
-        boolean matchNotFound = false;
-        if (isFIPSMode && algorithm != null) {
-            for (JWSAlgorithm jwsAlgorithm : algorithm) {
-                matchNotFound = isJwsAlgorithmFipsNonCompliant(jwsAlgorithm);
-                if (matchNotFound) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     *  Filter FIPS non-compliant Jws encryption algorithm used for OIC configuration.
+     *  Filter FIPS-140 non-compliant Jws encryption algorithm used for OIC configuration.
      */
     public static void filterFipsNonCompliantJwsAlgorithm(List<JWSAlgorithm> algorithms) {
-        filterFipsNonCompliantAlgorithms(algorithms, OicAlgorithmValidator::isJwsAlgorithmFipsNonCompliant);
+        filterFipsNonCompliantAlgorithms(algorithms, algorithm -> !isJwsAlgorithmFipsCompliant(algorithm));
     }
 
     /**
-     *  Checks if the encryption method used for OIC configuration is FIPS compliant.
+     *  Checks if the encryption method used for OIC configuration is FIPS-140 compliant.
      */
-    public static boolean isEncryptionMethodFipsNonCompliant(Algorithm encryptionMethod) {
+    public static boolean isEncryptionMethodFipsCompliant(Algorithm encryptionMethod) {
         boolean matchNotFound = false;
         if (isFIPSMode && encryptionMethod != null) {
             matchNotFound = supportedEncryptionMethod.stream().noneMatch(method -> method.equals(encryptionMethod));
@@ -115,14 +99,14 @@ public class OicAlgorithmValidatorFIPS140 {
     }
 
     /**
-     *  Filter FIPS non-compliant encryption algorithm used for OIC configuration.
+     *  Filter FIPS-140 non-compliant encryption algorithm used for OIC configuration.
      */
     public static void filterFipsNonCompliantEncryptionMethod(List<EncryptionMethod> algorithms) {
-        filterFipsNonCompliantAlgorithms(algorithms, OicAlgorithmValidator::isEncryptionMethodFipsNonCompliant);
+        filterFipsNonCompliantAlgorithms(algorithms, algorithm -> !isEncryptionMethodFipsCompliant(algorithm));
     }
 
     /**
-     * Filters out FIPS non-compliant algorithms from the provided list.
+     * Filters out FIPS-140 non-compliant algorithms from the provided list.
      *
      * @param <T> the type of the algorithm
      * @param algorithms the list of algorithms to be filtered
