@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import jenkins.model.Jenkins;
+import jenkins.security.FIPS140;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -155,7 +156,13 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
             // rather we just say "I support anything, and let the check for the specific ones fail and fall through
             ArrayList<JWSAlgorithm> allAlgorthms = new ArrayList<>();
             allAlgorthms.addAll(JWSAlgorithm.Family.HMAC_SHA);
-            allAlgorthms.addAll(JWSAlgorithm.Family.SIGNATURE);
+            if (FIPS140.useCompliantAlgorithms()) {
+                // In FIPS-140 Family.ED is not supported
+                allAlgorthms.addAll(JWSAlgorithm.Family.RSA);
+                allAlgorthms.addAll(JWSAlgorithm.Family.EC);
+            } else {
+                allAlgorthms.addAll(JWSAlgorithm.Family.SIGNATURE);
+            }
             providerMetadata.setIDTokenJWSAlgs(allAlgorthms);
             return providerMetadata;
         } catch (URISyntaxException e) {
