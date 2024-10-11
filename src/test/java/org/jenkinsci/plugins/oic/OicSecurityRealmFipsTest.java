@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
 
@@ -85,6 +86,12 @@ public class OicSecurityRealmFipsTest {
     public void failsOnMigrationTest() {
         assertThat(
                 "We should get a ReactorException, startup failed", j.getError(), instanceOf(ReactorException.class));
+    }
+
+    @Test
+    @LocalData
+    public void worksOnMigrationWithValidValuesTest() {
+        assertThat("Instance is up and running with no errors", j.getError(), nullValue());
     }
 
     // Simple JenkinsRule extension that doesn't make test fail on startup errors, so we can check the error.
