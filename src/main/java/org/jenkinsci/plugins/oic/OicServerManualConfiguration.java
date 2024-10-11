@@ -155,12 +155,8 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
             // rather we just say "I support anything, and let the check for the specific ones fail and fall through
             ArrayList<JWSAlgorithm> allAlgorthms = new ArrayList<>();
             allAlgorthms.addAll(JWSAlgorithm.Family.HMAC_SHA);
-            allAlgorthms.addAll(JWSAlgorithm.Family.SIGNATURE);
-
-            if (!allAlgorthms.isEmpty() && OicAlgorithmValidator.isJwsAlgoFipsNonCompliant(allAlgorthms)) {
-                throw new IllegalArgumentException(
-                        Messages.OicConfigNonCompliantAlgo_ErrorMessage("Non-compliant algo found."));
-            }
+            allAlgorthms.addAll(JWSAlgorithm.Family.RSA);
+            allAlgorthms.addAll(JWSAlgorithm.Family.EC);
             providerMetadata.setIDTokenJWSAlgs(allAlgorthms);
             return providerMetadata;
         } catch (URISyntaxException e) {
