@@ -2,9 +2,7 @@ package org.jenkinsci.plugins.oic;
 
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import hudson.model.Descriptor;
 import hudson.util.Secret;
-import java.io.IOException;
 import org.acegisecurity.AuthenticationManager;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;

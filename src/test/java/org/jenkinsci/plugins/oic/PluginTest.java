@@ -15,7 +15,6 @@ import com.nimbusds.oauth2.sdk.Scope;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.tasks.Mailer;
 import hudson.util.VersionNumber;
@@ -178,8 +177,7 @@ public class PluginTest {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
     }
 
-    private void configureTestRealm(@NonNull Consumer<OicSecurityRealm> consumer)
-            throws Exception {
+    private void configureTestRealm(@NonNull Consumer<OicSecurityRealm> consumer) throws Exception {
         var securityRealm = new TestRealm(wireMockRule);
         consumer.accept(securityRealm);
         jenkins.setSecurityRealm(securityRealm);
