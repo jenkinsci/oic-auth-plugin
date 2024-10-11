@@ -179,7 +179,7 @@ public class PluginTest {
     }
 
     private void configureTestRealm(@NonNull Consumer<OicSecurityRealm> consumer)
-            throws IOException, Descriptor.FormException {
+            throws Exception {
         var securityRealm = new TestRealm(wireMockRule);
         consumer.accept(securityRealm);
         jenkins.setSecurityRealm(securityRealm);
