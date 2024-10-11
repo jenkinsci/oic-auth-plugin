@@ -60,13 +60,6 @@ public class AnythingGoesTokenValidator extends TokenValidator {
             providerMetadata.setIDTokenJWSAlgs(List.of(JWSAlgorithm.HS256));
             config.setProviderMetadata(providerMetadata);
             config.setPreferredJwsAlgorithm(JWSAlgorithm.HS256);
-            if (config.getPreferredJwsAlgorithm() != null
-                    && OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(
-                            config.getPreferredJwsAlgorithm().getName())) {
-                throw new IllegalArgumentException(Messages.OicConfigNonCompliantAlgo_ErrorMessage(
-                        config.getPreferredJwsAlgorithm().getName()));
-            }
-
             config.setClientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
             return config;
         } catch (URISyntaxException e) {

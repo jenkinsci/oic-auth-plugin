@@ -158,7 +158,7 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
             // hope.
             return oidcProviderMetadata;
         }
-        throw new IllegalStateException("Well known configuration could not be loaded, login can not preceed.");
+        throw new IllegalStateException("Well known configuration could not be loaded, login can not proceed.");
     }
 
     /**

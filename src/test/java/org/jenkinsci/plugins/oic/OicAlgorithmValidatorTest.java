@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
+import com.nimbusds.jose.JWSAlgorithm;
 import jenkins.security.FIPS140;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,19 +22,19 @@ class OicAlgorithmValidatorTest {
     @Test
     void isJwsAlgorithmFipsCompliant() {
         fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(true);
-        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(""));
-        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(" "));
-        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant("invalid-algo"));
+        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(new JWSAlgorithm("")));
+        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(new JWSAlgorithm(" ")));
+        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(new JWSAlgorithm("invalid-algo")));
 
         String[] validAlgoArray = {
             "HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES256K", "ES384", "ES512", "PS256", "PS384",
             "PS512"
         };
         for (String algo : validAlgoArray) {
-            assertFalse(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(algo));
+            assertFalse(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(new JWSAlgorithm(algo)));
         }
-        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant("EdDSA"));
-        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant("Ed25519"));
-        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant("Ed448"));
+        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(new JWSAlgorithm("EdDSA")));
+        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(new JWSAlgorithm("Ed25519")));
+        assertTrue(OicAlgorithmValidator.isJwsAlgorithmFipsNonCompliant(new JWSAlgorithm("Ed448")));
     }
 }
