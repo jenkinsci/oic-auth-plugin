@@ -521,6 +521,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             oidcProviderMetadata.setIDTokenJWSAlgs(idTokenJWSAlgs);
         }
 
+        if (oidcProviderMetadata.getUserInfoJWSAlgs() != null) {
+            List<JWSAlgorithm> userInfoJwsAlgo = new ArrayList<>(oidcProviderMetadata.getUserInfoJWSAlgs());
+            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(userInfoJwsAlgo);
+            oidcProviderMetadata.setUserInfoJWSAlgs(userInfoJwsAlgo);
+        }
+
         if (oidcProviderMetadata.getTokenEndpointJWSAlgs() != null) {
             List<JWSAlgorithm> tokenEndpointJWSAlgs = new ArrayList<>(oidcProviderMetadata.getTokenEndpointJWSAlgs());
             OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(tokenEndpointJWSAlgs);
@@ -565,6 +571,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(backChannelAuthenticationRequestJWSAlgs);
             oidcProviderMetadata.setBackChannelAuthenticationRequestJWSAlgs(backChannelAuthenticationRequestJWSAlgs);
         }
+
+        if (oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs() != null) {
+            List<JWSAlgorithm> clientRegisterationAuth =
+                    new ArrayList<>(oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs());
+            OicAlgorithmValidator.filterFipsNonCompliantJwsAlgorithm(clientRegisterationAuth);
+            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegisterationAuth);
+        }
     }
 
     private static void filterJweAlgorithms(OIDCProviderMetadata oidcProviderMetadata) {
@@ -573,6 +586,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             List<JWEAlgorithm> idTokenJWEAlgs = new ArrayList<>(oidcProviderMetadata.getIDTokenJWEAlgs());
             OicAlgorithmValidator.filterFipsNonCompliantJweAlgorithm(idTokenJWEAlgs);
             oidcProviderMetadata.setIDTokenJWEAlgs(idTokenJWEAlgs);
+        }
+
+        if (oidcProviderMetadata.getUserInfoJWEAlgs() != null) {
+            List<JWEAlgorithm> userTokenJWEAlgs = new ArrayList<>(oidcProviderMetadata.getUserInfoJWEAlgs());
+            OicAlgorithmValidator.filterFipsNonCompliantJweAlgorithm(userTokenJWEAlgs);
+            oidcProviderMetadata.setUserInfoJWEAlgs(userTokenJWEAlgs);
         }
 
         if (oidcProviderMetadata.getRequestObjectJWEAlgs() != null) {
@@ -602,6 +621,28 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     new ArrayList<>(oidcProviderMetadata.getAuthorizationJWEEncs());
             OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(authorizationJWEEncs);
             oidcProviderMetadata.setAuthorizationJWEEncs(authorizationJWEEncs);
+        }
+
+        if (oidcProviderMetadata.getIDTokenJWEEncs() != null) {
+            List<EncryptionMethod> idTokenJWEEncs = new ArrayList<>(oidcProviderMetadata.getIDTokenJWEEncs());
+            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(idTokenJWEEncs);
+            oidcProviderMetadata.setIDTokenJWEEncs(idTokenJWEEncs);
+        }
+        if (oidcProviderMetadata.getUserInfoJWEEncs() != null) {
+            List<EncryptionMethod> userInfoJWEEncs = new ArrayList<>(oidcProviderMetadata.getUserInfoJWEEncs());
+            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(userInfoJWEEncs);
+            oidcProviderMetadata.setUserInfoJWEEncs(userInfoJWEEncs);
+        }
+        if (oidcProviderMetadata.getRequestObjectJWEEncs() != null) {
+            List<EncryptionMethod> requestObjectJweEncs =
+                    new ArrayList<>(oidcProviderMetadata.getRequestObjectJWEEncs());
+            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(requestObjectJweEncs);
+            oidcProviderMetadata.setRequestObjectJWEEncs(requestObjectJweEncs);
+        }
+        if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
+            List<EncryptionMethod> authJweEncs = new ArrayList<>(oidcProviderMetadata.getAuthorizationJWEEncs());
+            OicAlgorithmValidator.filterFipsNonCompliantEncryptionMethod(authJweEncs);
+            oidcProviderMetadata.setAuthorizationJWEEncs(authJweEncs);
         }
     }
 

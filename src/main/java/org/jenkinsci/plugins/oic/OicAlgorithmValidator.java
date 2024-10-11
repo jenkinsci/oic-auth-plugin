@@ -47,6 +47,8 @@ public class OicAlgorithmValidator {
 
         // Init complaint EncryptionMethods
         supportedEncryptionMethod.addAll(ContentCryptoProvider.SUPPORTED_ENCRYPTION_METHODS);
+        // XC20P is not complaint method
+        supportedEncryptionMethod.remove(EncryptionMethod.XC20P);
     }
 
     /**
@@ -107,9 +109,7 @@ public class OicAlgorithmValidator {
     public static boolean isEncryptionMethodFipsNonCompliant(Algorithm encryptionMethod) {
         boolean matchNotFound = false;
         if (isFIPSMode && encryptionMethod != null) {
-            if (!supportedEncryptionMethod.isEmpty()) {
-                matchNotFound = supportedEncryptionMethod.stream().noneMatch(method -> method.equals(encryptionMethod));
-            }
+            matchNotFound = supportedEncryptionMethod.stream().noneMatch(method -> method.equals(encryptionMethod));
         }
         return matchNotFound;
     }
