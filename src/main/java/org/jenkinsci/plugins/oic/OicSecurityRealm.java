@@ -357,7 +357,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         try {
             this.setEscapeHatchEnabled(this.escapeHatchEnabled);
         } catch (FormException e) {
-            throw new IllegalArgumentException(e);
+            throw new IllegalArgumentException(e.getFormField() + ": " + e.getMessage());
         }
 
         try {
