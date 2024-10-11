@@ -20,10 +20,10 @@ import java.util.function.Function;
 import jenkins.security.FIPS140;
 
 /**
- * This class helps in validating algorithms for FIPS compliance and filtering the non-compliant algorithms when in
+ * This class helps in validating algorithms for FIPS-140 compliance and filtering the non-compliant algorithms when in
  * FIPS mode.
  */
-public class OicAlgorithmValidator {
+public class OicAlgorithmValidatorFIPS140 {
 
     private static final boolean isFIPSMode = FIPS140.useCompliantAlgorithms();
     private static final Set<JWSAlgorithm> jwsSupportedAlgorithms = new LinkedHashSet<>();
