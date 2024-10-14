@@ -9,7 +9,6 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.crypto.impl.AESCryptoProvider;
 import com.nimbusds.jose.crypto.impl.ContentCryptoProvider;
-import com.nimbusds.jose.crypto.impl.ECDHCryptoProvider;
 import com.nimbusds.jose.crypto.impl.PasswordBasedCryptoProvider;
 import com.nimbusds.jose.crypto.impl.RSACryptoProvider;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -39,14 +38,17 @@ public class OicAlgorithmValidatorFIPS140 {
         // Init compliant JWE algorithms
         JWESupportedAlgorithms.addAll(AESCryptoProvider.SUPPORTED_ALGORITHMS);
         JWESupportedAlgorithms.addAll(RSACryptoProvider.SUPPORTED_ALGORITHMS);
-        // RSA1_5 is deprecated and not a compliant algorithm.
-        JWESupportedAlgorithms.remove(JWEAlgorithm.RSA1_5);
-        JWESupportedAlgorithms.addAll(ECDHCryptoProvider.SUPPORTED_ALGORITHMS);
         JWESupportedAlgorithms.addAll(PasswordBasedCryptoProvider.SUPPORTED_ALGORITHMS);
+        // RSA1_5 is deprecated and not a compliant algorithm.
+        // ECDH seems to use its own key derivation function (ConcatKDF) and so not compliant. Not adding
+        // ECDHCryptoProvider.SUPPORTED_ALGORITHMS
+        JWESupportedAlgorithms.remove(JWEAlgorithm.RSA1_5);
 
-        // Init complaint EncryptionMethods
+        // Init complaint EncryptionMethods and remove non-compliant algorithms
         supportedEncryptionMethod.addAll(ContentCryptoProvider.SUPPORTED_ENCRYPTION_METHODS);
         supportedEncryptionMethod.remove(EncryptionMethod.XC20P);
+        supportedEncryptionMethod.remove(EncryptionMethod.A128CBC_HS256_DEPRECATED);
+        supportedEncryptionMethod.remove(EncryptionMethod.A256CBC_HS512_DEPRECATED);
     }
 
     /**
