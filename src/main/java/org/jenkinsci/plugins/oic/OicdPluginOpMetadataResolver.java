@@ -9,8 +9,8 @@ public class OicdPluginOpMetadataResolver extends StaticOidcOpMetadataResolver {
 
     private boolean allowsAnything;
 
-    public OicdPluginOpMetadataResolver(OidcConfiguration configuration, OIDCProviderMetadata staticMetadata,
-                                        boolean allowsAnything) {
+    public OicdPluginOpMetadataResolver(
+            OidcConfiguration configuration, OIDCProviderMetadata staticMetadata, boolean allowsAnything) {
         super(configuration, staticMetadata);
         this.allowsAnything = allowsAnything;
     }

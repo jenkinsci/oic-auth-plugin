@@ -957,11 +957,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer);
 
         OidcRedirectionActionBuilder builder = new OidcRedirectionActionBuilder(client);
-        FrameworkParameters frameworkParameters = new JEEFrameworkParameters(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
+        FrameworkParameters frameworkParameters =
+                new JEEFrameworkParameters(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(frameworkParameters);
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore(frameworkParameters);
         CallContext callContext = new CallContext(webContext, sessionStore);
-        RedirectionAction redirectionAction = builder.getRedirectionAction(callContext).orElseThrow();
+        RedirectionAction redirectionAction =
+                builder.getRedirectionAction(callContext).orElseThrow();
 
         // store the redirect url for after the login.
         sessionStore.set(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY, redirectOnFinish);
@@ -1197,7 +1199,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     Object getStateAttribute(HttpSession session) {
         // return null;
         OidcClient client = buildOidcClient();
-        FrameworkParameters frameworkParameters = new JEEFrameworkParameters(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
+        FrameworkParameters frameworkParameters =
+                new JEEFrameworkParameters(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(frameworkParameters);
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore(frameworkParameters);
         CallContext callContext = new CallContext(webContext, sessionStore);
@@ -1286,8 +1289,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             Credentials credentials = client.getCredentials(callContext)
                     .orElseThrow(() -> new Failure("Could not extract credentials from request"));
 
-            credentials = client.getAuthenticator().validate(callContext, credentials).orElseThrow(
-                    () -> new Failure("Could not " + "validate " + "credentials"));
+            credentials = client.getAuthenticator()
+                    .validate(callContext, credentials)
+                    .orElseThrow(() -> new Failure("Could not " + "validate " + "credentials"));
 
             ProfileCreator profileCreator = client.getProfileCreator();
 
