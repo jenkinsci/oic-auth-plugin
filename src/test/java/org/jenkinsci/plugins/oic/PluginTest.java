@@ -177,7 +177,7 @@ public class PluginTest {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
     }
 
-    private void configureTestRealm(@NonNull Consumer<OicSecurityRealm> consumer) throws IOException {
+    private void configureTestRealm(@NonNull Consumer<OicSecurityRealm> consumer) throws Exception {
         var securityRealm = new TestRealm(wireMockRule);
         consumer.accept(securityRealm);
         jenkins.setSecurityRealm(securityRealm);

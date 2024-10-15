@@ -25,6 +25,9 @@ package org.jenkinsci.plugins.oic;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.nimbusds.jose.EncryptionMethod;
+import com.nimbusds.jose.JWEAlgorithm;
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.oauth2.sdk.GrantType;
@@ -35,6 +38,7 @@ import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.oauth2.sdk.token.RefreshToken;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
@@ -86,6 +90,7 @@ import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
+import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
 import jenkins.util.SystemProperties;
 import org.apache.commons.lang.StringUtils;
@@ -310,9 +315,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             Secret clientSecret,
             OicServerConfiguration serverConfiguration,
             Boolean disableSslVerification)
-            throws IOException {
+            throws IOException, FormException {
         // Needed in DataBoundSetter
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
+        if (FIPS140.useCompliantAlgorithms() && this.disableSslVerification) {
+            throw new FormException(
+                    Messages.OicSecurityRealm_DisableSslVerificationFipsMode(), "disableSslVerification");
+        }
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.serverConfiguration = serverConfiguration;
@@ -320,6 +329,16 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     @SuppressWarnings("deprecated")
     protected Object readResolve() throws ObjectStreamException {
+        // Fail if migrating to a FIPS non-compliant config
+        if (FIPS140.useCompliantAlgorithms()) {
+            if (isDisableSslVerification()) {
+                throw new IllegalStateException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
+            }
+            if (isDisableTokenVerification()) {
+                throw new IllegalStateException(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
+            }
+        }
+
         if (!Strings.isNullOrEmpty(endSessionUrl)) {
             this.endSessionEndpoint = endSessionUrl + "/";
         }
@@ -341,6 +360,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.setTokenFieldToCheckKey(this.tokenFieldToCheckKey);
         // ensure escapeHatchSecret is encrypted
         this.setEscapeHatchSecret(this.escapeHatchSecret);
+
+        // validate this option in FIPS env or not
+        try {
+            this.setEscapeHatchEnabled(this.escapeHatchEnabled);
+        } catch (FormException e) {
+            throw new IllegalArgumentException(e.getFormField() + ": " + e.getMessage());
+        }
+
         try {
             if (automanualconfigure != null) {
                 if ("auto".equals(automanualconfigure)) {
@@ -493,6 +520,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // set many more as needed...
 
         OIDCProviderMetadata oidcProviderMetadata = serverConfiguration.toProviderMetadata();
+        filterNonFIPS140CompliantAlgorithms(oidcProviderMetadata);
         OidcOpMetadataResolver metadataResolver;
         if (this.isDisableTokenVerification()) {
             conf.setAllowUnsignedIdTokens(true);
@@ -517,6 +545,144 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             conf.setDisablePkce(true);
         }
         return conf;
+    }
+
+    // Visible for testing
+    @Restricted(NoExternalUse.class)
+    protected void filterNonFIPS140CompliantAlgorithms(@NonNull OIDCProviderMetadata oidcProviderMetadata) {
+        if (FIPS140.useCompliantAlgorithms()) {
+            // If FIPS is not enabled, then we don't have to filter the algorithms
+            filterJwsAlgorithms(oidcProviderMetadata);
+            filterJweAlgorithms(oidcProviderMetadata);
+            filterEncryptionMethods(oidcProviderMetadata);
+        }
+    }
+
+    private void filterEncryptionMethods(@NonNull OIDCProviderMetadata oidcProviderMetadata) {
+        if (oidcProviderMetadata.getRequestObjectJWEEncs() != null) {
+            List<EncryptionMethod> requestObjectJWEEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
+                    oidcProviderMetadata.getRequestObjectJWEEncs());
+            oidcProviderMetadata.setRequestObjectJWEEncs(requestObjectJWEEncs);
+        }
+
+        if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
+            List<EncryptionMethod> authorizationJWEEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
+                    oidcProviderMetadata.getAuthorizationJWEEncs());
+            oidcProviderMetadata.setAuthorizationJWEEncs(authorizationJWEEncs);
+        }
+
+        if (oidcProviderMetadata.getIDTokenJWEEncs() != null) {
+            List<EncryptionMethod> idTokenJWEEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
+                    oidcProviderMetadata.getIDTokenJWEEncs());
+            oidcProviderMetadata.setIDTokenJWEEncs(idTokenJWEEncs);
+        }
+
+        if (oidcProviderMetadata.getUserInfoJWEEncs() != null) {
+            List<EncryptionMethod> userInfoJWEEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
+                    oidcProviderMetadata.getUserInfoJWEEncs());
+            oidcProviderMetadata.setUserInfoJWEEncs(userInfoJWEEncs);
+        }
+
+        if (oidcProviderMetadata.getRequestObjectJWEEncs() != null) {
+            List<EncryptionMethod> requestObjectJweEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
+                    oidcProviderMetadata.getRequestObjectJWEEncs());
+            oidcProviderMetadata.setRequestObjectJWEEncs(requestObjectJweEncs);
+        }
+
+        if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
+            List<EncryptionMethod> authJweEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
+                    oidcProviderMetadata.getAuthorizationJWEEncs());
+            oidcProviderMetadata.setAuthorizationJWEEncs(authJweEncs);
+        }
+    }
+
+    private void filterJweAlgorithms(@NonNull OIDCProviderMetadata oidcProviderMetadata) {
+        if (oidcProviderMetadata.getIDTokenJWEAlgs() != null) {
+            List<JWEAlgorithm> idTokenJWEAlgs =
+                    OicAlgorithmValidatorFIPS140.getFipsCompliantJWEAlgorithm(oidcProviderMetadata.getIDTokenJWEAlgs());
+            oidcProviderMetadata.setIDTokenJWEAlgs(idTokenJWEAlgs);
+        }
+
+        if (oidcProviderMetadata.getUserInfoJWEAlgs() != null) {
+            List<JWEAlgorithm> userTokenJWEAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWEAlgorithm(
+                    oidcProviderMetadata.getUserInfoJWEAlgs());
+            oidcProviderMetadata.setUserInfoJWEAlgs(userTokenJWEAlgs);
+        }
+
+        if (oidcProviderMetadata.getRequestObjectJWEAlgs() != null) {
+            List<JWEAlgorithm> requestObjectJWEAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWEAlgorithm(
+                    oidcProviderMetadata.getRequestObjectJWEAlgs());
+            oidcProviderMetadata.setRequestObjectJWEAlgs(requestObjectJWEAlgs);
+        }
+
+        if (oidcProviderMetadata.getAuthorizationJWEAlgs() != null) {
+            List<JWEAlgorithm> authorizationJWEAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWEAlgorithm(
+                    oidcProviderMetadata.getAuthorizationJWEAlgs());
+            oidcProviderMetadata.setAuthorizationJWEAlgs(authorizationJWEAlgs);
+        }
+    }
+
+    private void filterJwsAlgorithms(@NonNull OIDCProviderMetadata oidcProviderMetadata) {
+        if (oidcProviderMetadata.getIDTokenJWSAlgs() != null) {
+            List<JWSAlgorithm> idTokenJWSAlgs =
+                    OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(oidcProviderMetadata.getIDTokenJWSAlgs());
+            oidcProviderMetadata.setIDTokenJWSAlgs(idTokenJWSAlgs);
+        }
+
+        if (oidcProviderMetadata.getUserInfoJWSAlgs() != null) {
+            List<JWSAlgorithm> userInfoJwsAlgo = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+                    oidcProviderMetadata.getUserInfoJWSAlgs());
+            oidcProviderMetadata.setUserInfoJWSAlgs(userInfoJwsAlgo);
+        }
+
+        if (oidcProviderMetadata.getTokenEndpointJWSAlgs() != null) {
+            List<JWSAlgorithm> tokenEndpointJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+                    oidcProviderMetadata.getTokenEndpointJWSAlgs());
+            oidcProviderMetadata.setTokenEndpointJWSAlgs(tokenEndpointJWSAlgs);
+        }
+
+        if (oidcProviderMetadata.getIntrospectionEndpointJWSAlgs() != null) {
+            List<JWSAlgorithm> introspectionEndpointJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+                    oidcProviderMetadata.getIntrospectionEndpointJWSAlgs());
+            oidcProviderMetadata.setIntrospectionEndpointJWSAlgs(introspectionEndpointJWSAlgs);
+        }
+
+        if (oidcProviderMetadata.getRevocationEndpointJWSAlgs() != null) {
+            List<JWSAlgorithm> revocationEndpointJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+                    oidcProviderMetadata.getRevocationEndpointJWSAlgs());
+            oidcProviderMetadata.setRevocationEndpointJWSAlgs(revocationEndpointJWSAlgs);
+        }
+
+        if (oidcProviderMetadata.getRequestObjectJWSAlgs() != null) {
+            List<JWSAlgorithm> requestObjectJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+                    oidcProviderMetadata.getRequestObjectJWSAlgs());
+            oidcProviderMetadata.setRequestObjectJWSAlgs(requestObjectJWSAlgs);
+        }
+
+        if (oidcProviderMetadata.getDPoPJWSAlgs() != null) {
+            List<JWSAlgorithm> dPoPJWSAlgs =
+                    OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(oidcProviderMetadata.getDPoPJWSAlgs());
+            oidcProviderMetadata.setDPoPJWSAlgs(dPoPJWSAlgs);
+        }
+
+        if (oidcProviderMetadata.getAuthorizationJWSAlgs() != null) {
+            List<JWSAlgorithm> authorizationJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+                    oidcProviderMetadata.getAuthorizationJWSAlgs());
+            oidcProviderMetadata.setAuthorizationJWSAlgs(authorizationJWSAlgs);
+        }
+
+        if (oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs() != null) {
+            List<JWSAlgorithm> backChannelAuthenticationRequestJWSAlgs =
+                    OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+                            oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs());
+            oidcProviderMetadata.setBackChannelAuthenticationRequestJWSAlgs(backChannelAuthenticationRequestJWSAlgs);
+        }
+
+        if (oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs() != null) {
+            List<JWSAlgorithm> clientRegisterationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+                    oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs());
+            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegisterationAuth);
+        }
     }
 
     @Restricted(NoExternalUse.class) // exposed for testing only
@@ -602,7 +768,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
-    public void setEscapeHatchEnabled(boolean escapeHatchEnabled) {
+    public void setEscapeHatchEnabled(boolean escapeHatchEnabled) throws FormException {
+        if (FIPS140.useCompliantAlgorithms() && escapeHatchEnabled) {
+            throw new FormException("Escape Hatch cannot be enabled in FIPS environment", "escapeHatchEnabled");
+        }
         this.escapeHatchEnabled = escapeHatchEnabled;
     }
 
@@ -653,7 +822,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
-    public void setDisableTokenVerification(boolean disableTokenVerification) {
+    public void setDisableTokenVerification(boolean disableTokenVerification) throws FormException {
+        if (FIPS140.useCompliantAlgorithms() && disableTokenVerification) {
+            throw new FormException(
+                    Messages.OicSecurityRealm_DisableTokenVerificationFipsMode(), "disableTokenVerification");
+        }
         this.disableTokenVerification = disableTokenVerification;
     }
 
@@ -687,7 +860,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     public String getAuthenticationGatewayUrl() {
         return "securityRealm/escapeHatch";
     }
-
 
     @Override
     public Filter createFilter(FilterConfig filterConfig) {
@@ -1391,6 +1563,22 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             return this.doCheckFieldName(tokenFieldToCheckKey, FormValidation.ok());
         }
 
+        @RequirePOST
+        public FormValidation doCheckDisableSslVerification(@QueryParameter Boolean disableSslVerification) {
+            if (FIPS140.useCompliantAlgorithms() && disableSslVerification) {
+                return FormValidation.error(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
+            }
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
+        public FormValidation doCheckDisableTokenVerification(@QueryParameter Boolean disableTokenVerification) {
+            if (FIPS140.useCompliantAlgorithms() && disableTokenVerification) {
+                return FormValidation.error(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
+            }
+            return FormValidation.ok();
+        }
+
         // method to check fieldName matches JMESPath format
         private FormValidation doCheckFieldName(String fieldName, FormValidation validIfNull) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
@@ -1406,6 +1594,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         @Restricted(NoExternalUse.class) // jelly only
         public Descriptor<OicServerConfiguration> getDefaultServerConfigurationType() {
             return Jenkins.get().getDescriptor(OicServerWellKnownConfiguration.class);
+        }
+
+        @Restricted(NoExternalUse.class) // used by jelly only
+        public boolean isFipsEnabled() {
+            return FIPS140.useCompliantAlgorithms();
         }
     }
 }

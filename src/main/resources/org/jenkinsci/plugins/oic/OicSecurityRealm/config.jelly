@@ -7,6 +7,8 @@
     <f:password/>
   </f:entry>
 
+  <st:adjunct includes="org.jenkinsci.plugins.oic.OicSecurityRealm.logout-idp-toggle" />
+
   <f:dropdownDescriptorSelector field="serverConfiguration" title="${%ConfigurationMode}" default="${descriptor.defaultServerConfigurationType}"/>
 
   <f:section title="${%AdvancedConfiguration}">
@@ -30,8 +32,8 @@
     <f:entry title="${%SendScopesInTokenRequest}" field="sendScopesInTokenRequest">
       <f:checkbox/>
     </f:entry>
-    <f:entry title="${%PostLogoutRedirectUrl}" field="postLogoutRedirectUrl">
-      <f:textbox/>
+    <f:entry title="${%PostLogoutRedirectUrl}" field="postLogoutRedirectUrl" class="endSessionConfig">
+      <f:textbox />
     </f:entry>
 
     <f:advanced title="${%SecurityConfiguration}">
@@ -66,39 +68,27 @@
         <f:checkbox/>
       </f:entry>
     </f:advanced>
-
-    <f:block>
-      <table>
-        <f:optionalBlock inline="true" title="${%ConfigureEscapeHatch}" field="escapeHatchEnabled">
-          <f:entry title="${%Username}" field="escapeHatchUsername">
-            <f:textbox/>
-          </f:entry>
-          <f:entry title="${%Secret}" field="escapeHatchSecret">
-            <f:password/>
-          </f:entry>
-          <f:entry title="${%Group}" field="escapeHatchGroup">
-            <f:textbox/>
-          </f:entry>
-        </f:optionalBlock>
-      </table>
-    </f:block>
+    <j:if test="${!descriptor.isFipsEnabled()}">
+      <f:block>
+        <table>
+          <f:optionalBlock inline="true" title="${%ConfigureEscapeHatch}" field="escapeHatchEnabled">
+            <f:entry title="${%Username}" field="escapeHatchUsername">
+              <f:textbox/>
+            </f:entry>
+            <f:entry title="${%Secret}" field="escapeHatchSecret">
+              <f:password/>
+            </f:entry>
+            <f:entry title="${%Group}" field="escapeHatchGroup">
+              <f:textbox/>
+            </f:entry>
+          </f:optionalBlock>
+        </table>
+      </f:block>
+    </j:if>
 
   </f:section>
 
   <st:once>
-    <script type="text/javascript">
-
-    window.addEventListener('load', function() {
-      var logoutFromIDP = document.getElementById('logoutFromIDP');
-      var endSessionConfig = document.getElementById('endSessionConfig');
-
-      endSessionConfig.hidden = !logoutFromIDP.checked
-
-      logoutFromIDP.addEventListener("change", (event)=>{
-        endSessionConfig.hidden = !logoutFromIDP.checked;
-      });
-    })
-    </script>
   </st:once>
 
 </j:jelly>

@@ -231,3 +231,10 @@ The resulting trust store can then be used by passing the `javax.net.ssl.trustSt
 5. The "Full name field name" field should be set to `something`
 6. The "Email field name" should be set to `something`
 7. The "Groups field name" should be set to `something`
+
+## Setting the token lifetime
+
+In order to test refresh tokens (without having to wait 24 hours) you can set the token lifetime via the following powershell: 
+```powershell
+Set-AdfsWebApiApplication -TokenLifetime 1 -TargetName "Jenkins Application Group - Web API"
+```
