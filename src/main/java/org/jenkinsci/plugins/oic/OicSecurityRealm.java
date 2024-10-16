@@ -1286,12 +1286,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             // Jenkins stuff correctly
             // also should have its own URL to make the code easier to follow :)
 
-            Credentials credentials = client.getCredentials(callContext)
-                    .orElseThrow(() -> new Failure("Could not extract credentials from request"));
-
-            credentials = client.getAuthenticator()
-                    .validate(callContext, credentials)
-                    .orElseThrow(() -> new Failure("Could not " + "validate " + "credentials"));
+            Credentials credentials = getCredentials(client, callContext);
 
             ProfileCreator profileCreator = client.getProfileCreator();
 
@@ -1329,6 +1324,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             JEEHttpActionAdapter.INSTANCE.adapt(e, webContext);
             return;
         }
+    }
+
+    private Credentials getCredentials(OidcClient client, CallContext callContext) {
+        Credentials credentials = client.getCredentials(callContext)
+                .orElseThrow(() -> new Failure("Could not extract credentials from request"));
+
+        return client.getAuthenticator()
+                .validate(callContext, credentials)
+                .orElseThrow(() -> new Failure("Could not " + "validate " + "credentials"));
     }
 
     /**
