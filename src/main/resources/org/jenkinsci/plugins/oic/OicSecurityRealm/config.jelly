@@ -87,8 +87,4 @@
     </j:if>
 
   </f:section>
-
-  <st:once>
-  </st:once>
-
 </j:jelly>
