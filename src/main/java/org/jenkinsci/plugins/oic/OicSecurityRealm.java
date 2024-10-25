@@ -1455,6 +1455,21 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                         HttpServletResponse.SC_UNAUTHORIZED, "User name was not the same after refresh request");
                 return false;
             }
+            // the username may have changed case during a call, but still be the same user (as we have checked the
+            // idStrategy)
+            // we need to keep using exactly the same principal otherwise there is a potential for crumbs not to match.
+            // whilst we could do some normalization of the username, just use the original (expected) username
+            // see https://github.com/jenkinsci/oic-auth-plugin/issues/411
+            if (LOGGER.isLoggable(Level.FINE)) {
+                Authentication a = SecurityContextHolder.getContext().getAuthentication();
+                User u = User.get2(a);
+                LOGGER.log(
+                        Level.FINE,
+                        "Token refresh.  Current Authentitcation principal: " + a.getName() + " user id:"
+                                + (u == null ? "null user" : u.getId()) + " newly retreived username would have been: "
+                                + username);
+            }
+            username = expectedUsername;
 
             if (failedCheckOfTokenField(idToken)) {
                 throw new FailedCheckOfTokenException(client.getConfiguration().findLogoutUrl());

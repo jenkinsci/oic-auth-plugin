@@ -56,7 +56,7 @@ If the JWKS endpoint is configured, JWS' signatures will be verified
 |------------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | authorizationServerUrl | url     | URL the user is redirected to at login                                                                                                                                                                              |
 | tokenServerUrl         | url     | URL used by jenkins to request the tokens                                                                                                                                                                           |
-| endSessionEndpoint     | url     | URL to logout from provider (used if activated)                                                                                                                                                                     |
+| endSessionUrl          | url     | URL to logout from provider (used if activated)                                                                                                                                                                     |
 | jwksServerUrl          | url     | URL of provider's jws certificates (unused if disabled)                                                                                                                                                             |
 | scopes                 | string  | Space separated list of scopes to request (default: `openid email`)                                                                                                                                                 |
 | tokenAuthMethod        | enum    | Method used for authenticating when requesting token(s)<br />- `client_secret_basic`: for client id/secret as basic authentication user/pass<br />- `client_secret_post`: for client id/secret sent in post request | 
@@ -120,7 +120,7 @@ jenkins:
         # Manual config of endpoint
         manual:
           authorizationServerUrl: <url>
-          endSessionEndpoint: <url>
+          endSessionUrl: <url>
           issuer: <string>
           jwksServerUrl: <url>
           tokenAuthMethod: <string:enum>

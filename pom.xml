@@ -62,6 +62,16 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!--
+      Let's use a FIPS compliant version of nimbus-jose-jwt
+      TODO Remove when pac4j includes this version or a newer one
+      -->
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>nimbus-jose-jwt</artifactId>
+        <version>9.41</version>
+      </dependency>
+      <!-- end -->
       <dependency>
         <!-- do not exlude the annotations so we can benifit from spotbugs checks but set the to provided so we do not bundle them -->
         <groupId>com.github.stephenc.jcip</groupId>
