@@ -1269,6 +1269,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             // Jenkins stuff correctly
             // also should have its own URL to make the code easier to follow :)
 
+            if (!sessionStore.renewSession(webContext)) {
+                throw new TechnicalException("Could not create a new session");
+            }
+
             Credentials credentials = client.getCredentials(webContext, sessionStore)
                     .orElseThrow(() -> new Failure("Could not extract credentials from request"));
 
