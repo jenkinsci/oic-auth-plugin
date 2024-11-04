@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.87</version>
+    <version>5.2</version>
     <relativePath />
   </parent>
 
@@ -45,22 +45,20 @@
     <revision>4</revision>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <!-- update the jenkins-bom version when updating -->
-    <jenkins.version>2.426.3</jenkins.version>
+    <jenkins.baseline>2.479</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
     <spotbugs.effort>Max</spotbugs.effort>
-    <configuration-as-code.version>1836.vccda_4a_122a_a_e</configuration-as-code.version>
     <hpi.compatibleSinceVersion>4.383</hpi.compatibleSinceVersion>
-    <!-- latest 5.x as 6 uses java 17 -->
-    <pac4jVersion>5.7.7</pac4jVersion>
+    <pac4jVersion>6.0.6</pac4jVersion>
   </properties>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.426.x</artifactId>
-        <version>3208.vb_21177d4b_cd9</version>
+        <artifactId>bom-${jenkins.baseline}.x</artifactId>
+        <version>3482.vc10d4f6da_28a_</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -94,6 +92,10 @@
       <artifactId>asm-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-text-api</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
     </dependency>
@@ -104,18 +106,18 @@
 
     <dependency>
       <groupId>org.pac4j</groupId>
-      <!-- replace with pac4j-jakartaee when we use a Jenkins version with jakartaee -->
-      <artifactId>pac4j-javaee</artifactId>
+      <artifactId>pac4j-jakartaee</artifactId>
       <version>${pac4jVersion}</version>
       <exclusions>
         <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
+          <!-- consume from jackson2-api plugin -->
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-databind</artifactId>
         </exclusion>
         <exclusion>
-          <!-- consume from asm-api plugin -->
-          <groupId>org.ow2.asm</groupId>
-          <artifactId>asm</artifactId>
+          <!-- consume from commons-text-api plugin -->
+          <groupId>commons-text</groupId>
+          <artifactId>commons-text</artifactId>
         </exclusion>
         <exclusion>
           <!-- consume from Jenkins core -->
@@ -128,7 +130,6 @@
       <groupId>org.pac4j</groupId>
       <artifactId>pac4j-oidc</artifactId>
       <version>${pac4jVersion}</version>
-      <!-- java 11 compatability-->
       <exclusions>
         <exclusion>
           <!-- consume from jackson2-api plugin -->
@@ -136,16 +137,26 @@
           <artifactId>jackson-databind</artifactId>
         </exclusion>
         <exclusion>
+          <!-- consume from Jenkins core -->
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </exclusion>
+        <exclusion>
+          <!-- consume from commons-text-api plugin -->
+          <groupId>commons-text</groupId>
+          <artifactId>commons-text</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from Jenkins core -->
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from Jenkins core -->
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-core</artifactId>
+        </exclusion>
       </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.11.0</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.google.oauth-client</groupId>
@@ -154,8 +165,19 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <!-- consume from Jenkins core -->
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from apache-httpcomponents-client-4-api plugin -->
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpclient</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from apache-httpcomponents-client-4-api plugin -->
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpcore</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -165,9 +187,13 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>4.5.14</version>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>gson-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>apache-httpcomponents-client-4-api</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
