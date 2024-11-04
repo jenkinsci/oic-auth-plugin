@@ -113,6 +113,7 @@ jenkins:
   securityRealm:
     oic:
       serverConfiguration:
+        # use only one of wellKnown or manual
         # Automatic config of endpoint
         wellKnown:
           wellKnownOpenIDConfigurationUrl: <url>
