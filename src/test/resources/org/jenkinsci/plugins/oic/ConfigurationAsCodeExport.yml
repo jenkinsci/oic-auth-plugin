@@ -5,6 +5,7 @@ escapeHatchEnabled: true
 escapeHatchGroup: "escapeHatchGroup"
 escapeHatchUsername: "escapeHatchUsername"
 fullNameFieldName: "fullNameFieldName"
+groupIdStrategy: "caseInsensitive"
 groupsFieldName: "groupsFieldName"
 nonceDisabled: true
 pkceEnabled: true
@@ -17,4 +18,5 @@ serverConfiguration:
     jwksServerUrl: "http://localhost/jwks"
     scopes: "scopes"
     tokenServerUrl: "http://localhost/token"
+userIdStrategy: "caseInsensitive"
 userNameField: "userNameField"

@@ -41,6 +41,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
@@ -88,6 +89,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
+import jenkins.model.IdStrategy;
+import jenkins.model.IdStrategyDescriptor;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.FIPS140;
@@ -151,6 +154,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
+    private IdStrategy userIdStrategy;
+    private IdStrategy groupIdStrategy;
 
     public static enum TokenAuthMethod {
         client_secret_basic(ClientAuthenticationMethod.CLIENT_SECRET_BASIC),
@@ -316,7 +321,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             String clientId,
             Secret clientSecret,
             OicServerConfiguration serverConfiguration,
-            Boolean disableSslVerification)
+            Boolean disableSslVerification,
+            IdStrategy userIdStrategy,
+            IdStrategy groupIdStrategy)
             throws IOException, FormException {
         // Needed in DataBoundSetter
         this.disableSslVerification = Util.fixNull(disableSslVerification, Boolean.FALSE);
@@ -327,6 +334,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.serverConfiguration = serverConfiguration;
+        this.userIdStrategy = userIdStrategy;
+        this.groupIdStrategy = groupIdStrategy;
     }
 
     @SuppressWarnings("deprecated")
@@ -420,6 +429,20 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return userNameField;
     }
 
+    @Restricted(NoExternalUse.class)
+    public boolean isMissingIdStrategy() {
+        return userIdStrategy == null || groupIdStrategy == null;
+    }
+
+    @Override
+    public IdStrategy getUserIdStrategy() {
+        if (userIdStrategy != null) {
+            return userIdStrategy;
+        } else {
+            return IdStrategy.CASE_INSENSITIVE;
+        }
+    }
+
     public String getTokenFieldToCheckKey() {
         return tokenFieldToCheckKey;
     }
@@ -438,6 +461,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     public String getGroupsFieldName() {
         return groupsFieldName;
+    }
+
+    @Override
+    public IdStrategy getGroupIdStrategy() {
+        if (groupIdStrategy != null) {
+            return groupIdStrategy;
+        } else {
+            return IdStrategy.CASE_INSENSITIVE;
+        }
     }
 
     public boolean isDisableSslVerification() {
@@ -1627,6 +1659,27 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         @Restricted(NoExternalUse.class) // used by jelly only
         public boolean isFipsEnabled() {
             return FIPS140.useCompliantAlgorithms();
+        }
+
+        @Restricted(NoExternalUse.class)
+        public List<IdStrategyDescriptor> getIdStrategyDescriptors() {
+            return ExtensionList.lookup(IdStrategyDescriptor.class);
+        }
+
+        /**
+         * The default username strategy for new OicSecurityRealm
+         */
+        @Restricted(NoExternalUse.class)
+        public IdStrategy defaultUsernameIdStrategy() {
+            return new IdStrategy.CaseSensitive();
+        }
+
+        /**
+         * The default group strategy for new OicSecurityRealm
+         */
+        @Restricted(NoExternalUse.class)
+        public IdStrategy defaultGroupIdStrategy() {
+            return new IdStrategy.CaseSensitive();
         }
     }
 }
