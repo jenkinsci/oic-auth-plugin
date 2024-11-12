@@ -16,6 +16,9 @@
       <f:entry title="${%UsernameFieldName}" field="userNameField">
         <f:textbox/>
       </f:entry>
+      <f:entry>
+        <f:dropdownDescriptorSelector title="${%UsernameIdStrategy}" field="userIdStrategy" default="${descriptor.defaultUsernameIdStrategy()}" descriptors="${descriptor.idStrategyDescriptors}"/>
+      </f:entry>
       <f:entry title="${%FullnameFieldName}" field="fullNameFieldName">
         <f:textbox/>
       </f:entry>
@@ -24,6 +27,9 @@
       </f:entry>
       <f:entry title="${%GroupsFieldName}" field="groupsFieldName">
         <f:textbox/>
+      </f:entry>
+      <f:entry>
+        <f:dropdownDescriptorSelector title="${%GroupIdStrategy}" field="groupIdStrategy" default="${descriptor.defaultGroupIdStrategy()}" descriptors="${descriptor.idStrategyDescriptors}"/>
       </f:entry>
     </f:advanced>
     <f:entry title="${%LogoutFromOpenIDProvider}" field="logoutFromOpenidProvider">

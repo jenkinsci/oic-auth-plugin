@@ -1,0 +1,14 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:l="/lib/layout">
+<div class="alert alert-warning">
+    <l:isAdmin>
+        <form method="post" action="${rootURL}/${it.url}/forward">
+            <f:submit value="${%configureSecurityRealm}"/>
+        </form>
+    </l:isAdmin>
+    <j:set var="actionAnchor">
+        <a href="${rootURL}/configure">${%actionUrlContent}</a>
+    </j:set>
+    ${%blurb}
+</div>
+</j:jelly>

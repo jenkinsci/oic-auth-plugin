@@ -8,6 +8,7 @@ import io.burt.jmespath.Expression;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.text.ParseException;
+import jenkins.model.IdStrategy;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.pac4j.core.context.WebContext;
@@ -51,6 +52,8 @@ public class TestRealm extends OicSecurityRealm {
         public String escapeHatchGroup = null;
         public boolean automanualconfigure = false;
         public boolean disableTokenValidation = true; // opt in for some specific tests
+        public IdStrategy userIdStrategy;
+        public IdStrategy groupIdStrategy;
 
         public Builder(WireMockRule wireMockRule, boolean useTLS) throws IOException {
             this(
@@ -147,6 +150,16 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
+        public Builder WithUserIdStrategy(IdStrategy userIdStrategy) {
+            this.userIdStrategy = userIdStrategy;
+            return this;
+        }
+
+        public Builder WithGroupIdStrategy(IdStrategy groupIdStrategy) {
+            this.groupIdStrategy = groupIdStrategy;
+            return this;
+        }
+
         public TestRealm build() throws Exception {
             return new TestRealm(this);
         }
@@ -182,7 +195,9 @@ public class TestRealm extends OicSecurityRealm {
                 builder.clientId,
                 builder.clientSecret,
                 builder.buildServerConfiguration(),
-                builder.disableSslVerification);
+                builder.disableSslVerification,
+                builder.userIdStrategy,
+                builder.groupIdStrategy);
         this.setUserNameField(builder.userNameField);
         this.setTokenFieldToCheckKey(builder.tokenFieldToCheckKey);
         this.setTokenFieldToCheckValue(builder.tokenFieldToCheckValue);
