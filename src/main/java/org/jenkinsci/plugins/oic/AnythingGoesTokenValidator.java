@@ -17,6 +17,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.oidc.config.OidcConfiguration;
+import org.pac4j.oidc.metadata.OidcOpMetadataResolver;
+import org.pac4j.oidc.metadata.StaticOidcOpMetadataResolver;
 import org.pac4j.oidc.profile.creator.TokenValidator;
 
 public class AnythingGoesTokenValidator extends TokenValidator {
@@ -24,7 +26,11 @@ public class AnythingGoesTokenValidator extends TokenValidator {
     public static final Logger LOGGER = Logger.getLogger(AnythingGoesTokenValidator.class.getName());
 
     public AnythingGoesTokenValidator() {
-        super(createFakeOidcConfiguration());
+        this(createFakeOidcProviderMetadata());
+    }
+
+    public AnythingGoesTokenValidator(OIDCProviderMetadata metadata) {
+        super(createFakeOidcConfiguration(metadata), metadata);
     }
 
     @Override
@@ -50,18 +56,23 @@ public class AnythingGoesTokenValidator extends TokenValidator {
      * which if we are not validating we may not actually have (e.g. jwks_url).
      * So we need a configuration with this set just so the validator can say "this is valid".
      */
-    private static OidcConfiguration createFakeOidcConfiguration() {
+    private static OidcConfiguration createFakeOidcConfiguration(OIDCProviderMetadata metadata) {
+        OidcConfiguration config = new OidcConfiguration();
+        config.setClientId("ignored");
+        config.setSecret("ignored");
+        OidcOpMetadataResolver opMetadataResolver = new StaticOidcOpMetadataResolver(config, metadata);
+        config.setOpMetadataResolver(opMetadataResolver);
+        config.setPreferredJwsAlgorithm(JWSAlgorithm.HS256);
+        config.setClientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
+        return config;
+    }
+
+    private static OIDCProviderMetadata createFakeOidcProviderMetadata() {
         try {
-            OidcConfiguration config = new OidcConfiguration();
-            config.setClientId("ignored");
-            config.setSecret("ignored");
             OIDCProviderMetadata providerMetadata = new OIDCProviderMetadata(
                     new Issuer("http://ignored"), List.of(SubjectType.PUBLIC), new URI("http://ignored.and.invalid./"));
             providerMetadata.setIDTokenJWSAlgs(List.of(JWSAlgorithm.HS256));
-            config.setProviderMetadata(providerMetadata);
-            config.setPreferredJwsAlgorithm(JWSAlgorithm.HS256);
-            config.setClientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC);
-            return config;
+            return providerMetadata;
         } catch (URISyntaxException e) {
             // should never happen the urls we are using are valid
             throw new IllegalStateException(e);

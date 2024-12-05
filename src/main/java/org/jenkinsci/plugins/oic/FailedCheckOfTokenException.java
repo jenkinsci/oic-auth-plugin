@@ -1,11 +1,11 @@
 package org.jenkinsci.plugins.oic;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
-import javax.servlet.ServletException;
 import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 
 /**
  * Exception to be thrown when the received ID Token did not pass the expected check.
@@ -26,7 +26,7 @@ public class FailedCheckOfTokenException extends RuntimeException implements Htt
     }
 
     @Override
-    public void generateResponse(StaplerRequest req, StaplerResponse rsp, Object node)
+    public void generateResponse(StaplerRequest2 req, StaplerResponse2 rsp, Object node)
             throws IOException, ServletException {
         req.getView(this, "error").forward(req, rsp);
     }
