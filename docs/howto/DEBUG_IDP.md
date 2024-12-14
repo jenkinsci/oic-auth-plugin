@@ -2,7 +2,7 @@
 
 ## When/why?
 
-When it's not really well documented on IDP's side which specific fields shuold be looked for in mapping.
+When it's not really well documented on IDP's side which specific fields names should be used in plugin's attribute mapping.
 
 Jenkins might throw an NPE without any clarification which exact field it was unable to lookup in incoming token/s.
 
