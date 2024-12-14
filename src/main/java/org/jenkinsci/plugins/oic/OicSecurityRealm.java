@@ -1022,7 +1022,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (fieldExpr != null) {
             if (userInfo != null) {
                 Object field = fieldExpr.search(userInfo);
-                if (field != null && field instanceof String) {
+                if (field instanceof String) {
                     String fieldValue = Util.fixEmptyAndTrim((String) field);
                     if (fieldValue != null) {
                         return fieldValue;
