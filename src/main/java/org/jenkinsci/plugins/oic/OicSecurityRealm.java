@@ -669,9 +669,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         if (oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs() != null) {
-            List<JWSAlgorithm> clientRegisterationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+            List<JWSAlgorithm> clientRegistrationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
                     oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs());
-            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegisterationAuth);
+            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegistrationAuth);
         }
     }
 
