@@ -68,6 +68,8 @@ public class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isRootURLFromRequest());
         assertEquals("http://localhost/jwks", serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
+        assertEquals("key1i=value1i", serverConf.getLoginQueryParameters());
+        assertEquals("key1o=value1o&key2o=value2o", serverConf.getLogoutQueryParameters());
     }
 
     @Test
@@ -120,8 +122,10 @@ public class ConfigurationAsCodeTest {
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertFalse(oicSecurityRealm.isRootURLFromRequest());
-        assertEquals(null, serverConf.getJwksServerUrl());
+        assertNull(serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
+        assertNull(serverConf.getLoginQueryParameters());
+        assertNull(serverConf.getLogoutQueryParameters());
     }
 
     @Rule(order = 0)

@@ -69,15 +69,20 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -172,23 +177,23 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @Deprecated
     private transient String wellKnownOpenIDConfigurationUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getTokenServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getTokenServerUrl()} */
     @Deprecated
     private transient String tokenServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getJwksServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getJwksServerUrl()} */
     @Deprecated
     private transient String jwksServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getTokenAuthMethod()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getTokenAuthMethod()} */
     @Deprecated
     private transient TokenAuthMethod tokenAuthMethod;
 
-    /** @deprecated see {@link OicServerConfiguration#getAuthorizationServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getAuthorizationServerUrl()} */
     @Deprecated
     private transient String authorizationServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getUserInfoServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getUserInfoServerUrl()} */
     @Deprecated
     private transient String userInfoServerUrl;
 
@@ -206,14 +211,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private transient String simpleGroupsFieldName = null;
     private transient String nestedGroupFieldName = null;
 
-    /** @deprecated see {@link OicServerConfiguration#getScopes()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getScopes()} */
     @Deprecated
     private transient String scopes = null;
 
     private final boolean disableSslVerification;
     private boolean logoutFromOpenidProvider = true;
 
-    /** @deprecated see {@link OicServerConfiguration#getEndSessionUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getEndSessionUrl()} */
     @Deprecated
     private transient String endSessionEndpoint = null;
 
@@ -282,7 +287,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             SystemProperties.getBoolean(OicSecurityRealm.class.getName() + ".checkNonceInRefreshFlow", false);
 
     /** old field that had an '/' implicitly added at the end,
-     * transient because we no longer want to have this value stored
+     * transient because we no longer want to have this value stored,
      * but it's still needed for backwards compatibility */
     @Deprecated
     private transient String endSessionUrl;
@@ -505,7 +510,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return proxyAwareResourceRetriever;
     }
 
-    private OidcConfiguration buildOidcConfiguration() {
+    private OidcConfiguration buildOidcConfiguration(boolean addCustomLoginParams) {
         // TODO cache this and use the well known if available.
         OidcConfiguration conf = new CustomOidcConfiguration(this.isDisableSslVerification());
         conf.setClientId(clientId);
@@ -534,7 +539,44 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (this.isPkceEnabled()) {
             conf.setPkceMethod(CodeChallengeMethod.S256);
         }
+        if (addCustomLoginParams && this.serverConfiguration.getLoginQueryParameters() != null) {
+            Set<String> forbiddenKeys = Set.of(
+                    OidcConfiguration.SCOPE,
+                    OidcConfiguration.RESPONSE_TYPE,
+                    OidcConfiguration.RESPONSE_MODE,
+                    OidcConfiguration.REDIRECT_URI,
+                    OidcConfiguration.CLIENT_ID,
+                    OidcConfiguration.STATE,
+                    OidcConfiguration.MAX_AGE,
+                    OidcConfiguration.PROMPT,
+                    OidcConfiguration.NONCE,
+                    OidcConfiguration.CODE_CHALLENGE,
+                    OidcConfiguration.CODE_CHALLENGE_METHOD);
+            Map<String, String> customParameterMap =
+                    getCustomParametersMap(this.serverConfiguration.getLoginQueryParameters(), forbiddenKeys);
+            LOGGER.info("Append the following custom parameters to the authorize endpoint: " + customParameterMap);
+            customParameterMap.forEach(conf::addCustomParam);
+        }
         return conf;
+    }
+
+    Map<String, String> getCustomParametersMap(String queryParameters, Set<String> forbiddenKeys) {
+        return Arrays.stream(queryParameters.split("&"))
+                .filter(a -> a.contains("="))
+                .map(s -> s.split("="))
+                .filter(a -> Util.fixEmptyAndTrim(a[0]) != null && !forbiddenKeys.contains(a[0]))
+                .collect(Collectors.toMap(a -> Util.fixEmptyAndTrim(a[0]), a -> (a.length > 1 ? a[1].trim() : "")))
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> encodeIfUrl(entry.getValue())));
+    }
+
+    private String encodeIfUrl(String value) {
+        if (value.startsWith("https:") || value.startsWith("http:")) {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        } else {
+            return value;
+        }
     }
 
     // Visible for testing
@@ -571,12 +613,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             List<EncryptionMethod> userInfoJWEEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
                     oidcProviderMetadata.getUserInfoJWEEncs());
             oidcProviderMetadata.setUserInfoJWEEncs(userInfoJWEEncs);
-        }
-
-        if (oidcProviderMetadata.getRequestObjectJWEEncs() != null) {
-            List<EncryptionMethod> requestObjectJweEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
-                    oidcProviderMetadata.getRequestObjectJWEEncs());
-            oidcProviderMetadata.setRequestObjectJWEEncs(requestObjectJweEncs);
         }
 
         if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
@@ -669,15 +705,15 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         if (oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs() != null) {
-            List<JWSAlgorithm> clientRegisterationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+            List<JWSAlgorithm> clientRegistrationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
                     oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs());
-            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegisterationAuth);
+            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegistrationAuth);
         }
     }
 
     @Restricted(NoExternalUse.class) // exposed for testing only
-    protected OidcClient buildOidcClient() {
-        OidcConfiguration oidcConfiguration = buildOidcConfiguration();
+    protected OidcClient buildOidcClient(boolean addCustomLoginParams) {
+        OidcConfiguration oidcConfiguration = buildOidcConfiguration(addCustomLoginParams);
         OidcClient client = new OidcClient(oidcConfiguration);
         // add the extra settings for the client...
         client.setCallbackUrl(buildOAuthRedirectUrl());
@@ -737,14 +773,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return null;
     }
 
-    private Object applyJMESPath(Expression<Object> expression, Object map) {
-        return expression.search(map);
-    }
-
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmptyAndTrim(groupsFieldName);
-        this.groupsFieldExpr = this.compileJMESPath(groupsFieldName, "groups field");
+        this.groupsFieldExpr = compileJMESPath(groupsFieldName, "groups field");
     }
 
     @DataBoundSetter
@@ -908,7 +940,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * Validate post-login redirect URL
      *
      * For security reasons, the login must not redirect outside Jenkins
-     * realm. For useablility reason, the logout page should redirect to
+     * realm. For usability reason, the logout page should redirect to
      * root url.
      */
     protected String getValidRedirectUrl(String url) {
@@ -933,7 +965,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     /**
-     * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
+     * Handles the securityRealm/commenceLogin resource and sends the user off to the IdP
      * @param from the relative URL to the page that the user has just come from
      * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
      * @throws URISyntaxException if the provided data is invalid
@@ -942,7 +974,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     public void doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer)
             throws URISyntaxException {
 
-        OidcClient client = buildOidcClient();
+        OidcClient client = buildOidcClient(true);
         // add the extra params for the client...
         final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer);
 
@@ -956,7 +988,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // store the redirect url for after the login.
         sessionStore.set(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY, redirectOnFinish);
         JEEHttpActionAdapter.INSTANCE.adapt(redirectionAction, webContext);
-        return;
     }
 
     @SuppressFBWarnings(
@@ -1033,7 +1064,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (fieldExpr != null) {
             if (userInfo != null) {
                 Object field = fieldExpr.search(userInfo);
-                if (field != null && field instanceof String) {
+                if (field instanceof String) {
                     String fieldValue = Util.fixEmptyAndTrim((String) field);
                     if (fieldValue != null) {
                         return fieldValue;
@@ -1041,11 +1072,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 }
             }
             if (idToken != null) {
-                String fieldValue = Util.fixEmptyAndTrim(
+                return Util.fixEmptyAndTrim(
                         getStringField(idToken.getJWTClaimsSet().getClaims(), fieldExpr));
-                if (fieldValue != null) {
-                    return fieldValue;
-                }
             }
         }
         return null;
@@ -1067,7 +1095,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
         if (this.groupsFieldExpr == null) {
             if (this.groupsFieldName == null) {
-                LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
+                LOGGER.fine("Not adding groups because groupsFieldName is not set.");
             } else {
                 LOGGER.fine("Not adding groups because groupsFieldName is invalid. groupsFieldName=" + groupsFieldName);
             }
@@ -1110,7 +1138,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             LOGGER.warning("userInfo did not contain a valid group field content, got null");
             return Collections.<String>emptyList();
         } else if (field instanceof String) {
-            // if its a String, the original value was not a json array.
+            // if it's a String, the original value was not a json array.
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
             // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
             String sField = (String) field;
@@ -1129,9 +1157,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 if (group instanceof String) {
                     result.add(group.toString());
                 } else if (group instanceof Map) {
-                    // if its a Map, we use the nestedGroupFieldName to grab the groups
+                    // if it's a Map, we use the nestedGroupFieldName to grab the groups
                     Map<String, String> groupMap = (Map<String, String>) group;
-                    if (nestedGroupFieldName != null && groupMap.keySet().contains(nestedGroupFieldName)) {
+                    if (nestedGroupFieldName != null && groupMap.containsKey(nestedGroupFieldName)) {
                         result.add(groupMap.get(nestedGroupFieldName));
                     }
                 }
@@ -1186,7 +1214,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @VisibleForTesting
     Object getStateAttribute(HttpSession session) {
         // return null;
-        OidcClient client = buildOidcClient();
+        OidcClient client = buildOidcClient(false);
         WebContext webContext =
                 JEEContextFactory.INSTANCE.newContext(Stapler.getCurrentRequest(), Stapler.getCurrentResponse());
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
@@ -1197,22 +1225,44 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @CheckForNull
-    private String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
+    String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
         final URI url = serverConfiguration.toProviderMetadata().getEndSessionEndpointURI();
         if (this.logoutFromOpenidProvider && url != null) {
-            StringBuilder openidLogoutEndpoint = new StringBuilder(url.toString());
-
+            Map<String, String> segmentsMap = new HashMap<>();
+            Set<String> segmentsSet = new HashSet<>();
             if (!Strings.isNullOrEmpty(idToken)) {
-                openidLogoutEndpoint.append("?id_token_hint=").append(idToken).append("&");
-            } else {
-                openidLogoutEndpoint.append("?");
+                segmentsMap.put("id_token_hint", idToken);
             }
-            openidLogoutEndpoint.append("state=").append(state);
-
+            if (!Strings.isNullOrEmpty(state) && !"null".equals(state)) {
+                segmentsMap.put("state", state);
+            }
             if (postLogoutRedirectUrl != null) {
-                openidLogoutEndpoint
-                        .append("&post_logout_redirect_uri=")
-                        .append(URLEncoder.encode(postLogoutRedirectUrl, StandardCharsets.UTF_8));
+                segmentsMap.put(
+                        "post_logout_redirect_uri", URLEncoder.encode(postLogoutRedirectUrl, StandardCharsets.UTF_8));
+            }
+            Set<String> forbiddenKeys = Set.of("id_token_hint", "state", "post_logout_redirect_uri");
+            if (this.serverConfiguration.getLogoutQueryParameters() != null) {
+                String logoutQueryParameters = this.serverConfiguration.getLogoutQueryParameters();
+                Map<String, String> customParameterMap = getCustomParametersMap(logoutQueryParameters, forbiddenKeys);
+                LOGGER.info("Append the following custom parameters to the logout endpoint: " + customParameterMap);
+                segmentsMap.putAll(customParameterMap);
+                segmentsSet.addAll(Arrays.stream(logoutQueryParameters.split("&"))
+                        .filter(a -> !a.contains("=") && Util.fixEmptyAndTrim(a) != null && !forbiddenKeys.contains(a))
+                        .map(Util::fixEmptyAndTrim)
+                        .collect(Collectors.toSet()));
+            }
+
+            StringBuilder openidLogoutEndpoint = new StringBuilder(url.toString());
+            String concatChar = openidLogoutEndpoint.toString().contains("?") ? "&" : "?";
+            if (!segmentsMap.isEmpty()) {
+                String joinedString = segmentsMap.entrySet().stream()
+                        .map(entry -> entry.getKey() + "=" + entry.getValue())
+                        .collect(Collectors.joining("&"));
+                openidLogoutEndpoint.append(concatChar).append(joinedString);
+                concatChar = "&";
+            }
+            if (!segmentsSet.isEmpty()) {
+                openidLogoutEndpoint.append(concatChar).append(String.join("&", segmentsSet));
             }
             return openidLogoutEndpoint.toString();
         }
@@ -1257,7 +1307,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * @throws ParseException if the JWT (or other response) could not be parsed.
      */
     public void doFinishLogin(StaplerRequest request, StaplerResponse response) throws IOException, ParseException {
-        OidcClient client = buildOidcClient();
+        OidcClient client = buildOidcClient(false);
 
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(request, response);
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
@@ -1310,7 +1360,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         } catch (HttpAction e) {
             // this may be an OK flow for logout login is handled upstream.
             JEEHttpActionAdapter.INSTANCE.adapt(e, webContext);
-            return;
         }
     }
 
@@ -1401,7 +1450,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(httpRequest, httpResponse);
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
-        OidcClient client = buildOidcClient();
+        OidcClient client = buildOidcClient(false);
         // PAC4J maintains the nonce even though servers should not respond with an id token containing the nonce
         // https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse
         // it SHOULD NOT have a nonce Claim, even when the ID Token issued at the time of the original authentication
@@ -1444,8 +1493,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 User u = User.get2(a);
                 LOGGER.log(
                         Level.FINE,
-                        "Token refresh.  Current Authentitcation principal: " + a.getName() + " user id:"
-                                + (u == null ? "null user" : u.getId()) + " newly retreived username would have been: "
+                        "Token refresh.  Current Authentication principal: " + a.getName() + " user id:"
+                                + (u == null ? "null user" : u.getId()) + " newly retrieved username would have been: "
                                 + username);
             }
             username = expectedUsername;

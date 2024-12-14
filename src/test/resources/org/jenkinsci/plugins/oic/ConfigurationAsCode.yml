@@ -9,6 +9,8 @@ jenkins:
           tokenAuthMethod: client_secret_post
           tokenServerUrl: http://localhost/token
           scopes: scopes
+          loginQueryParameters: key1i=value1i
+          logoutQueryParameters: key1o=value1o&key2o=value2o
       clientId: clientId
       clientSecret: clientSecret
       disableSslVerification: true
