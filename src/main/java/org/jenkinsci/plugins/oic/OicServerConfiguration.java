@@ -14,4 +14,8 @@ public abstract class OicServerConfiguration extends AbstractDescribableImpl<Oic
      * Convert the OicServerConfiguration to {@link OIDCProviderMetadata} for use by the client.
      */
     public abstract OIDCProviderMetadata toProviderMetadata();
+
+    abstract String getLoginQueryParameters();
+
+    abstract String getLogoutQueryParameters();
 }

@@ -40,13 +40,16 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
 
     private final String authorizationServerUrl;
     private final String tokenServerUrl;
+    private final String issuer;
+
     private TokenAuthMethod tokenAuthMethod = TokenAuthMethod.client_secret_post;
     private String jwksServerUrl;
     private String endSessionUrl;
     private String scopes = "openid email";
     private String userInfoServerUrl;
     private boolean useRefreshTokens;
-    private String issuer;
+    private String loginQueryParameters;
+    private String logoutQueryParameters;
 
     @DataBoundConstructor
     public OicServerManualConfiguration(String issuer, String tokenServerUrl, String authorizationServerUrl)
@@ -82,6 +85,16 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     }
 
     @DataBoundSetter
+    public void setLoginQueryParameters(String loginQueryParameters) {
+        this.loginQueryParameters = Util.fixEmptyAndTrim(loginQueryParameters);
+    }
+
+    @DataBoundSetter
+    public void setLogoutQueryParameters(String logoutQueryParameters) {
+        this.logoutQueryParameters = Util.fixEmptyAndTrim(logoutQueryParameters);
+    }
+
+    @DataBoundSetter
     public void setUseRefreshTokens(boolean useRefreshTokens) {
         this.useRefreshTokens = useRefreshTokens;
     }
@@ -100,6 +113,14 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
 
     public boolean isUseRefreshTokens() {
         return useRefreshTokens;
+    }
+
+    public String getLoginQueryParameters() {
+        return loginQueryParameters;
+    }
+
+    public String getLogoutQueryParameters() {
+        return logoutQueryParameters;
     }
 
     public String getJwksServerUrl() {

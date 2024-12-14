@@ -40,6 +40,8 @@ public class TestRealm extends OicSecurityRealm {
         public String fullNameFieldName = FULL_NAME_FIELD;
         public String emailFieldName = null;
         public String scopes = null;
+        public String loginQueryParameters = null;
+        public String logoutQueryParameters = null;
         public String groupsFieldName = null;
         public boolean disableSslVerification = false;
         public Boolean logoutFromOpenidProvider = false;
@@ -115,6 +117,16 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
+        public Builder WithLoginQueryParameters(String loginQueryParameters) {
+            this.loginQueryParameters = loginQueryParameters;
+            return this;
+        }
+
+        public Builder WithLogoutQueryParameters(String logoutQueryParameters) {
+            this.logoutQueryParameters = logoutQueryParameters;
+            return this;
+        }
+
         public Builder WithMinimalDefaults() {
             return this.WithEmailFieldName(EMAIL_FIELD).WithGroupsFieldName(GROUPS_FIELD);
         }
@@ -159,6 +171,12 @@ public class TestRealm extends OicSecurityRealm {
                     if (scopes != null) {
                         conf.setScopesOverride(scopes);
                     }
+                    if (loginQueryParameters != null) {
+                        conf.setLoginQueryParameters(loginQueryParameters);
+                    }
+                    if (logoutQueryParameters != null) {
+                        conf.setLogoutQueryParameters(logoutQueryParameters);
+                    }
                     return conf;
                 }
                 OicServerManualConfiguration conf =
@@ -167,6 +185,12 @@ public class TestRealm extends OicSecurityRealm {
                 conf.setUserInfoServerUrl(userInfoServerUrl);
                 if (scopes != null) {
                     conf.setScopes(scopes);
+                }
+                if (loginQueryParameters != null) {
+                    conf.setLoginQueryParameters(loginQueryParameters);
+                }
+                if (logoutQueryParameters != null) {
+                    conf.setLogoutQueryParameters(logoutQueryParameters);
                 }
                 conf.setJwksServerUrl(jwksServerUrl);
                 conf.setEndSessionUrl(endSessionEndpoint);
@@ -230,6 +254,7 @@ public class TestRealm extends OicSecurityRealm {
                         .WithUserInfoServerUrl(userInfoServerUrl)
                         .WithEmailFieldName(emailFieldName)
                         .WithGroupsFieldName(groupFieldName)
+                        .WithLoginQueryParameters("queryLoginParamKey=queryLoginParamValue")
                         .WithAutomanualconfigure(automanualconfigure));
     }
 
@@ -267,7 +292,7 @@ public class TestRealm extends OicSecurityRealm {
             // only hack the nonce if the nonce is enabled
             WebContext webContext = JEEContextFactory.INSTANCE.newContext(request, response);
             SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
-            OidcClient oidcClient = buildOidcClient();
+            OidcClient oidcClient = buildOidcClient(true);
             sessionStore.set(webContext, oidcClient.getNonceSessionAttributeName(), "nonce");
         }
         super.doFinishLogin(request, response);

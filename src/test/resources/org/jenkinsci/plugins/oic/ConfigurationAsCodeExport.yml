@@ -15,6 +15,8 @@ serverConfiguration:
     authorizationServerUrl: "http://localhost/authorize"
     issuer: "http://localhost/"
     jwksServerUrl: "http://localhost/jwks"
+    loginQueryParameters: "key1i=value1i"
+    logoutQueryParameters: "key1o=value1o&key2o=value2o"
     scopes: "scopes"
     tokenServerUrl: "http://localhost/token"
 userNameField: "userNameField"

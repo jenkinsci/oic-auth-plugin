@@ -69,15 +69,20 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -505,7 +510,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return proxyAwareResourceRetriever;
     }
 
-    private OidcConfiguration buildOidcConfiguration() {
+    private OidcConfiguration buildOidcConfiguration(boolean addCustomLoginParams) {
         // TODO cache this and use the well known if available.
         OidcConfiguration conf = new CustomOidcConfiguration(this.isDisableSslVerification());
         conf.setClientId(clientId);
@@ -534,7 +539,44 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (this.isPkceEnabled()) {
             conf.setPkceMethod(CodeChallengeMethod.S256);
         }
+        if (addCustomLoginParams && this.serverConfiguration.getLoginQueryParameters() != null) {
+            Set<String> forbiddenKeys = Set.of(
+                    OidcConfiguration.SCOPE,
+                    OidcConfiguration.RESPONSE_TYPE,
+                    OidcConfiguration.RESPONSE_MODE,
+                    OidcConfiguration.REDIRECT_URI,
+                    OidcConfiguration.CLIENT_ID,
+                    OidcConfiguration.STATE,
+                    OidcConfiguration.MAX_AGE,
+                    OidcConfiguration.PROMPT,
+                    OidcConfiguration.NONCE,
+                    OidcConfiguration.CODE_CHALLENGE,
+                    OidcConfiguration.CODE_CHALLENGE_METHOD);
+            Map<String, String> customParameterMap =
+                    getCustomParametersMap(this.serverConfiguration.getLoginQueryParameters(), forbiddenKeys);
+            LOGGER.info("Append the following custom parameters to the authorize endpoint: " + customParameterMap);
+            customParameterMap.forEach(conf::addCustomParam);
+        }
         return conf;
+    }
+
+    Map<String, String> getCustomParametersMap(String queryParameters, Set<String> forbiddenKeys) {
+        return Arrays.stream(queryParameters.split("&"))
+                .filter(a -> a.contains("="))
+                .map(s -> s.split("="))
+                .filter(a -> Util.fixEmptyAndTrim(a[0]) != null && !forbiddenKeys.contains(a[0]))
+                .collect(Collectors.toMap(a -> Util.fixEmptyAndTrim(a[0]), a -> (a.length > 1 ? a[1].trim() : "")))
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> encodeIfUrl(entry.getValue())));
+    }
+
+    private String encodeIfUrl(String value) {
+        if (value.startsWith("https:") || value.startsWith("http:")) {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        } else {
+            return value;
+        }
     }
 
     // Visible for testing
@@ -670,8 +712,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @Restricted(NoExternalUse.class) // exposed for testing only
-    protected OidcClient buildOidcClient() {
-        OidcConfiguration oidcConfiguration = buildOidcConfiguration();
+    protected OidcClient buildOidcClient(boolean addCustomLoginParams) {
+        OidcConfiguration oidcConfiguration = buildOidcConfiguration(addCustomLoginParams);
         OidcClient client = new OidcClient(oidcConfiguration);
         // add the extra settings for the client...
         client.setCallbackUrl(buildOAuthRedirectUrl());
@@ -932,7 +974,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     public void doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer)
             throws URISyntaxException {
 
-        OidcClient client = buildOidcClient();
+        OidcClient client = buildOidcClient(true);
         // add the extra params for the client...
         final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer);
 
@@ -1172,7 +1214,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @VisibleForTesting
     Object getStateAttribute(HttpSession session) {
         // return null;
-        OidcClient client = buildOidcClient();
+        OidcClient client = buildOidcClient(false);
         WebContext webContext =
                 JEEContextFactory.INSTANCE.newContext(Stapler.getCurrentRequest(), Stapler.getCurrentResponse());
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
@@ -1183,22 +1225,44 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @CheckForNull
-    private String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
+    String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
         final URI url = serverConfiguration.toProviderMetadata().getEndSessionEndpointURI();
         if (this.logoutFromOpenidProvider && url != null) {
-            StringBuilder openidLogoutEndpoint = new StringBuilder(url.toString());
-
+            Map<String, String> segmentsMap = new HashMap<>();
+            Set<String> segmentsSet = new HashSet<>();
             if (!Strings.isNullOrEmpty(idToken)) {
-                openidLogoutEndpoint.append("?id_token_hint=").append(idToken).append("&");
-            } else {
-                openidLogoutEndpoint.append("?");
+                segmentsMap.put("id_token_hint", idToken);
             }
-            openidLogoutEndpoint.append("state=").append(state);
-
+            if (!Strings.isNullOrEmpty(state) && !"null".equals(state)) {
+                segmentsMap.put("state", state);
+            }
             if (postLogoutRedirectUrl != null) {
-                openidLogoutEndpoint
-                        .append("&post_logout_redirect_uri=")
-                        .append(URLEncoder.encode(postLogoutRedirectUrl, StandardCharsets.UTF_8));
+                segmentsMap.put(
+                        "post_logout_redirect_uri", URLEncoder.encode(postLogoutRedirectUrl, StandardCharsets.UTF_8));
+            }
+            Set<String> forbiddenKeys = Set.of("id_token_hint", "state", "post_logout_redirect_uri");
+            if (this.serverConfiguration.getLogoutQueryParameters() != null) {
+                String logoutQueryParameters = this.serverConfiguration.getLogoutQueryParameters();
+                Map<String, String> customParameterMap = getCustomParametersMap(logoutQueryParameters, forbiddenKeys);
+                LOGGER.info("Append the following custom parameters to the logout endpoint: " + customParameterMap);
+                segmentsMap.putAll(customParameterMap);
+                segmentsSet.addAll(Arrays.stream(logoutQueryParameters.split("&"))
+                        .filter(a -> !a.contains("=") && Util.fixEmptyAndTrim(a) != null && !forbiddenKeys.contains(a))
+                        .map(Util::fixEmptyAndTrim)
+                        .collect(Collectors.toSet()));
+            }
+
+            StringBuilder openidLogoutEndpoint = new StringBuilder(url.toString());
+            String concatChar = openidLogoutEndpoint.toString().contains("?") ? "&" : "?";
+            if (!segmentsMap.isEmpty()) {
+                String joinedString = segmentsMap.entrySet().stream()
+                        .map(entry -> entry.getKey() + "=" + entry.getValue())
+                        .collect(Collectors.joining("&"));
+                openidLogoutEndpoint.append(concatChar).append(joinedString);
+                concatChar = "&";
+            }
+            if (!segmentsSet.isEmpty()) {
+                openidLogoutEndpoint.append(concatChar).append(String.join("&", segmentsSet));
             }
             return openidLogoutEndpoint.toString();
         }
@@ -1243,7 +1307,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * @throws ParseException if the JWT (or other response) could not be parsed.
      */
     public void doFinishLogin(StaplerRequest request, StaplerResponse response) throws IOException, ParseException {
-        OidcClient client = buildOidcClient();
+        OidcClient client = buildOidcClient(false);
 
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(request, response);
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
@@ -1386,7 +1450,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(httpRequest, httpResponse);
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore();
-        OidcClient client = buildOidcClient();
+        OidcClient client = buildOidcClient(false);
         // PAC4J maintains the nonce even though servers should not respond with an id token containing the nonce
         // https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse
         // it SHOULD NOT have a nonce Claim, even when the ID Token issued at the time of the original authentication

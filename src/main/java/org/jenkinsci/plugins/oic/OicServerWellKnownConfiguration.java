@@ -45,6 +45,8 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
 
     private final String wellKnownOpenIDConfigurationUrl;
     private String scopesOverride;
+    private String loginQueryParameters;
+    private String logoutQueryParameters;
 
     /**
      * Time of the wellknown configuration expiration
@@ -65,6 +67,24 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
 
     public String getScopesOverride() {
         return scopesOverride;
+    }
+
+    @DataBoundSetter
+    public void setLoginQueryParameters(String loginQueryParameters) {
+        this.loginQueryParameters = Util.fixEmptyAndTrim(loginQueryParameters);
+    }
+
+    public String getLoginQueryParameters() {
+        return loginQueryParameters;
+    }
+
+    @DataBoundSetter
+    public void setLogoutQueryParameters(String logoutQueryParameters) {
+        this.logoutQueryParameters = Util.fixEmptyAndTrim(logoutQueryParameters);
+    }
+
+    public String getLogoutQueryParameters() {
+        return logoutQueryParameters;
     }
 
     public String getWellKnownOpenIDConfigurationUrl() {

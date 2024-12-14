@@ -10,6 +10,11 @@
             field="scopesOverride">
             <f:textbox />
         </f:entry>
+        <f:entry title="${%LoginQueryParameters}" field="loginQueryParameters">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%LogoutQueryParameters}" field="logoutQueryParameters">
+            <f:textbox />
+        </f:entry>
     </f:advanced>
 </j:jelly>
-

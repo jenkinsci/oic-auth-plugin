@@ -40,6 +40,8 @@ but this can be overriden by the `scopesOverride` config parameter.
 |---------------------------------|--------|------------------------------------------------------------------|
 | wellKnownOpenIDConfigurationUrl | url    | Providers' well-known configuration endpoint                     |
 | scopesOverride                  | string | Space separated list of scopes to request (default: request all) |
+| loginQueryParameters            | string | Ampersand separated separated key=value pairs                    |
+| logoutQueryParameters           | string | Ampersand separated separated key=value pairs                    |
 
 When configuring from the interface, the automatic mode will fill in the
 fields expected in manual mode. This can be useful for prefilling the
@@ -52,17 +54,19 @@ The scopes can be configured but default to `openid email`.
 If the JWKS endpoint is configured, JWS' signatures will be verified
 (unless disabled).
 
-| field                  | format  | description                                                                                                                                                                                                         |
-|------------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| authorizationServerUrl | url     | URL the user is redirected to at login                                                                                                                                                                              |
-| tokenServerUrl         | url     | URL used by jenkins to request the tokens                                                                                                                                                                           |
-| endSessionUrl          | url     | URL to logout from provider (used if activated)                                                                                                                                                                     |
-| jwksServerUrl          | url     | URL of provider's jws certificates (unused if disabled)                                                                                                                                                             |
-| scopes                 | string  | Space separated list of scopes to request (default: `openid email`)                                                                                                                                                 |
-| tokenAuthMethod        | enum    | Method used for authenticating when requesting token(s)<br />- `client_secret_basic`: for client id/secret as basic authentication user/pass<br />- `client_secret_post`: for client id/secret sent in post request | 
-| userInfoServerUrl      | url     | URL to get user's details                                                                                                                                                                                           |
-| useRefreshTokens       | boolean | If server supports refresh tokens, make sure to specify any additional scopes required for refresh token support.                                                                                                   |
-| issuer                 | string  | The expected received ID Token's issuer                                                                                                                                                                             |
+| field                  | format   | description                                                                                                                                                                                                         |
+|------------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| authorizationServerUrl | url      | URL the user is redirected to at login                                                                                                                                                                              |
+| tokenServerUrl         | url      | URL used by jenkins to request the tokens                                                                                                                                                                           |
+| endSessionUrl          | url      | URL to logout from provider (used if activated)                                                                                                                                                                     |
+| jwksServerUrl          | url      | URL of provider's jws certificates (unused if disabled)                                                                                                                                                             |
+| scopes                 | string   | Space separated list of scopes to request (default: `openid email`)                                                                                                                                                 |
+| tokenAuthMethod        | enum     | Method used for authenticating when requesting token(s)<br />- `client_secret_basic`: for client id/secret as basic authentication user/pass<br />- `client_secret_post`: for client id/secret sent in post request | 
+| userInfoServerUrl      | url      | URL to get user's details                                                                                                                                                                                           |
+| useRefreshTokens       | boolean  | If server supports refresh tokens, make sure to specify any additional scopes required for refresh token support.                                                                                                   |
+| issuer                 | string   | The expected received ID Token's issuer                                                                                                                                                                             |
+| loginQueryParameters   | string   | Ampersand separated separated key=value pairs                    |
+| logoutQueryParameters  | string   | Ampersand separated separated key=value pairs                    |
 
 ### Advanced configuration
 
@@ -116,6 +120,8 @@ jenkins:
         # use only one of wellKnown or manual
         # Automatic config of endpoint
         wellKnown:
+          loginQueryParameters: <string:ampersand separated key=value>
+          logoutQueryParameters: <string:ampersand separated key=value>
           wellKnownOpenIDConfigurationUrl: <url>
           scopesOverride: <string:space separated words>
         # Manual config of endpoint
@@ -124,6 +130,8 @@ jenkins:
           endSessionUrl: <url>
           issuer: <string>
           jwksServerUrl: <url>
+          loginQueryParameters: <string:ampersand separated key=value>
+          logoutQueryParameters: <string:ampersand separated key=value>
           tokenAuthMethod: <string:enum>
           tokenServerUrl: <url>
           scopes: <string:space separated words>
