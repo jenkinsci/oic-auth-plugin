@@ -737,10 +737,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return null;
     }
 
-    private Object applyJMESPath(Expression<Object> expression, Object map) {
-        return expression.search(map);
-    }
-
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmptyAndTrim(groupsFieldName);
