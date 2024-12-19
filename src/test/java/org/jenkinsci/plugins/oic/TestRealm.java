@@ -51,6 +51,7 @@ public class TestRealm extends OicSecurityRealm {
         public String escapeHatchGroup = null;
         public boolean automanualconfigure = false;
         public boolean disableTokenValidation = true; // opt in for some specific tests
+        public boolean allowTokenAccessWithoutOicSession = false;
 
         public Builder(WireMockRule wireMockRule, boolean useTLS) throws IOException {
             this(
@@ -107,6 +108,11 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithAutomanualconfigure(boolean automanualconfigure) {
             this.automanualconfigure = automanualconfigure;
+            return this;
+        }
+
+        public Builder WithAllowTokenAccessWithoutOicSession(boolean allowTokenAccessWithoutOicSession) {
+            this.allowTokenAccessWithoutOicSession = allowTokenAccessWithoutOicSession;
             return this;
         }
 
@@ -196,6 +202,7 @@ public class TestRealm extends OicSecurityRealm {
         this.setEscapeHatchSecret(builder.escapeHatchSecret);
         this.setEscapeHatchGroup(builder.escapeHatchGroup);
         this.setDisableTokenVerification(builder.disableTokenValidation);
+        this.setAllowTokenAccessWithoutOicSession(builder.allowTokenAccessWithoutOicSession);
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
         // is only called in regular use not code use.
