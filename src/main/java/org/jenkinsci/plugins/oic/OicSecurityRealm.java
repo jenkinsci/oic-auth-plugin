@@ -1332,6 +1332,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         User user = User.get2(authentication);
+        if (user == null) {
+            return true;
+        }
 
         if (isAllowTokenAccessWithoutOicSession()) {
             // check if this is a valid api token based request
@@ -1340,16 +1343,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
                         .split(":")[1];
 
-                if (user.getProperty(ApiTokenProperty.class).matchesPassword(token)) {
+                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
+                if (apiTokenProperty != null && apiTokenProperty.matchesPassword(token)) {
                     // this was a valid jenkins token being used, exit this filter and let
                     // the rest of chain be processed
                     return true;
                 } // else do nothing and continue evaluating this request
             }
-        }
-
-        if (user == null) {
-            return true;
         }
 
         OicCredentials credentials = user.getProperty(OicCredentials.class);
