@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,7 +47,9 @@ import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.hamcrest.MatcherAssert;
+import org.htmlunit.CookieManager;
 import org.htmlunit.html.HtmlPage;
+import org.htmlunit.util.Cookie;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -83,6 +86,7 @@ import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -171,6 +175,52 @@ public class PluginTest {
         var user = assertTestUser();
         assertTestUserEmail(user);
         assertTestUserIsMemberOfTestGroups(user);
+    }
+
+    @Test
+    @Issue("SECURITY-3473")
+    public void testSessionRefresh() throws Exception {
+        String cookieName = "JSESSIONID";
+        String cookieHost = jenkinsRule.getURL().getHost();
+        // Dev memo: jenkinsRule.getURL().getPath() has a trailing / which breaks Cookie#equals
+        String cookiePath = jenkinsRule.contextPath;
+        String previousSession = "fakesessionid0123456789";
+        CookieManager cookieManager = webClient.getCookieManager();
+        Cookie jSessionIDCookie = new Cookie(cookieHost, cookieName, previousSession, cookiePath, null, false, true);
+
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        configureTestRealm(sc -> {});
+
+        // Not yet logged in
+        assertAnonymous();
+        assertEquals(
+                "No session cookie should be present",
+                0,
+                cookieManager.getCookies().stream()
+                        .filter(c -> Objects.equals(c.getName(), cookieName))
+                        .count());
+
+        // Set a JSESSIONID cookie value before the first login is attempted.
+        cookieManager.addCookie(jSessionIDCookie);
+
+        browseLoginPage();
+
+        // Multiple JSESSIONID can exist if, for example, the path is different
+        assertEquals(
+                "Only one session cookie should be present",
+                1,
+                cookieManager.getCookies().stream()
+                        .filter(c -> Objects.equals(c.getName(), cookieName))
+                        .count());
+
+        String firstLoginSession = cookieManager.getCookie(cookieName).getValue();
+        assertNotEquals("The previous session should be replaced with a new one", previousSession, firstLoginSession);
+
+        browseLoginPage();
+
+        String secondLoginSession = cookieManager.getCookie(cookieName).getValue();
+        assertNotEquals("The session should be renewed when the user log in", firstLoginSession, secondLoginSession);
     }
 
     private void browseLoginPage() throws IOException, SAXException {

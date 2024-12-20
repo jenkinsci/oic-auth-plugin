@@ -1397,10 +1397,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        if (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
+        if (req != null && (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization")))) {
             req.getSession().invalidate();
         }
-        res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
+        if (res != null) {
+            res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
+        }
     }
 
     public boolean isExpired(OicCredentials credentials) {
@@ -1499,6 +1501,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 }
                 LOGGER.log(Level.FINE, "Failed to refresh expired token", e);
                 redirectToLoginUrl(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
+                // Verify this latest change if we need it or notredirectToLoginUrl(httpRequest, httpResponse);
                 return false;
             }
             LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);
