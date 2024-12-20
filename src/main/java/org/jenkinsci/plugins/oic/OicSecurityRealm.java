@@ -964,7 +964,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         CallContext callContext = new CallContext(webContext, sessionStore);
         RedirectionAction redirectionAction =
                 builder.getRedirectionAction(callContext).orElseThrow();
-
         // store the redirect url for after the login.
         sessionStore.set(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY, redirectOnFinish);
         JEEHttpActionAdapter.INSTANCE.adapt(redirectionAction, webContext);
@@ -1286,6 +1285,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             // Jenkins stuff correctly
             // also should have its own URL to make the code easier to follow :)
 
+
+            if (!sessionStore.renewSession(webContext)) {
+                throw new TechnicalException("Could not create a new session");
+            }
+
             Credentials credentials = getCredentials(client, callContext);
 
             ProfileCreator profileCreator = client.getProfileCreator();
@@ -1397,12 +1401,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        if (req != null && (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization")))) {
+        if (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
             req.getSession().invalidate();
         }
-        if (res != null) {
-            res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
-        }
+        res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
     }
 
     public boolean isExpired(OicCredentials credentials) {
@@ -1500,8 +1502,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     return false;
                 }
                 LOGGER.log(Level.FINE, "Failed to refresh expired token", e);
-                redirectToLoginUrl(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
-                // Verify this latest change if we need it or notredirectToLoginUrl(httpRequest, httpResponse);
+                redirectToLoginUrl(httpRequest, httpResponse);
                 return false;
             }
             LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);
