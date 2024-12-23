@@ -27,6 +27,7 @@ public class OicdPluginOpMetadataResolver extends StaticOidcOpMetadataResolver {
     /**
      * This method is needed as there seems to be a bug in pac4j and hasChanged is not able to return true
      * This will make it work until the bug is fixed.
+     * Link to the bug: https://stackoverflow.com/questions/79126478/pac4j-returns-an-error-refreshing-an-expired-token
      * TODO eventually remove
      */
     @Override
