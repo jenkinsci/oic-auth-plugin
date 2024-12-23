@@ -2,7 +2,7 @@
 
 The OpenID Connect authentication plugin tries to support a wide range
 of OpenID providers. The configuration reflects the various ways the
-plugin accomodates their differences and provide a way to select the
+plugin accommodates their differences and provide a way to select the
 information to extract.
 
 There are specifics instructions for well known providers:
@@ -21,7 +21,7 @@ which will also help discovering your settings
 
 From 1.5 and onward the well known configuration location may be used to
 populate the configuration simplifying the configuration greatly.
-The switch between modes is controled by the `serverConfiguration` field
+The switch between modes is controlled by the `serverConfiguration` field
 
 | field                | format  | description                                                                                                                                          |
 |----------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
