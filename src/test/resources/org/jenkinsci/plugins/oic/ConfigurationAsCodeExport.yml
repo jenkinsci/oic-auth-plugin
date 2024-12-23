@@ -1,4 +1,5 @@
 clientId: "clientId"
+customUserIdStrategy: caseInSensitive
 disableSslVerification: true
 emailFieldName: "emailFieldName"
 escapeHatchEnabled: true

@@ -88,6 +88,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.FIPS140;
@@ -133,6 +134,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.util.Assert;
 
+import static jenkins.model.IdStrategy.CASE_INSENSITIVE;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 /**
@@ -159,7 +161,19 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         ClientAuthenticationMethod toClientAuthenticationMethod() {
             return clientAuthMethod;
         }
-    };
+    }
+
+    public enum UserIdStrategy {
+        defaultCase(CASE_INSENSITIVE),
+        caseInSensitive(CASE_INSENSITIVE),
+        caseSensitive(new IdStrategy.CaseSensitive());
+
+        final IdStrategy idStrategy;
+
+        UserIdStrategy(IdStrategy idStrategy) {
+            this.idStrategy = idStrategy;
+        }
+    }
 
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String NO_SECRET = "none";
@@ -192,6 +206,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @Deprecated
     private transient String userInfoServerUrl;
 
+    private transient UserIdStrategy customUserIdStrategy = UserIdStrategy.defaultCase;
     private String userNameField = "sub";
     private transient Expression<Object> userNameFieldExpr = null;
     private String tokenFieldToCheckKey = null;
@@ -323,6 +338,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.serverConfiguration = serverConfiguration;
     }
 
+    @Override
+    public IdStrategy getUserIdStrategy() {
+        return customUserIdStrategy == null ? UserIdStrategy.defaultCase.idStrategy : customUserIdStrategy.idStrategy;
+    }
+
     @SuppressWarnings("deprecated")
     protected Object readResolve() throws ObjectStreamException {
         // Fail if migrating to a FIPS non-compliant config
@@ -408,6 +428,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @Restricted(NoExternalUse.class) // jelly access
     public OicServerConfiguration getServerConfiguration() {
         return serverConfiguration;
+    }
+
+    public UserIdStrategy getCustomUserIdStrategy() {
+        return customUserIdStrategy;
     }
 
     public String getUserNameField() {
@@ -687,6 +711,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // OPs will reject this for existing clients as the redirect URL is not the same as previously configured
         client.setCallbackUrlResolver(new NoParameterCallbackUrlResolver());
         return client;
+    }
+
+    @DataBoundSetter
+    public void setCustomUserIdStrategy(UserIdStrategy customUserIdStrategy) {
+        this.customUserIdStrategy = customUserIdStrategy;
     }
 
     @DataBoundSetter

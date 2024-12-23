@@ -69,11 +69,12 @@ If the JWKS endpoint is configured, JWS' signatures will be verified
 Providers have some variation in their implementation of OpenID Connect
 or some oddities they required.
 
-| field                     | format   | description                                                                                         |
-|---------------------------|----------|-----------------------------------------------------------------------------------------------------|
-| logoutFromOpenidProvider  | boolean  | Enable the logout from provider when user logout from Jenkisn.                                      |
-| sendScopesInTokenRequest  | boolean  | Some providers expects scopes to be sent in token request                                           |
-| rootURLFromRequest        | boolean  | When computing Jenkins redirect, the root url is either deduced from configured root url or request |
+| field                    | format  | description                                                                                         |
+|--------------------------|---------|-----------------------------------------------------------------------------------------------------|
+| logoutFromOpenidProvider | boolean | Enable the logout from provider when user logout from Jenkins.                                      |
+| sendScopesInTokenRequest | boolean | Some providers expects scopes to be sent in token request                                           |
+| rootURLFromRequest       | boolean | When computing Jenkins redirect, the root url is either deduced from configured root url or request |
+| customUserIdStrategy     | enum    | ID strategy that should be used for turning the user name into an ID. Default is: case-insensitive. |
 
 ### Security configuration
 
@@ -142,6 +143,7 @@ jenkins:
       rootURLFromRequest: <boolean>
       sendScopesInTokenRequest: <boolean>
       postLogoutRedirectUrl: <url>
+      customUserIdStrategy: <string:enum>
       # Security
       allowTokenAccessWithoutOicSession: <boolean>
       allowedTokenExpirationClockSkewSeconds: <integer>

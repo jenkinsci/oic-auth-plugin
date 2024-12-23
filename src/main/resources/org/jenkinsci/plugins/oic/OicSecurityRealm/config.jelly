@@ -35,6 +35,12 @@
     <f:entry title="${%PostLogoutRedirectUrl}" field="postLogoutRedirectUrl" class="endSessionConfig">
       <f:textbox />
     </f:entry>
+    <f:entry title="${%IdStrategy}" field="customUserIdStrategy">
+      <f:radioBlock title="${%IdStrategyCaseInSensitive}" name="customUserIdStrategy"
+                    checked="${instance.customUserIdStrategy == null || instance.customUserIdStrategy == 'caseInSensitive'}" value="caseInSensitive" inline="true" help="${null}"/>
+      <f:radioBlock title="${%IdStrategyCaseSensitive}" name="customUserIdStrategy"
+                    checked="${instance.customUserIdStrategy == 'caseSensitive'}" value="caseSensitive" inline="true" help="${null}"/>
+    </f:entry>
 
     <f:advanced title="${%SecurityConfiguration}">
       <f:entry title="${%TokenFieldKeyToCheck}" field="tokenFieldToCheckKey">

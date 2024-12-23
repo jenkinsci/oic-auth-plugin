@@ -11,6 +11,7 @@ jenkins:
           scopes: scopes
       clientId: clientId
       clientSecret: clientSecret
+      customUserIdStrategy: caseInSensitive
       disableSslVerification: true
       emailFieldName: emailFieldName
       escapeHatchEnabled: true

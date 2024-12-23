@@ -134,13 +134,30 @@ public class PluginTest {
     @Test
     public void testLoginWithDefaults() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
+
+        String usernameLower = "my-user";
+        String[] groupsLower = {"group-1", "group-2"};
+        String usernameUpper = usernameLower.toUpperCase();
+        String[] groupsUpper =
+                Arrays.stream(groupsLower).map(String::toUpperCase).toArray(String[]::new);
+
+        // Login user
+        mockTokenReturnsIdTokenWithGroup(usernameLower, setUpKeyValuesWithGroup(groupsLower));
         configureTestRealm(sc -> {});
+        assertEquals(
+                OicSecurityRealm.UserIdStrategy.defaultCase,
+                ((OicSecurityRealm) jenkins.getSecurityRealm()).getCustomUserIdStrategy());
+        assertEquals(
+                OicSecurityRealm.UserIdStrategy.caseInSensitive.idStrategy,
+                jenkins.getSecurityRealm().getUserIdStrategy());
+        assertEquals(
+                OicSecurityRealm.UserIdStrategy.caseInSensitive.idStrategy,
+                jenkins.getSecurityRealm().getGroupIdStrategy());
         assertAnonymous();
         browseLoginPage();
-        var user = assertTestUser();
-        assertTestUserEmail(user);
-        assertTestUserIsMemberOfTestGroups(user);
+        var userLower = assertTestUser(usernameLower);
+        assertTestUserEmail(userLower);
+        assertTestUserIsMemberOfGroups(userLower, groupsLower);
 
         verify(getRequestedFor(urlPathEqualTo("/authorization"))
                 .withQueryParam("scope", equalTo("openid email"))
@@ -151,6 +168,66 @@ public class PluginTest {
             assertNotNull(((OicSecurityRealm) Jenkins.get().getSecurityRealm()).getStateAttribute(session));
             return null;
         });
+
+        // Use Default: ID Strategy CASE-INSENSITIVE
+        // Login another user with same username but in upper cases
+        mockTokenReturnsIdTokenWithGroup(usernameUpper, setUpKeyValuesWithGroup(groupsUpper));
+        browseLoginPage();
+        var userUpperCaseInsensitive = assertTestUser(usernameUpper);
+        assertEquals(
+                "With ID strategy case-insensitive, the username is to be expected in lower case",
+                usernameLower,
+                userUpperCaseInsensitive.getId());
+        assertTestUserIsMemberOfGroups(userUpperCaseInsensitive, groupsUpper);
+    }
+
+    @Test
+    public void testLoginWithDefaultsCaseSensitive() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+
+        String usernameLower = "my-user";
+        String[] groupsLower = {"group-1", "group-2"};
+        String usernameUpper = usernameLower.toUpperCase();
+        String[] groupsUpper =
+                Arrays.stream(groupsLower).map(String::toUpperCase).toArray(String[]::new);
+
+        // Login user
+        mockTokenReturnsIdTokenWithGroup(usernameLower, setUpKeyValuesWithGroup(groupsLower));
+        configureTestRealm(sc -> sc.setCustomUserIdStrategy(OicSecurityRealm.UserIdStrategy.caseSensitive));
+        assertEquals(
+                OicSecurityRealm.UserIdStrategy.caseSensitive,
+                ((OicSecurityRealm) jenkins.getSecurityRealm()).getCustomUserIdStrategy());
+        assertEquals(
+                OicSecurityRealm.UserIdStrategy.caseSensitive.idStrategy,
+                jenkins.getSecurityRealm().getUserIdStrategy());
+        assertEquals(
+                OicSecurityRealm.UserIdStrategy.caseSensitive.idStrategy,
+                jenkins.getSecurityRealm().getGroupIdStrategy());
+        assertAnonymous();
+        browseLoginPage();
+        var userLower = assertTestUser(usernameLower);
+        assertTestUserEmail(userLower);
+        assertTestUserIsMemberOfGroups(userLower, groupsLower);
+
+        verify(getRequestedFor(urlPathEqualTo("/authorization"))
+                .withQueryParam("scope", equalTo("openid email"))
+                .withQueryParam("nonce", matching(".+")));
+        verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*&scope=.*")));
+        webClient.executeOnServer(() -> {
+            HttpSession session = Stapler.getCurrentRequest().getSession();
+            assertNotNull(((OicSecurityRealm) Jenkins.get().getSecurityRealm()).getStateAttribute(session));
+            return null;
+        });
+
+        // Login another user with same username but in upper cases
+        mockTokenReturnsIdTokenWithGroup(usernameUpper, setUpKeyValuesWithGroup(groupsUpper));
+        browseLoginPage();
+        var userUpperCase = assertTestUser(usernameUpper);
+        assertEquals(
+                "With ID strategy case-insensitive, the username is to be expected in lower case",
+                usernameUpper,
+                userUpperCase.getId());
+        assertTestUserIsMemberOfGroups(userUpperCase, groupsUpper);
     }
 
     @Test
@@ -834,6 +911,14 @@ public class PluginTest {
                 user.getProperty(Mailer.UserProperty.class).getAddress());
     }
 
+    private @NonNull User assertTestUser(String userName) {
+        Authentication authentication = getAuthentication();
+        assertEquals("Should be logged-in as " + userName, userName, authentication.getPrincipal());
+        User user = toUser(authentication);
+        assertEquals("Full name should be " + TEST_USER_FULL_NAME, TEST_USER_FULL_NAME, user.getFullName());
+        return user;
+    }
+
     private @NonNull User assertTestUser() {
         Authentication authentication = getAuthentication();
         assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
@@ -1028,7 +1113,8 @@ public class PluginTest {
         return keyGen.generateKeyPair();
     }
 
-    private String createIdToken(PrivateKey privateKey, Map<String, Object> keyValues) throws Exception {
+    private String createIdToken(String username, PrivateKey privateKey, Map<String, Object> keyValues)
+            throws Exception {
         JsonWebSignature.Header header =
                 new JsonWebSignature.Header().setAlgorithm("RS256").setKeyId("jwks_key_id");
         long now = Clock.systemUTC().millis() / 1000;
@@ -1036,7 +1122,7 @@ public class PluginTest {
                 .setExpirationTimeSeconds(now + 60L)
                 .setIssuedAtTimeSeconds(now)
                 .setIssuer(TestRealm.ISSUER)
-                .setSubject(TEST_USER_USERNAME)
+                .setSubject(username)
                 .setAudience(Collections.singletonList(TestRealm.CLIENT_ID))
                 .setNonce("nonce");
         for (Map.Entry<String, Object> keyValue : keyValues.entrySet()) {
@@ -1302,14 +1388,29 @@ public class PluginTest {
     }
 
     private void mockTokenReturnsIdTokenWithValues(Map<String, Object> keyValues, KeyPair keyPair) throws Exception {
-        mockTokenReturnsIdToken(createIdToken(keyPair.getPrivate(), keyValues));
+        mockTokenReturnsIdToken(createIdToken(TEST_USER_USERNAME, keyPair.getPrivate(), keyValues));
+    }
+
+    private void mockTokenReturnsIdTokenWithGroup(String username, Map<String, Object> keyValuesWithGroups)
+            throws Exception {
+        var keyPair = createKeyPair();
+        mockTokenReturnsIdToken(createIdToken(username, keyPair.getPrivate(), keyValuesWithGroups));
     }
 
     @SafeVarargs
     private void mockTokenReturnsIdTokenWithGroup(@CheckForNull Consumer<Map<String, String>>... tokenAcceptors)
             throws Exception {
         var keyPair = createKeyPair();
-        mockTokenReturnsIdToken(createIdToken(keyPair.getPrivate(), setUpKeyValuesWithGroup()), tokenAcceptors);
+        mockTokenReturnsIdToken(
+                createIdToken(TEST_USER_USERNAME, keyPair.getPrivate(), setUpKeyValuesWithGroup()), tokenAcceptors);
+    }
+
+    @SafeVarargs
+    private void mockTokenReturnsIdTokenWithGroup(
+            String username, @CheckForNull Consumer<Map<String, String>>... tokenAcceptors) throws Exception {
+        var keyPair = createKeyPair();
+        mockTokenReturnsIdToken(
+                createIdToken(username, keyPair.getPrivate(), setUpKeyValuesWithGroup()), tokenAcceptors);
     }
 
     private void mockTokenReturnsIdToken(@CheckForNull String idToken) {
