@@ -170,7 +170,7 @@ public class PluginTest {
         });
 
         // Use Default: ID Strategy CASE-INSENSITIVE
-        // Login another user with same username but in upper cases
+        // Login with another user with same username but in upper cases
         mockTokenReturnsIdTokenWithGroup(usernameUpper, setUpKeyValuesWithGroup(groupsUpper));
         browseLoginPage();
         var userUpperCaseInsensitive = assertTestUser(usernameUpper);
@@ -179,6 +179,16 @@ public class PluginTest {
                 usernameLower,
                 userUpperCaseInsensitive.getId());
         assertTestUserIsMemberOfGroups(userUpperCaseInsensitive, groupsUpper);
+
+        // Fallback to default ID Strategy CASE-INSENSITIVE if custom user ID strategy is not set
+        // Login with another user with same username but in upper cases
+        configureTestRealm(sc -> sc.setCustomUserIdStrategy(null));
+        browseLoginPage();
+        var userUpperCaseInsensitive2 = assertTestUser(usernameUpper);
+        assertEquals(
+                "With ID strategy case-insensitive, the username is to be expected in lower case",
+                usernameLower,
+                userUpperCaseInsensitive2.getId());
     }
 
     @Test
@@ -219,7 +229,7 @@ public class PluginTest {
             return null;
         });
 
-        // Login another user with same username but in upper cases
+        // Login with another user with same username but in upper cases
         mockTokenReturnsIdTokenWithGroup(usernameUpper, setUpKeyValuesWithGroup(groupsUpper));
         browseLoginPage();
         var userUpperCase = assertTestUser(usernameUpper);
