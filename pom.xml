@@ -52,6 +52,7 @@
     <!-- latest 5.x as 6 uses java 17 -->
     <pac4jVersion>6.1.0</pac4jVersion>
     <springVersion>6.1.14</springVersion>
+    <jacksonVersion>2.18.1</jacksonVersion>
   </properties>
 
   <dependencyManagement>
@@ -63,16 +64,6 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <!--
-      Let's use a FIPS compliant version of nimbus-jose-jwt
-      TODO Remove when pac4j includes this version or a newer one
-      -->
-      <dependency>
-        <groupId>com.nimbusds</groupId>
-        <artifactId>nimbus-jose-jwt</artifactId>
-        <version>9.47</version>
-      </dependency>
-      <!-- end -->
       <dependency>
         <!-- do not exlude the annotations so we can benifit from spotbugs checks but set the to provided so we do not bundle them -->
         <groupId>com.github.stephenc.jcip</groupId>
@@ -86,23 +77,22 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
-      <version>2.18.1</version>
+      <version>${jacksonVersion}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
-      <version>2.18.1</version>
+      <version>${jacksonVersion}</version>
     </dependency>
-    <!--*********** These dependencies need to be managed properly-->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>2.18.1</version>
+      <version>${jacksonVersion}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
-      <version>2.18.1</version>
+      <version>${jacksonVersion}</version>
     </dependency>
     <dependency>
       <groupId>io.burt</groupId>
@@ -124,7 +114,6 @@
 
     <dependency>
       <groupId>org.pac4j</groupId>
-      <!-- replace with pac4j-jakartaee when we use a Jenkins version with jakartaee -->
       <artifactId>pac4j-jakartaee</artifactId>
       <version>${pac4jVersion}</version>
       <exclusions>
@@ -144,7 +133,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-    <!--***********-->
     <dependency>
       <groupId>org.pac4j</groupId>
       <artifactId>pac4j-oidc</artifactId>
@@ -162,6 +150,7 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- TODO remove spring version, it will come from the core -->
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-core</artifactId>
