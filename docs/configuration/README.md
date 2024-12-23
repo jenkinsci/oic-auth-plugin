@@ -79,17 +79,17 @@ or some oddities they required.
 
 Most security feature are activated by default if possible.
 
-| field                                  | format    | description                                                                                                                   |
-|----------------------------------------|-----------|-------------------------------------------------------------------------------------------------------------------------------|
-| allowTokenAccessWithoutOicSession      | boolean   | Allows Jenkins API token based access even if the associated user has completly logged out from Jenkins and the OIC Provider  |
-| allowedTokenExpirationClockSkewSeconds | integer   | Additional number of seconds to add to access token expiry time in case of clock sync issues                                  |
-| disableSslVerification                 | boolean   | Disable SSL verification (in case of self signed certificates by example)                                                     |
-| nonceDisabled                          | boolean   | Disable nonce verification                                                                                                    |
-| pkceEnable                             | boolean   | Enable PKCE challenge                                                                                                         |
-| disableTokenVerification               | boolean   | Disable IdToken and UserInfo verification (not recommended)                                                                   |
-| tokenFieldToCheckKey                   | jmespath  | Field(s) to check to authorize user                                                                                           |
-| tokenFieldToCheckValue                 | string    | TokenFieldToCheckValue expected value                                                                                         |
-| tokenExpirationCheckDisabled           | boolean   | Disable checking of token expiration                                                                                          |
+| field                                  | format   | description                                                                                                                   |
+|----------------------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------|
+| allowTokenAccessWithoutOicSession      | boolean  | Allows Jenkins API token based access even if the associated user has completely logged out from Jenkins and the OIC Provider |
+| allowedTokenExpirationClockSkewSeconds | integer  | Additional number of seconds to add to access token expiry time in case of clock sync issues                                  |
+| disableSslVerification                 | boolean  | Disable SSL verification (in case of self signed certificates by example)                                                     |
+| nonceDisabled                          | boolean  | Disable nonce verification                                                                                                    |
+| pkceEnable                             | boolean  | Enable PKCE challenge                                                                                                         |
+| disableTokenVerification               | boolean  | Disable IdToken and UserInfo verification (not recommended)                                                                   |
+| tokenFieldToCheckKey                   | jmespath | Field(s) to check to authorize user                                                                                           |
+| tokenFieldToCheckValue                 | string   | TokenFieldToCheckValue expected value                                                                                         |
+| tokenExpirationCheckDisabled           | boolean  | Disable checking of token expiration                                                                                          |
 
 ## User information
 
