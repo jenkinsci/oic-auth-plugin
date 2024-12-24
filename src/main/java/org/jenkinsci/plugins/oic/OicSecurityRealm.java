@@ -1399,18 +1399,20 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return true;
     }
 
-    private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        if (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
+    private void redirectToLoginUrl(@NonNull HttpServletRequest req, @NonNull HttpServletResponse res)
+            throws IOException {
+        if (req != null && req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
             req.getSession().invalidate();
         }
-        res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
+        if (res != null) {
+            res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
+        }
     }
 
     public boolean isExpired(OicCredentials credentials) {
         if (credentials.getExpiresAtMillis() == null) {
             return false;
         }
-
         return CLOCK.millis() >= credentials.getExpiresAtMillis();
     }
 
