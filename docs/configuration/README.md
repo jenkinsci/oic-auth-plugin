@@ -154,7 +154,7 @@ jenkins:
       tokenExpirationCheckDisabled: <boolean>
       # escape hatch
       escapeHatchEnabled: <boolean>
-      escapeHatchUsername: escapeHatchUsername
+      escapeHatchUsername: <string>
       escapeHatchSecret: <string:secret>
       escapeHatchGroup: <string>
 ```
