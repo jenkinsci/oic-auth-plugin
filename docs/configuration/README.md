@@ -21,7 +21,7 @@ which will also help discovering your settings
 
 From 1.5 and onward the well known configuration location may be used to
 populate the configuration simplifying the configuration greatly.
-The switch between modes is controled by the `serverConfiguration` field
+The switch between modes is controlled by the `serverConfiguration` field
 
 | field                | format  | description                                                                                                                                          |
 |----------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -103,6 +103,16 @@ They are called claims in OpenID Connect terminology.
 | emailFieldName    | jmes path | claim to use for populating user email      |
 | groupsFieldName   | jmes path | groups the user belongs to                  |
 
+## Custom Query Parameters For Login and Logout Endpoints
+
+Optional list of key / value query parameter pairs which will be appended 
+when calling the login resp. the logout endpoint.
+
+| field           | format | description                                                        |
+|-----------------|--------|--------------------------------------------------------------------|
+| queryParamName  | string | Name of the query parameter.                                       |
+| queryParamValue | string | Value of the query parameter. If empty, only the key will be sent. |
+
 
 ## JCasC configuration reference
 
@@ -142,6 +152,12 @@ jenkins:
       rootURLFromRequest: <boolean>
       sendScopesInTokenRequest: <boolean>
       postLogoutRedirectUrl: <url>
+      loginQueryParamNameValuePairs:
+        - queryParamName: <string>
+          queryParamValue: <string>
+      logoutQueryParamNameValuePairs:
+        - queryParamName: <string>
+          queryParamValue: <string>
       # Security
       allowTokenAccessWithoutOicSession: <boolean>
       allowedTokenExpirationClockSkewSeconds: <integer>
@@ -154,7 +170,7 @@ jenkins:
       tokenExpirationCheckDisabled: <boolean>
       # escape hatch
       escapeHatchEnabled: <boolean>
-      escapeHatchUsername: escapeHatchUsername
+      escapeHatchUsername: <string>
       escapeHatchSecret: <string:secret>
       escapeHatchGroup: <string>
 ```
