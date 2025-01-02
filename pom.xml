@@ -51,8 +51,6 @@
     <hpi.compatibleSinceVersion>4.383</hpi.compatibleSinceVersion>
     <!-- latest 5.x as 6 uses java 17 -->
     <pac4jVersion>6.1.0</pac4jVersion>
-    <springVersion>6.1.14</springVersion>
-    <jacksonVersion>2.18.1</jacksonVersion>
   </properties>
 
   <dependencyManagement>
