@@ -39,6 +39,9 @@ class CustomOidcConfiguration extends OidcConfiguration {
             }
         }
         request.setProxy(proxy);
+        // super class will configure the hostname verifier and the SSL socket factory and the default values in case
+        // the config object doesn't have those values must be overrriden in case the disableTLS is true
+        super.configureHttpRequest(request);
         if (disableTLS) {
             request.setHostnameVerifier(IgnoringHostNameVerifier.INSTANCE);
             try {
@@ -47,6 +50,5 @@ class CustomOidcConfiguration extends OidcConfiguration {
                 throw new IllegalStateException("could not configure the SSLFactory, this should not be possible", e);
             }
         }
-        super.configureHttpRequest(request);
     }
 }

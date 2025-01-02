@@ -18,6 +18,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.User;
 import hudson.tasks.Mailer;
 import hudson.util.VersionNumber;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -42,7 +43,6 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLException;
-import javax.servlet.http.HttpSession;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import jenkins.security.LastGrantedAuthoritiesProperty;
@@ -147,7 +147,7 @@ public class PluginTest {
                 .withQueryParam("nonce", matching(".+")));
         verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*&scope=.*")));
         webClient.executeOnServer(() -> {
-            HttpSession session = Stapler.getCurrentRequest().getSession();
+            HttpSession session = Stapler.getCurrentRequest2().getSession();
             assertNotNull(((OicSecurityRealm) Jenkins.get().getSecurityRealm()).getStateAttribute(session));
             return null;
         });
@@ -983,7 +983,7 @@ public class PluginTest {
 
         String[] logoutURL = new String[1];
         jenkinsRule.executeOnServer(() -> {
-            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest2(), Jenkins.ANONYMOUS2);
             return null;
         });
         assertEquals("/jenkins/", logoutURL[0]);
@@ -997,7 +997,7 @@ public class PluginTest {
 
         String[] logoutURL = new String[1];
         jenkinsRule.executeOnServer(() -> {
-            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest2(), Jenkins.ANONYMOUS2);
             return null;
         });
         assertEquals("http://provider/logout?state=null", logoutURL[0]);
@@ -1014,7 +1014,7 @@ public class PluginTest {
 
         String[] logoutURL = new String[1];
         jenkinsRule.executeOnServer(() -> {
-            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest(), Jenkins.ANONYMOUS2);
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest2(), Jenkins.ANONYMOUS2);
             return null;
         });
         assertEquals(
