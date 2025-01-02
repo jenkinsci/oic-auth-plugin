@@ -754,7 +754,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmptyAndTrim(groupsFieldName);
-        this.groupsFieldExpr = this.compileJMESPath(groupsFieldName, "groups field");
+        this.groupsFieldExpr = this.compileJMESPath(this.groupsFieldName, "groups field");
     }
 
     @DataBoundSetter
