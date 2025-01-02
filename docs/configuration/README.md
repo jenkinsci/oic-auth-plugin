@@ -27,7 +27,7 @@ The switch between modes is controled by the `serverConfiguration` field
 |----------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
 | clientId             | string  | Id of the openid client obtained from the provider                                                                                                   |
 | clientSecret         | secret  | Secret associated to the client                                                                                                                      |
-| serverConfiguration  | select  | Crontols endpoint configuration mode<br />- `wellKnown`:  activate discovery via well-known endpoint <br />- `manual`: activate manual configuration | 
+| serverConfiguration  | select  | Controls endpoint configuration mode<br />- `wellKnown`:  activate discovery via well-known endpoint <br />- `manual`: activate manual configuration | 
 
 ### Automatic configuration
 
@@ -113,6 +113,7 @@ jenkins:
   securityRealm:
     oic:
       serverConfiguration:
+        # use only one of wellKnown or manual
         # Automatic config of endpoint
         wellKnown:
           wellKnownOpenIDConfigurationUrl: <url>

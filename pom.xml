@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>5.2</version>
+    <version>5.3</version>
     <relativePath />
   </parent>
 
@@ -50,7 +50,7 @@
     <spotless.check.skip>false</spotless.check.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.383</hpi.compatibleSinceVersion>
-    <pac4jVersion>6.0.6</pac4jVersion>
+    <pac4jVersion>6.1.0</pac4jVersion>
   </properties>
 
   <dependencyManagement>
@@ -58,7 +58,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>3482.vc10d4f6da_28a_</version>
+        <version>3850.vb_c5319efa_e29</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -69,7 +69,7 @@
       <dependency>
         <groupId>com.nimbusds</groupId>
         <artifactId>nimbus-jose-jwt</artifactId>
-        <version>9.41</version>
+        <version>9.48</version>
       </dependency>
       <!-- end -->
       <dependency>
@@ -93,6 +93,10 @@
     </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-lang3-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
       <artifactId>commons-text-api</artifactId>
     </dependency>
     <dependency>
@@ -112,11 +116,31 @@
         <exclusion>
           <!-- consume from jackson2-api plugin -->
           <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-annotations</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from jackson2-api plugin -->
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-annotations</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from jackson2-api plugin -->
+          <groupId>com.fasterxml.jackson.core</groupId>
           <artifactId>jackson-databind</artifactId>
         </exclusion>
         <exclusion>
+          <!-- consume from jackson2-api plugin -->
+          <groupId>com.fasterxml.jackson.datatype</groupId>
+          <artifactId>jackson-datatype-jsr310</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from commons-lang3-api plugin -->
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-lang3</artifactId>
+        </exclusion>
+        <exclusion>
           <!-- consume from commons-text-api plugin -->
-          <groupId>commons-text</groupId>
+          <groupId>org.apache.commons</groupId>
           <artifactId>commons-text</artifactId>
         </exclusion>
         <exclusion>
@@ -131,6 +155,11 @@
       <artifactId>pac4j-oidc</artifactId>
       <version>${pac4jVersion}</version>
       <exclusions>
+        <exclusion>
+          <!-- consume from jackson2-api plugin -->
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-core</artifactId>
+        </exclusion>
         <exclusion>
           <!-- consume from jackson2-api plugin -->
           <groupId>com.fasterxml.jackson.core</groupId>
@@ -150,11 +179,6 @@
           <!-- consume from Jenkins core -->
           <groupId>org.slf4j</groupId>
           <artifactId>slf4j-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <!-- consume from Jenkins core -->
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-core</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -209,7 +233,7 @@
     <dependency>
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
-      <version>3.9.1</version>
+      <version>3.10.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -284,7 +308,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.5.0</version>
+        <version>3.6.0</version>
         <configuration>
           <configLocation>${maven.multiModuleProjectDirectory}/.mvn/checkstyle.xml</configLocation>
           <suppressionsLocation>${maven.multiModuleProjectDirectory}/.mvn/checkstyle-suppressions.xml</suppressionsLocation>
@@ -295,7 +319,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.18.2</version>
+            <version>10.21.0</version>
           </dependency>
         </dependencies>
         <executions>
@@ -311,7 +335,7 @@
       <plugin>
         <groupId>org.openrewrite.maven</groupId>
         <artifactId>rewrite-maven-plugin</artifactId>
-        <version>5.42.2</version>
+        <version>5.47.2</version>
         <configuration>
           <activeRecipes>
             <recipe>org.openrewrite.jenkins.github.AddTeamToCodeowners</recipe>
@@ -321,7 +345,7 @@
           <dependency>
             <groupId>org.openrewrite.recipe</groupId>
             <artifactId>rewrite-jenkins</artifactId>
-            <version>0.14.1</version>
+            <version>0.19.0</version>
           </dependency>
         </dependencies>
       </plugin>

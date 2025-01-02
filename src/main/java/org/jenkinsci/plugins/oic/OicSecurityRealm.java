@@ -547,6 +547,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         conf.setResourceRetriever(getResourceRetriever());
         if (this.isPkceEnabled()) {
             conf.setPkceMethod(CodeChallengeMethod.S256);
+        } else {
+            conf.setDisablePkce(true);
         }
         opMetadataResolver.init();
         return conf;
@@ -759,7 +761,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmptyAndTrim(groupsFieldName);
-        this.groupsFieldExpr = this.compileJMESPath(groupsFieldName, "groups field");
+        this.groupsFieldExpr = this.compileJMESPath(this.groupsFieldName, "groups field");
     }
 
     @DataBoundSetter
@@ -1398,10 +1400,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        if (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization"))) {
+        if (req != null && (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization")))) {
             req.getSession().invalidate();
         }
-        res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
+        if (res != null) {
+            res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
+        }
     }
 
     public boolean isExpired(OicCredentials credentials) {
@@ -1499,7 +1503,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     return false;
                 }
                 LOGGER.log(Level.FINE, "Failed to refresh expired token", e);
-                redirectToLoginUrl(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
+                redirectToLoginUrl(httpRequest, httpResponse);
                 return false;
             }
             LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);
