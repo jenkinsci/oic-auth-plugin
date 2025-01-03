@@ -2,11 +2,11 @@ package org.jenkinsci.plugins.oic;
 
 import hudson.Extension;
 import hudson.security.csrf.CrumbExclusion;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * Excluding the escapeHatch login from CSRF protection as the crumb is calculated based on the authentication
