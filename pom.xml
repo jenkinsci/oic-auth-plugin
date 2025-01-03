@@ -134,6 +134,11 @@
           <artifactId>commons-text</artifactId>
         </exclusion>
         <exclusion>
+          <!-- consume from asm-api plugin -->
+          <groupId>org.ow2.asm</groupId>
+          <artifactId>asm</artifactId>
+        </exclusion>
+        <exclusion>
           <!-- consume from Jenkins core -->
           <groupId>org.slf4j</groupId>
           <artifactId>slf4j-api</artifactId>
@@ -164,11 +169,6 @@
           <!-- consume from commons-text-api plugin -->
           <groupId>commons-text</groupId>
           <artifactId>commons-text</artifactId>
-        </exclusion>
-        <exclusion>
-          <!-- consume from asm-api plugin -->
-          <groupId>org.ow2.asm</groupId>
-          <artifactId>asm</artifactId>
         </exclusion>
         <exclusion>
           <!-- consume from Jenkins core -->
