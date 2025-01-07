@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.87</version>
+    <version>5.3</version>
     <relativePath />
   </parent>
 
@@ -45,8 +45,8 @@
     <revision>4</revision>
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <!-- update the jenkins-bom version when updating -->
-    <jenkins.version>2.426.3</jenkins.version>
+    <jenkins.baseline>2.479</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <configuration-as-code.version>1836.vccda_4a_122a_a_e</configuration-as-code.version>
@@ -59,8 +59,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.426.x</artifactId>
-        <version>3208.vb_21177d4b_cd9</version>
+        <artifactId>bom-${jenkins.baseline}.x</artifactId>
+        <version>3850.vb_c5319efa_e29</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -136,6 +136,7 @@
           <artifactId>jackson-databind</artifactId>
         </exclusion>
         <exclusion>
+          <!-- consume from Jenkins core -->
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </exclusion>
@@ -154,6 +155,7 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <!-- consume from Jenkins core -->
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </exclusion>
