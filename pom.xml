@@ -94,12 +94,9 @@
       <artifactId>asm-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.jenkins.plugins</groupId>
-      <artifactId>commons-lang3-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.jenkins.plugins</groupId>
-      <artifactId>commons-text-api</artifactId>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.14</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -122,29 +119,13 @@
           <artifactId>jackson-annotations</artifactId>
         </exclusion>
         <exclusion>
-          <!-- consume from jackson2-api plugin -->
-          <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-annotations</artifactId>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
         </exclusion>
         <exclusion>
-          <!-- consume from jackson2-api plugin -->
-          <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-databind</artifactId>
-        </exclusion>
-        <exclusion>
-          <!-- consume from jackson2-api plugin -->
-          <groupId>com.fasterxml.jackson.datatype</groupId>
-          <artifactId>jackson-datatype-jsr310</artifactId>
-        </exclusion>
-        <exclusion>
-          <!-- consume from commons-lang3-api plugin -->
-          <groupId>org.apache.commons</groupId>
-          <artifactId>commons-lang3</artifactId>
-        </exclusion>
-        <exclusion>
-          <!-- consume from commons-text-api plugin -->
-          <groupId>org.apache.commons</groupId>
-          <artifactId>commons-text</artifactId>
+          <!-- consume from asm-api plugin -->
+          <groupId>org.ow2.asm</groupId>
+          <artifactId>asm</artifactId>
         </exclusion>
         <exclusion>
           <!-- consume from Jenkins core -->
@@ -162,11 +143,6 @@
         <exclusion>
           <!-- consume from jackson2-api plugin -->
           <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <!-- consume from jackson2-api plugin -->
-          <groupId>com.fasterxml.jackson.core</groupId>
           <artifactId>jackson-databind</artifactId>
         </exclusion>
         <exclusion>
@@ -174,17 +150,13 @@
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </exclusion>
-        <exclusion>
-          <!-- consume from commons-text-api plugin -->
-          <groupId>commons-text</groupId>
-          <artifactId>commons-text</artifactId>
-        </exclusion>
-        <exclusion>
-          <!-- consume from Jenkins core -->
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-api</artifactId>
-        </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.11.0</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.google.oauth-client</groupId>
@@ -197,31 +169,11 @@
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </exclusion>
-        <exclusion>
-          <!-- consume from apache-httpcomponents-client-4-api plugin -->
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpclient</artifactId>
-        </exclusion>
-        <exclusion>
-          <!-- consume from apache-httpcomponents-client-4-api plugin -->
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpcore</artifactId>
-        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
       <groupId>io.jenkins.configuration-as-code</groupId>
       <artifactId>test-harness</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.jenkins.plugins</groupId>
-      <artifactId>gson-api</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>apache-httpcomponents-client-4-api</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
