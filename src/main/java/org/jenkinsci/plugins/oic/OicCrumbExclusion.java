@@ -11,7 +11,7 @@ import java.io.IOException;
 import jenkins.model.Jenkins;
 
 /**
- * Crumb exclusion to allow POSTing to {@link OicSecurityRealm#doFinishLogin(org.kohsuke.stapler.StaplerRequest, org.kohsuke.stapler.StaplerResponse)}
+ * Crumb exclusion to allow POSTing to {@link OicSecurityRealm#doFinishLogin(org.kohsuke.stapler.StaplerRequest2, org.kohsuke.stapler.StaplerResponse2)}
  */
 @Extension
 public class OicCrumbExclusion extends CrumbExclusion {
