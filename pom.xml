@@ -60,7 +60,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>3482.vc10d4f6da_28a_</version>
+        <version>3850.vb_c5319efa_e29</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -133,6 +133,7 @@
           <artifactId>jackson-databind</artifactId>
         </exclusion>
         <exclusion>
+          <!-- consume from Jenkins core -->
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </exclusion>
@@ -161,6 +162,7 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <!-- consume from Jenkins core -->
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </exclusion>
@@ -276,7 +278,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.21.0</version>
+            <version>10.21.1</version>
           </dependency>
         </dependencies>
         <executions>
@@ -292,7 +294,7 @@
       <plugin>
         <groupId>org.openrewrite.maven</groupId>
         <artifactId>rewrite-maven-plugin</artifactId>
-        <version>5.47.2</version>
+        <version>5.47.3</version>
         <configuration>
           <activeRecipes>
             <recipe>org.openrewrite.jenkins.github.AddTeamToCodeowners</recipe>
