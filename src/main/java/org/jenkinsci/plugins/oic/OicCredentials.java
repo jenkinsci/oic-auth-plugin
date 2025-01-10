@@ -10,7 +10,7 @@ import hudson.util.Secret;
 import java.io.Serializable;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 public class OicCredentials extends UserProperty implements Serializable {
     static final String PROPERTY_NAME = "oicCredentials";
@@ -23,7 +23,7 @@ public class OicCredentials extends UserProperty implements Serializable {
     private final Long expiresAtMillis;
 
     @Override
-    public UserProperty reconfigure(StaplerRequest req, JSONObject form) throws Descriptor.FormException {
+    public UserProperty reconfigure(StaplerRequest2 req, JSONObject form) throws Descriptor.FormException {
         req.bindJSON(this, form);
         return this;
     }
