@@ -111,11 +111,6 @@
         <exclusion>
           <!-- consume from jackson2-api plugin -->
           <groupId>com.fasterxml.jackson.core</groupId>
-          <artifactId>jackson-annotations</artifactId>
-        </exclusion>
-        <exclusion>
-          <!-- consume from jackson2-api plugin -->
-          <groupId>com.fasterxml.jackson.core</groupId>
           <artifactId>jackson-databind</artifactId>
         </exclusion>
         <exclusion>
