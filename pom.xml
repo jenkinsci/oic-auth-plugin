@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>oic-auth</artifactId>
-  <version>${revision}.${changelist}</version>
+  <version>${revision}.438.${changelist}</version>
   <packaging>hpi</packaging>
 
   <name>OpenId Connect Authentication Plugin</name>
