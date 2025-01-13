@@ -119,6 +119,11 @@
           <artifactId>jackson-datatype-jsr310</artifactId>
         </exclusion>
         <exclusion>
+          <!-- not needed at runtime -->
+          <groupId>com.google.code.findbugs</groupId>
+          <artifactId>findbugs-annotations</artifactId>
+        </exclusion>
+        <exclusion>
           <!-- consume from commons-lang3-api plugin -->
           <groupId>org.apache.commons</groupId>
           <artifactId>commons-lang3</artifactId>
@@ -156,6 +161,11 @@
           <artifactId>jackson-databind</artifactId>
         </exclusion>
         <exclusion>
+          <!-- not needed at runtime -->
+          <groupId>com.google.code.findbugs</groupId>
+          <artifactId>findbugs-annotations</artifactId>
+        </exclusion>
+        <exclusion>
           <!-- consume from Jenkins core -->
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
@@ -169,6 +179,11 @@
           <!-- consume from Jenkins core -->
           <groupId>org.slf4j</groupId>
           <artifactId>slf4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from Jenkins core -->
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-core</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
