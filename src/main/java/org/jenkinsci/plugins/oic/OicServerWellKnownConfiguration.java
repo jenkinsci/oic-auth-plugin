@@ -219,12 +219,12 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
         }
 
         @POST
-        public FormValidation doCheckOverrideScopes(@QueryParameter String overrideScopes) {
+        public FormValidation doCheckScopesOverride(@QueryParameter String scopesOverride) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(overrideScopes) == null) {
+            if (Util.fixEmptyAndTrim(scopesOverride) == null) {
                 return FormValidation.ok();
             }
-            if (!overrideScopes.toLowerCase().contains("openid")) {
+            if (!scopesOverride.toLowerCase().contains("openid")) {
                 return FormValidation.warning(Messages.OicSecurityRealm_RUSureOpenIdNotInScope());
             }
             return FormValidation.ok();
