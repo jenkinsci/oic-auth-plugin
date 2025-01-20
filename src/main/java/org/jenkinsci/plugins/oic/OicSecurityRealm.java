@@ -293,7 +293,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             SystemProperties.getBoolean(OicSecurityRealm.class.getName() + ".checkNonceInRefreshFlow", false);
 
     /** old field that had an '/' implicitly added at the end,
-     * transient because we no longer want to have this value stored
+     * transient because we no longer want to have this value stored,
      * but it's still needed for backwards compatibility */
     @Deprecated
     private transient String endSessionUrl;
@@ -718,9 +718,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         if (oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs() != null) {
-            List<JWSAlgorithm> clientRegisterationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+            List<JWSAlgorithm> clientRegistrationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
                     oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs());
-            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegisterationAuth);
+            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegistrationAuth);
         }
     }
 
@@ -957,7 +957,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * Validate post-login redirect URL
      *
      * For security reasons, the login must not redirect outside Jenkins
-     * realm. For useablility reason, the logout page should redirect to
+     * realm. For usability reason, the logout page should redirect to
      * root url.
      */
     protected String getValidRedirectUrl(String url) {
@@ -982,7 +982,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     /**
-     * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
+     * Handles the securityRealm/commenceLogin resource and sends the user off to the IdP
      * @param from the relative URL to the page that the user has just come from
      * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
      * @throws URISyntaxException if the provided data is invalid
@@ -1160,7 +1160,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             LOGGER.warning("userInfo did not contain a valid group field content, got null");
             return Collections.<String>emptyList();
         } else if (field instanceof String) {
-            // if its a String, the original value was not a json array.
+            // if it's a String, the original value was not a json array.
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
             // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
             String sField = (String) field;
@@ -1179,7 +1179,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 if (group instanceof String) {
                     result.add(group.toString());
                 } else if (group instanceof Map) {
-                    // if its a Map, we use the nestedGroupFieldName to grab the groups
+                    // if it's a Map, we use the nestedGroupFieldName to grab the groups
                     Map<String, String> groupMap = (Map<String, String>) group;
                     if (nestedGroupFieldName != null && groupMap.keySet().contains(nestedGroupFieldName)) {
                         result.add(groupMap.get(nestedGroupFieldName));
@@ -1502,8 +1502,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 User u = User.get2(a);
                 LOGGER.log(
                         Level.FINE,
-                        "Token refresh.  Current Authentitcation principal: " + a.getName() + " user id:"
-                                + (u == null ? "null user" : u.getId()) + " newly retreived username would have been: "
+                        "Token refresh.  Current Authentication principal: " + a.getName() + " user id:"
+                                + (u == null ? "null user" : u.getId()) + " newly retrieved username would have been: "
                                 + username);
             }
             username = expectedUsername;
