@@ -1080,11 +1080,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 }
             }
             if (idToken != null) {
-                String fieldValue = Util.fixEmptyAndTrim(
+                return Util.fixEmptyAndTrim(
                         getStringField(idToken.getJWTClaimsSet().getClaims(), fieldExpr));
-                if (fieldValue != null) {
-                    return fieldValue;
-                }
             }
         }
         return null;
