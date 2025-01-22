@@ -32,6 +32,28 @@
         <f:dropdownDescriptorSelector title="${%GroupIdStrategy}" field="groupIdStrategy" default="${descriptor.defaultGroupIdStrategy()}" descriptors="${descriptor.idStrategyDescriptors}"/>
       </f:entry>
     </f:advanced>
+    <f:advanced title="${%LoginLogoutQueryParametersTitle}">
+        <f:entry title="${%LoginQueryParametersTitle}">
+            <f:repeatable field="loginQueryParamNameValuePairs"
+                          header="${%LoginLogoutQueryParamNameValuePairs.header}"
+                          minimum="0"
+                          add="${%LoginQueryParamNameValuePairs.add}">
+                <st:include page="config.jelly"
+                            class="org.jenkinsci.plugins.oic.OicQueryParameterConfiguration"/>
+                <div align="right"><f:repeatableDeleteButton/></div>
+            </f:repeatable>
+        </f:entry>
+        <f:entry title="${%LogoutQueryParametersTitle}">
+            <f:repeatable field="logoutQueryParamNameValuePairs"
+                          header="${%LoginLogoutQueryParamNameValuePairs.header}"
+                          minimum="0"
+                          add="${%LogoutQueryParamNameValuePairs.add}">
+                <st:include page="config.jelly"
+                            class="org.jenkinsci.plugins.oic.OicQueryParameterConfiguration"/>
+                <div align="right"><f:repeatableDeleteButton/></div>
+            </f:repeatable>
+        </f:entry>
+    </f:advanced>
     <f:entry title="${%LogoutFromOpenIDProvider}" field="logoutFromOpenidProvider">
       <f:checkbox id="logoutFromIDP"/>
     </f:entry>

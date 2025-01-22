@@ -25,3 +25,13 @@ jenkins:
       sendScopesInTokenRequest: true
       pkceEnabled: true
       nonceDisabled: true
+      loginQueryParamNameValuePairs:
+        - queryParamName: "loginkey1x\"xx@me"
+          queryParamValue: "loginvalue1xxxx@you"
+        - queryParamName: "?loginneu&/test="
+          queryParamValue: "login?sunny%&/xx\"x"
+      logoutQueryParamNameValuePairs:
+        - queryParamName: "logoutkey1x\"xx@me"
+          queryParamValue: "logoutvalue1xxxx@you"
+        - queryParamName: "?logoutneu&/test="
+          queryParamValue: "logout?sunny%&/xx\"x"
