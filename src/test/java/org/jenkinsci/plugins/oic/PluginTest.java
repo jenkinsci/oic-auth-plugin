@@ -386,6 +386,25 @@ class PluginTest {
     }
 
     @Test
+    public void testLoginWithCustomLoginParameters() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithGroup();
+        mockUserInfoWithTestGroups();
+        configureWellKnown(null, null);
+        jenkins.setSecurityRealm(new TestRealm.Builder(wireMock)
+                .WithMinimalDefaults()
+                        .WithAutomanualconfigure(true)
+                        .WithLoginQueryParameters(List.of(
+                                new OicQueryParameterConfiguration("queryLoginParamName", "queryLoginParamValue")))
+                        .build());
+        assertAnonymous();
+        browseLoginPage();
+        var user = assertTestUser();
+        assertTestUserEmail(user);
+        assertTestUserIsMemberOfTestGroups(user);
+    }
+
+    @Test
     void testLoginWithAutoConfiguration_WithNoScope() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithValues(setUpKeyValuesNoGroup());
@@ -1016,7 +1035,28 @@ class PluginTest {
             logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest2(), Jenkins.ANONYMOUS2);
             return null;
         });
-        assertEquals("http://provider/logout?state=null", logoutURL[0]);
+        assertEquals("http://provider/logout", logoutURL[0]);
+    }
+
+    @Test
+    public void testLogoutShouldBeProviderURLWhenProviderLogoutConfiguredWithAdditionalLogoutQueryParameters()
+            throws Exception {
+        final TestRealm oicsr = new TestRealm.Builder(wireMock)
+                .WithLogoutQueryParameters(List.of(
+                                new OicQueryParameterConfiguration("hello", "world"),
+                                new OicQueryParameterConfiguration("state", "test"),
+                                new OicQueryParameterConfiguration("single", ""),
+                                new OicQueryParameterConfiguration("id_token_hint", "other")))
+                        .WithLogout(Boolean.TRUE, "http://provider/logout")
+                        .build();
+        jenkins.setSecurityRealm(oicsr);
+
+        String[] logoutURL = new String[1];
+        jenkinsRule.executeOnServer(() -> {
+            logoutURL[0] = oicsr.getPostLogOutUrl2(Stapler.getCurrentRequest2(), Jenkins.ANONYMOUS2);
+            return null;
+        });
+        assertEquals("http://provider/logout?hello=world&single", logoutURL[0]);
     }
 
     @Test
@@ -1034,7 +1074,7 @@ class PluginTest {
             return null;
         });
         assertEquals(
-                "http://provider/logout?state=null&post_logout_redirect_uri=http%3A%2F%2Fsee.it%2F%3Fcat%26color%3Dwhite",
+                "http://provider/logout?post_logout_redirect_uri=http%3A%2F%2Fsee.it%2F%3Fcat%26color%3Dwhite",
                 logoutURL[0]);
     }
 
