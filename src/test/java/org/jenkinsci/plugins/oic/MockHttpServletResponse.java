@@ -1,12 +1,14 @@
 package org.jenkinsci.plugins.oic;
 
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Locale;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
+import java.util.function.Supplier;
 
 public class MockHttpServletResponse implements HttpServletResponse {
 
@@ -114,6 +116,16 @@ public class MockHttpServletResponse implements HttpServletResponse {
 
     @Override
     public Collection<String> getHeaderNames() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setTrailerFields(Supplier<Map<String, String>> supplier) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Supplier<Map<String, String>> getTrailerFields() {
         throw new UnsupportedOperationException();
     }
 
