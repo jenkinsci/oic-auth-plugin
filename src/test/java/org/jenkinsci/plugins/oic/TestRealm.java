@@ -8,6 +8,7 @@ import io.burt.jmespath.Expression;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.text.ParseException;
+import java.util.List;
 import jenkins.model.IdStrategy;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
@@ -43,6 +44,8 @@ public class TestRealm extends OicSecurityRealm {
         public String fullNameFieldName = FULL_NAME_FIELD;
         public String emailFieldName = null;
         public String scopes = null;
+        public List<OicQueryParameterConfiguration> loginQueryParameters = null;
+        public List<OicQueryParameterConfiguration> logoutQueryParameters = null;
         public String groupsFieldName = null;
         public boolean disableSslVerification = false;
         public Boolean logoutFromOpenidProvider = false;
@@ -117,6 +120,16 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithScopes(String scopes) {
             this.scopes = scopes;
+            return this;
+        }
+
+        public Builder WithLoginQueryParameters(List<OicQueryParameterConfiguration> values) {
+            this.loginQueryParameters = values;
+            return this;
+        }
+
+        public Builder WithLogoutQueryParameters(List<OicQueryParameterConfiguration> values) {
+            this.logoutQueryParameters = values;
             return this;
         }
 
@@ -213,6 +226,8 @@ public class TestRealm extends OicSecurityRealm {
         this.setEscapeHatchSecret(builder.escapeHatchSecret);
         this.setEscapeHatchGroup(builder.escapeHatchGroup);
         this.setDisableTokenVerification(builder.disableTokenValidation);
+        this.setLoginQueryParamNameValuePairs(builder.loginQueryParameters);
+        this.setLogoutQueryParamNameValuePairs(builder.logoutQueryParameters);
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
         // is only called in regular use not code use.
