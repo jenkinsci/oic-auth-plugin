@@ -1376,14 +1376,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     public boolean handleTokenExpiration(HttpServletRequest httpRequest, HttpServletResponse httpResponse)
             throws IOException, ServletException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (httpRequest.getRequestURI().endsWith("/logout")) {
-            // No need to refresh token when logging out
+        if (isLogoutRequest(httpRequest)) {
             return true;
         }
 
-        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (isAnonymousOrNoAuthentication(authentication)) {
             return true;
         }
 
@@ -1392,32 +1390,17 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             return true;
         }
 
-        if (isAllowTokenAccessWithoutOicSession()) {
-            // check if this is a valid api token based request
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Basic ")) {
-                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
-                        .split(":")[1];
-
-                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
-                if (apiTokenProperty != null && apiTokenProperty.matchesPassword(token)) {
-                    // this was a valid jenkins token being used, exit this filter and let
-                    // the rest of chain be processed
-                    return true;
-                } // else do nothing and continue evaluating this request
-            }
-        }
-
         OicCredentials credentials = user.getProperty(OicCredentials.class);
-
         if (credentials == null) {
             return true;
         }
 
+        if (isValidApiTokenRequest(httpRequest, user)) {
+            return true;
+        }
+
         if (isExpired(credentials)) {
-            if (serverConfiguration.toProviderMetadata().getGrantTypes() != null
-                    && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
-                    && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
+            if (canRefreshToken(credentials)) {
                 LOGGER.log(Level.FINEST, "Attempting to refresh credential for user: {0}", user.getId());
                 boolean retVal = refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
                 LOGGER.log(Level.FINEST, "Refresh credential for user returned {0}", retVal);
@@ -1429,6 +1412,38 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         return true;
+    }
+
+    boolean isLogoutRequest(HttpServletRequest request) {
+        return request.getRequestURI().endsWith("/logout");
+    }
+
+    boolean isAnonymousOrNoAuthentication(Authentication authentication) {
+        return authentication == null || authentication instanceof AnonymousAuthenticationToken;
+    }
+
+    boolean isValidApiTokenRequest(HttpServletRequest httpRequest, User user) {
+        if (isAllowTokenAccessWithoutOicSession()) {
+            // check if this is a valid api token based request
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Basic ")) {
+                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
+                        .split(":")[1];
+
+                // this was a valid jenkins token being used, exit this filter and let
+                // the rest of chain be processed
+                // else do nothing and continue evaluating this request
+                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
+                return apiTokenProperty != null && apiTokenProperty.matchesPassword(token);
+            }
+        }
+        return false;
+    }
+
+    boolean canRefreshToken(OicCredentials credentials) {
+        return serverConfiguration.toProviderMetadata().getGrantTypes() != null
+                && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
+                && !Strings.isNullOrEmpty(credentials.getRefreshToken());
     }
 
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
