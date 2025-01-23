@@ -3,6 +3,9 @@
 This document provides information about contributing code to
 Jenkins' OpenID Connect Authentication plug-in.
 
+Before developing this plugin, please ensure that your development environment meets the following requirements:
+  - **Maven 3.9.6 or later versions is required.**
+
 There are many ways to contribute which are more or less the same as
 the [general Jenkins participation](https://www.jenkins.io/participate/)
 needs. This contribution guide comes in complement to the general guidelines
