@@ -3,15 +3,17 @@ package org.jenkinsci.plugins.oic;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.util.Secret;
-import org.acegisecurity.AuthenticationManager;
-import org.acegisecurity.BadCredentialsException;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.GrantedAuthorityImpl;
-import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
-import org.acegisecurity.providers.anonymous.AnonymousAuthenticationToken;
+import java.util.Collection;
+import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import static org.junit.Assert.assertEquals;
@@ -24,7 +26,7 @@ public class OicSecurityRealmTest {
 
     public static final String ADMIN = "admin";
 
-    private static final GrantedAuthorityImpl GRANTED_AUTH1 = new GrantedAuthorityImpl(ADMIN);
+    private static final SimpleGrantedAuthority GRANTED_AUTH1 = new SimpleGrantedAuthority(ADMIN);
 
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(), true);
@@ -35,13 +37,13 @@ public class OicSecurityRealmTest {
     @Test
     public void testAuthenticate_withAnonymousAuthenticationToken() throws Exception {
         TestRealm realm = new TestRealm(wireMockRule);
-        AuthenticationManager manager = realm.getSecurityComponents().manager;
+        AuthenticationManager manager = realm.getSecurityComponents().manager2;
 
         assertNotNull(manager);
 
         String key = "testKey";
         Object principal = "testUser";
-        GrantedAuthority[] authorities = new GrantedAuthority[] {GRANTED_AUTH1};
+        Collection<GrantedAuthority> authorities = List.of(GRANTED_AUTH1);
         AnonymousAuthenticationToken token = new AnonymousAuthenticationToken(key, principal, authorities);
 
         assertEquals(token, manager.authenticate(token));
@@ -50,13 +52,13 @@ public class OicSecurityRealmTest {
     @Test(expected = BadCredentialsException.class)
     public void testAuthenticate_withUsernamePasswordAuthenticationToken() throws Exception {
         TestRealm realm = new TestRealm(wireMockRule);
-        AuthenticationManager manager = realm.getSecurityComponents().manager;
+        AuthenticationManager manager = realm.getSecurityComponents().manager2;
 
         assertNotNull(manager);
 
         String key = "testKey";
         Object principal = "testUser";
-        GrantedAuthority[] authorities = new GrantedAuthority[] {GRANTED_AUTH1};
+        Collection<GrantedAuthority> authorities = List.of(GRANTED_AUTH1);
         UsernamePasswordAuthenticationToken token =
                 new UsernamePasswordAuthenticationToken(key, principal, authorities);
 
