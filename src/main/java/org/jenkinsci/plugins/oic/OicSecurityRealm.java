@@ -916,11 +916,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     /*
-     * Acegi has this notion that first an {@link org.acegisecurity.Authentication} object is created
+     * Acegi has this notion that first an {@link Authentication} object is created
      * by collecting user information and then the act of authentication is done
-     * later (by {@link org.acegisecurity.AuthenticationManager}) to verify it. But in case of OpenID,
-     * we create an {@link org.acegisecurity.Authentication} only after we verified the user identity,
-     * so {@link org.acegisecurity.AuthenticationManager} becomes no-op.
+     * later (by {@link AuthenticationManager}) to verify it. But in case of OpenID,
+     * we create an {@link Authentication} only after we verified the user identity,
+     * so {@link AuthenticationManager} becomes no-op.
      */
     @Override
     public SecurityComponents createSecurityComponents() {
