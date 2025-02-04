@@ -1279,10 +1279,34 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     private String getRootUrl() {
+        // Call the overloaded method with a null request
+        return getRootUrl(null);
+    }
+
+    private String getAdditionalAuthUrl(HttpServletRequest request, String defaultUrl) {
+        String host = request.getHeader("Host");
+        if (host != null) {
+            LOGGER.info("Received request with host: " + host);
+            return host;
+        }
+        LOGGER.info("No matching host found. Using default test root URL: " + defaultUrl);
+        return defaultUrl;
+    }
+
+    private String getRootUrl(HttpServletRequest request) {
+        String rootUrl = "";
         if (rootURLFromRequest) {
-            return Jenkins.get().getRootUrlFromRequest();
+            rootUrl = Jenkins.get().getRootUrlFromRequest();
         } else {
-            return Jenkins.get().getRootUrl();
+            rootUrl = Jenkins.get().getRootUrl();
+        }
+
+        if (request == null) {
+            LOGGER.info("Using standard root URL:" + rootUrl);
+            return rootUrl;
+        } else {
+            LOGGER.info("Checking for additional auth URLs based on request.");
+            return getAdditionalAuthUrl(request, rootUrl);
         }
     }
 
