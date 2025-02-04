@@ -28,6 +28,9 @@
       <f:entry title="${%GroupsFieldName}" field="groupsFieldName">
         <f:textbox/>
       </f:entry>
+      <f:entry title="${%AvatarFieldName}" field="avatarFieldName">
+        <f:textbox/>
+      </f:entry>
       <f:entry>
         <f:dropdownDescriptorSelector title="${%GroupIdStrategy}" field="groupIdStrategy" default="${descriptor.defaultGroupIdStrategy()}" descriptors="${descriptor.idStrategyDescriptors}"/>
       </f:entry>
