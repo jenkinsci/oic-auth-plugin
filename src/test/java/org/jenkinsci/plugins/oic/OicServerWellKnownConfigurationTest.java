@@ -83,13 +83,13 @@ public class OicServerWellKnownConfigurationTest {
     public void doCheckOverrideScopes() throws IOException {
         DescriptorImpl descriptor = getDescriptor();
 
-        assertThat(descriptor.doCheckOverrideScopes(null), hasKind(FormValidation.Kind.OK));
-        assertThat(descriptor.doCheckOverrideScopes(""), hasKind(FormValidation.Kind.OK));
+        assertThat(descriptor.doCheckScopesOverride(null), hasKind(FormValidation.Kind.OK));
+        assertThat(descriptor.doCheckScopesOverride(""), hasKind(FormValidation.Kind.OK));
         assertThat(
-                descriptor.doCheckOverrideScopes("openid email profile address phone offline_access"),
+                descriptor.doCheckScopesOverride("openid email profile address phone offline_access"),
                 hasKind(FormValidation.Kind.OK));
         assertThat(
-                descriptor.doCheckOverrideScopes("blah"),
+                descriptor.doCheckScopesOverride("blah"),
                 allOf(
                         hasKind(FormValidation.Kind.WARNING),
                         withMessage("Are you sure you don't want to include 'openid' as a scope?")));
