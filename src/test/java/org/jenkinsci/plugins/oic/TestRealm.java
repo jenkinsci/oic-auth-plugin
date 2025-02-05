@@ -285,7 +285,7 @@ public class TestRealm extends OicSecurityRealm {
             FrameworkParameters parameters = new JEEFrameworkParameters(request, response);
             WebContext webContext = JEEContextFactory.INSTANCE.newContext(parameters);
             SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore(parameters);
-            OidcClient oidcClient = buildOidcClient();
+            OidcClient oidcClient = buildOidcClient(this.getHttpServletRequest());
             sessionStore.set(webContext, oidcClient.getNonceSessionAttributeName(), "nonce");
         }
         super.doFinishLogin(request, response);

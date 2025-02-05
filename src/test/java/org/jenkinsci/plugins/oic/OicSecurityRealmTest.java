@@ -86,13 +86,13 @@ public class OicSecurityRealmTest {
         TestRealm realm =
                 new TestRealm.Builder(wireMockRule).WithMinimalDefaults().build();
 
-        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("foo"));
-        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("/jenkins/foo"));
-        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl(rootUrl + "foo"));
-        assertEquals(rootUrl, realm.getValidRedirectUrl(null));
-        assertEquals(rootUrl, realm.getValidRedirectUrl(""));
+        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("foo", realm.getHttpServletRequest()));
+        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("/jenkins/foo", realm.getHttpServletRequest()));
+        assertEquals(rootUrl + "foo", realm.getValidRedirectUrl(rootUrl + "foo", realm.getHttpServletRequest()));
+        assertEquals(rootUrl, realm.getValidRedirectUrl(null, realm.getHttpServletRequest()));
+        assertEquals(rootUrl, realm.getValidRedirectUrl("", realm.getHttpServletRequest()));
 
-        assertEquals(rootUrl, realm.getValidRedirectUrl(OicLogoutAction.POST_LOGOUT_URL));
+        assertEquals(rootUrl, realm.getValidRedirectUrl(OicLogoutAction.POST_LOGOUT_URL, realm.getHttpServletRequest()));
     }
 
     @Test
@@ -103,11 +103,10 @@ public class OicSecurityRealmTest {
         TestRealm realm =
                 new TestRealm.Builder(wireMockRule).WithMinimalDefaults().build();
 
-        assertEquals(rootUrl, realm.getValidRedirectUrl("/bar"));
-        assertEquals(rootUrl, realm.getValidRedirectUrl("../bar"));
-        assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/"));
-        assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/bar/"));
-        assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/jenkins/../bar/"));
+        assertEquals(rootUrl, realm.getValidRedirectUrl("../bar", realm.getHttpServletRequest()));
+        assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/", realm.getHttpServletRequest()));
+        assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/bar/", realm.getHttpServletRequest()));
+        assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/jenkins/../bar/", realm.getHttpServletRequest()));
     }
 
     @Test
