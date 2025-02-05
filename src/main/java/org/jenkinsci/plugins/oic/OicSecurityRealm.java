@@ -725,11 +725,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @Restricted(NoExternalUse.class) // exposed for testing only
-    protected OidcClient buildOidcClient() {
+    protected OidcClient buildOidcClient(HttpServletRequest request) {
         OidcConfiguration oidcConfiguration = buildOidcConfiguration();
         OidcClient client = new OidcClient(oidcConfiguration);
         // add the extra settings for the client...
-        client.setCallbackUrl(buildOAuthRedirectUrl());
+        client.setCallbackUrl(buildOAuthRedirectUrl(request));
         client.setAuthenticator(new OidcAuthenticator(oidcConfiguration, client));
         // when building the redirect URL by default pac4j adds the "client_name=DOidcClient" query parameter to the
         // redirectURL.
@@ -960,8 +960,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * realm. For useablility reason, the logout page should redirect to
      * root url.
      */
-    protected String getValidRedirectUrl(String url) {
-        final String rootUrl = getRootUrl();
+    protected String getValidRedirectUrl(String url, HttpServletRequest request) {
+        final String rootUrl = getRootUrl(request);
         if (url != null && !url.isEmpty()) {
             try {
                 final String redirectUrl = new URL(new URL(rootUrl), url).toString();
@@ -991,9 +991,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     public void doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer)
             throws URISyntaxException {
 
-        OidcClient client = buildOidcClient();
+        HttpServletRequest request = (HttpServletRequest) Stapler.getCurrentRequest2();
+        OidcClient client = buildOidcClient(request);
         // add the extra params for the client...
-        final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer);
+        final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer, request);
 
         OidcRedirectionActionBuilder builder = new OidcRedirectionActionBuilder(client);
         FrameworkParameters parameters =
@@ -1236,7 +1237,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @VisibleForTesting
     Object getStateAttribute(HttpSession session) {
         // return null;
-        OidcClient client = buildOidcClient();
+        HttpServletRequest currentRequest = (HttpServletRequest) Stapler.getCurrentRequest2();
+        OidcClient client = buildOidcClient(currentRequest);
         FrameworkParameters parameters =
                 new JEEFrameworkParameters(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(parameters);
@@ -1310,21 +1312,21 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
     }
 
-    private String ensureRootUrl() {
-        String rootUrl = getRootUrl();
+    private String ensureRootUrl(HttpServletRequest request) {
+        String rootUrl = getRootUrl(request);
         if (rootUrl == null) {
-            throw new NullPointerException("Jenkins root url must not be null");
+            throw new IllegalStateException("Jenkins root URL cannot be resolved.");
         } else {
             return rootUrl;
         }
     }
 
-    private String buildOauthCommenceLogin() {
-        return ensureRootUrl() + getLoginUrl();
+    private String buildOauthCommenceLogin(HttpServletRequest request) {
+        return ensureRootUrl(request) + getLoginUrl();
     }
 
-    private String buildOAuthRedirectUrl() throws NullPointerException {
-        return ensureRootUrl() + "securityRealm/finishLogin";
+    private String buildOAuthRedirectUrl(HttpServletRequest request) throws NullPointerException {
+        return ensureRootUrl(request) + "securityRealm/finishLogin";
     }
 
     /**
@@ -1333,7 +1335,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * @throws ParseException if the JWT (or other response) could not be parsed.
      */
     public void doFinishLogin(StaplerRequest2 request, StaplerResponse2 response) throws IOException, ParseException {
-        OidcClient client = buildOidcClient();
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        OidcClient client = buildOidcClient(httpRequest);
 
         FrameworkParameters parameters = new JEEFrameworkParameters(request, response);
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(parameters);
@@ -1482,7 +1485,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         FrameworkParameters parameters = new JEEFrameworkParameters(httpRequest, httpResponse);
         WebContext webContext = JEEContextFactory.INSTANCE.newContext(parameters);
         SessionStore sessionStore = JEESessionStoreFactory.INSTANCE.newSessionStore(parameters);
-        OidcClient client = buildOidcClient();
+        OidcClient client = buildOidcClient(httpRequest);
         // PAC4J maintains the nonce even though servers should not respond with an id token containing the nonce
         // https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse
         // it SHOULD NOT have a nonce Claim, even when the ID Token issued at the time of the original authentication
