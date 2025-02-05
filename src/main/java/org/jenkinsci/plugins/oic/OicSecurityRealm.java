@@ -65,7 +65,10 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InvalidObjectException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
@@ -76,11 +79,14 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.text.ParseException;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -89,6 +95,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
 import jenkins.model.IdStrategy;
 import jenkins.model.IdStrategyDescriptor;
 import jenkins.model.Jenkins;
@@ -214,6 +222,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private transient Expression<Object> emailFieldExpr = null;
     private String groupsFieldName = null;
     private transient Expression<Object> groupsFieldExpr = null;
+    private String avatarFieldName = null;
+    private transient Expression<Object> avatarFieldExpr = null;
     private transient String simpleGroupsFieldName = null;
     private transient String nestedGroupFieldName = null;
 
@@ -365,6 +375,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             this.setGroupsFieldName(this.groupsFieldName);
         }
         // ensure Field JMESPath are computed
+        this.setAvatarFieldName(this.avatarFieldName);
         this.setUserNameField(this.userNameField);
         this.setEmailFieldName(this.emailFieldName);
         this.setFullNameFieldName(this.fullNameFieldName);
@@ -461,6 +472,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     public String getGroupsFieldName() {
         return groupsFieldName;
+    }
+
+    public String getAvatarFieldName() {
+        return avatarFieldName;
     }
 
     @Override
@@ -797,6 +812,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
+    public void setAvatarFieldName(String avatarFieldName) {
+        this.avatarFieldName = Util.fixEmptyAndTrim(avatarFieldName);
+        this.avatarFieldExpr = this.compileJMESPath(this.avatarFieldName, "avatar field");
+    }
+
+    @DataBoundSetter
     public void setLogoutFromOpenidProvider(boolean logoutFromOpenidProvider) {
         this.logoutFromOpenidProvider = logoutFromOpenidProvider;
     }
@@ -1070,6 +1091,32 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             user.setFullName(fullName);
         }
 
+        // Set avatar if possible
+        if (StringUtils.isNotBlank(avatarFieldName)) {
+            try {
+
+                // Extract avatar from the userInfo
+                String encodedAvatar = determineStringField(avatarFieldExpr, idToken, userInfo);
+                byte[] decodedAvatar = Base64.getDecoder().decode(encodedAvatar);
+
+                // Try to determine the content type of the avatar
+                String contentType = determineAvatarContentType(decodedAvatar);
+                LOGGER.finest("Avatar content type: " + contentType);
+
+                OicAvatarProperty.AvatarImage avatarImage = new OicAvatarProperty.AvatarImage(contentType);
+                OicAvatarProperty oicAvatarProperty = new OicAvatarProperty(avatarImage);
+                File targetFile = new File(user.getUserFolder(), "oic-avatar." + avatarImage.getFilenameSuffix());
+
+                Files.write(targetFile.toPath(), decodedAvatar, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                LOGGER.finest("Saved avatar");
+                user.addProperty(oicAvatarProperty);
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to save profile photo for %s".formatted(user.getId()), e);
+            }
+        } else {
+            LOGGER.finest("No avatar field name or expression configured");
+        }
+
         user.addProperty(credentials);
 
         OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
@@ -1077,6 +1124,31 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         SecurityListener.fireLoggedIn(userName);
 
         return token;
+    }
+
+    private String determineAvatarContentType(byte[] avatar) {
+        try (InputStream is = new ByteArrayInputStream(avatar)) {
+            Iterator<ImageReader> iterator = ImageIO.getImageReaders(ImageIO.createImageInputStream(is));
+            if (!iterator.hasNext()) {
+                LOGGER.warning("Failed to determine avatar content type. Falling back to image/png");
+                return "image/png";
+            }
+            String formatName = iterator.next().getFormatName();
+            switch (formatName.toLowerCase()) {
+                case "jpg":
+                case "jpeg":
+                    return "image/jpeg";
+                case "png":
+                    return "image/png";
+                case "gif":
+                    return "image/gif";
+                default:
+                    return "image/png";
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Failed to determine avatar content type. Falling back to image/png", e);
+            return "image/png";
+        }
     }
 
     private String determineStringField(Expression<Object> fieldExpr, JWT idToken, Map userInfo) throws ParseException {

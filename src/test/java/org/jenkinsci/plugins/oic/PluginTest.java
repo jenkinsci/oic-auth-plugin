@@ -81,6 +81,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.jenkinsci.plugins.oic.TestRealm.AVATAR_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
@@ -107,6 +108,8 @@ public class PluginTest {
     private static final String[] TEST_USER_GROUPS_REFRESHED = new String[] {"group1", "group2", "group3"};
     private static final List<Map<String, String>> TEST_USER_GROUPS_MAP =
             List.of(Map.of("id", "id1", "name", "group1"), Map.of("id", "id2", "name", "group2"));
+    private static final String TEST_ENCODED_AVATAR =
+            "iVBORw0KGgoAAAANSUhEUgAAABsAAAAaCAYAAABGiCfwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAH8SURBVEhL7ZbPK0RRFMe/z/w05Mc0Mo0mZeFXGM1IFDFEfjWKks1sSIkipDSrt1M2FpY2FpSllK2yV/4DWYlSLGzw7rvufe/Rm5n3a4rJwmdz77nz3vnee865Z56QSCQoikSJNhaFvy823Ulwsf6BWFTWVpxRsFionGJ7TEZtBSCmCEoE5ykvWGxtmMDvUefRIDDf/UtibXUUEx3ZzpcHCSpKNcOGgsQyk0QZbx/ecHDxhOdXCQEvsJpU1+1wLDYVk9FYq54qc/yAtcN7HF0+K/ZMnKChxj6cjsT8Hop1lqsvPojq+F1SR0EQsDMuKXMrHIkt9smoLtMME+L1wFCL9VWwFQtXUqR7nd2nzRECt0szDLAV2xq1dqAnXAmke8yLxVIsXk+RbLZPvJ7Ffh5y43dMxVjOHSU9F37h9cWkx1RsNi6zctaMHLxuthPdmMtUjLJrkp9nVyQSEbX5NwEvxf68BJ/H2Flr1I9wtRtLI0GU+oz32xQGzm6yfzN8ciUpsxZkLMTxs01UlbmUUJvBW9t4e/bp8sSiQYq5LutSF08flQ5ycvWirRjDc8cbwhd5YdydIUo3t6KpzgeJdZGNVMg0jJyAD5CZ1vWd+kzWNwg/+tFC4RVoxTtzN7DnYS0uR4z/VYgpCeVsRz/FPYu0eO5W5v9fVz9CEcWAT+xkgmHqzLIIAAAAAElFTkSuQmCC";
 
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(
@@ -225,6 +228,12 @@ public class PluginTest {
 
     private void browseLoginPage() throws IOException, SAXException {
         webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
+    }
+
+    private void browseAvatarImagePage(User user, String contentType) throws IOException, SAXException {
+        String expectedAvatarUrl =
+                "user/%s/oic-avatar/image".formatted(user.getId().toLowerCase());
+        webClient.goTo(expectedAvatarUrl, contentType);
     }
 
     private void configureTestRealm(@NonNull Consumer<OicSecurityRealm> consumer) throws Exception {
@@ -348,6 +357,21 @@ public class PluginTest {
     }
 
     @Test
+    public void testLoginUsingUserInfoEndpointWithAvatar() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithoutValues();
+        mockUserInfoWithAvatar(TEST_ENCODED_AVATAR);
+        configureWellKnown(null, null);
+        jenkins.setSecurityRealm(new TestRealm(wireMockRule, null, EMAIL_FIELD, GROUPS_FIELD, AVATAR_FIELD, true));
+        assertAnonymous();
+        browseLoginPage();
+        var user = assertTestUser();
+        assertTestUserEmail(user);
+        assertTestAvatar(jenkins, user);
+        browseAvatarImagePage(user, "image/png"); // Image is browsable
+    }
+
+    @Test
     public void testLoginWithMinimalConfiguration() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithGroup();
@@ -358,6 +382,7 @@ public class PluginTest {
         var user = assertTestUser();
         assertTrue(
                 "User should be not be part of any group", user.getAuthorities().isEmpty());
+        browseAvatarImagePage(user, null);
     }
 
     @Test
@@ -834,6 +859,15 @@ public class PluginTest {
                 user.getProperty(Mailer.UserProperty.class).getAddress());
     }
 
+    private static void assertTestAvatar(Jenkins jenkins, User user) {
+        String expectedAvatarUrl = "%suser/%s/oic-avatar/image"
+                .formatted(jenkins.getRootUrl(), user.getId().toLowerCase());
+        OicAvatarProperty avatarProperty = user.getProperty(OicAvatarProperty.class);
+        assertEquals("Avatar url should be " + expectedAvatarUrl, expectedAvatarUrl, avatarProperty.getAvatarUrl());
+        assertEquals("Openid Connect Avatar", avatarProperty.getDisplayName());
+        assertNull("Icon filename must be null", avatarProperty.getIconFileName());
+    }
+
     private @NonNull User assertTestUser() {
         Authentication authentication = getAuthentication();
         assertEquals("Should be logged-in as " + TEST_USER_USERNAME, TEST_USER_USERNAME, authentication.getPrincipal());
@@ -1253,14 +1287,18 @@ public class PluginTest {
     }
 
     private void mockUserInfoWithGroups(@Nullable Object groups) {
-        mockUserInfo(getUserInfo(groups));
+        mockUserInfo(getUserInfo(groups, null));
+    }
+
+    private void mockUserInfoWithAvatar(String encodedAvatar) {
+        mockUserInfo(getUserInfo(null, encodedAvatar));
     }
 
     private void mockUserInfoJwtWithTestGroups(KeyPair keyPair, Object testUserGroups) throws Exception {
         wireMockRule.stubFor(get(urlPathEqualTo("/userinfo"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/jwt")
-                        .withBody(createUserInfoJWT(keyPair.getPrivate(), toJson(getUserInfo(testUserGroups))))));
+                        .withBody(createUserInfoJWT(keyPair.getPrivate(), toJson(getUserInfo(testUserGroups, null))))));
     }
 
     private void mockUserInfo(Map<String, Object> userInfo) {
@@ -1270,13 +1308,16 @@ public class PluginTest {
                         .withBody(toJson(userInfo))));
     }
 
-    private static Map<String, Object> getUserInfo(@Nullable Object groups) {
+    private static Map<String, Object> getUserInfo(@Nullable Object groups, @Nullable String encodedAvatar) {
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("sub", TEST_USER_USERNAME);
         userInfo.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
         userInfo.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
         if (groups != null) {
             userInfo.put(GROUPS_FIELD, groups);
+        }
+        if (encodedAvatar != null) {
+            userInfo.put(AVATAR_FIELD, encodedAvatar);
         }
         return userInfo;
     }
