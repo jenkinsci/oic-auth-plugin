@@ -991,7 +991,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     public void doCommenceLogin(@QueryParameter String from, @Header("Referer") final String referer)
             throws URISyntaxException {
 
-        HttpServletRequest request = (HttpServletRequest) Stapler.getCurrentRequest2();
+        HttpServletRequest request = getHttpServletRequest();
         OidcClient client = buildOidcClient(request);
         // add the extra params for the client...
         final String redirectOnFinish = getValidRedirectUrl(from != null ? from : referer, request);
@@ -1237,7 +1237,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @VisibleForTesting
     Object getStateAttribute(HttpSession session) {
         // return null;
-        HttpServletRequest currentRequest = (HttpServletRequest) Stapler.getCurrentRequest2();
+        HttpServletRequest currentRequest = getHttpServletRequest();
         OidcClient client = buildOidcClient(currentRequest);
         FrameworkParameters parameters =
                 new JEEFrameworkParameters(Stapler.getCurrentRequest2(), Stapler.getCurrentResponse2());
@@ -1248,6 +1248,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 .getValueRetriever()
                 .retrieve(ctx, client.getStateSessionAttributeName(), client)
                 .orElse(null);
+    }
+
+    @VisibleForTesting
+    HttpServletRequest getHttpServletRequest() {
+        return (HttpServletRequest) Stapler.getCurrentRequest2();
     }
 
     @CheckForNull
