@@ -2,12 +2,11 @@ package org.jenkinsci.plugins.oic;
 
 import hudson.Util;
 import hudson.util.FormValidation;
-import java.io.IOException;
 import org.hamcrest.Matcher;
 import org.jenkinsci.plugins.oic.OicServerManualConfiguration.DescriptorImpl;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -16,14 +15,12 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
 
-public class OicServerManualConfigurationTest {
-
-    @ClassRule
-    public static JenkinsRule jenkinsRule = new JenkinsRule();
+@WithJenkins
+class OicServerManualConfigurationTest {
 
     @Test
-    public void ddoCheckTokenServerUrl() throws IOException {
-        DescriptorImpl descriptor = getDescriptor();
+    void ddoCheckTokenServerUrl(JenkinsRule jenkinsRule) {
+        DescriptorImpl descriptor = getDescriptor(jenkinsRule);
 
         assertThat(
                 descriptor.doCheckTokenServerUrl(null),
@@ -35,8 +32,8 @@ public class OicServerManualConfigurationTest {
     }
 
     @Test
-    public void doCheckAuthorizationServerUrl() throws IOException {
-        DescriptorImpl descriptor = getDescriptor();
+    void doCheckAuthorizationServerUrl(JenkinsRule jenkinsRule) {
+        DescriptorImpl descriptor = getDescriptor(jenkinsRule);
 
         assertThat(
                 descriptor.doCheckAuthorizationServerUrl(null),
@@ -48,8 +45,8 @@ public class OicServerManualConfigurationTest {
     }
 
     @Test
-    public void doCheckJwksServerUrl() throws IOException {
-        DescriptorImpl descriptor = getDescriptor();
+    void doCheckJwksServerUrl(JenkinsRule jenkinsRule) {
+        DescriptorImpl descriptor = getDescriptor(jenkinsRule);
 
         assertThat(descriptor.doCheckJwksServerUrl(null), hasKind(FormValidation.Kind.OK));
         assertThat(descriptor.doCheckJwksServerUrl(""), hasKind(FormValidation.Kind.OK));
@@ -57,8 +54,8 @@ public class OicServerManualConfigurationTest {
     }
 
     @Test
-    public void doCheckScopes() throws IOException {
-        DescriptorImpl descriptor = getDescriptor();
+    void doCheckScopes(JenkinsRule jenkinsRule) {
+        DescriptorImpl descriptor = getDescriptor(jenkinsRule);
 
         assertThat(
                 descriptor.doCheckScopes(null),
@@ -76,8 +73,8 @@ public class OicServerManualConfigurationTest {
     }
 
     @Test
-    public void doCheckEndSessionEndpoint() throws IOException {
-        DescriptorImpl descriptor = getDescriptor();
+    void doCheckEndSessionEndpoint(JenkinsRule jenkinsRule) {
+        DescriptorImpl descriptor = getDescriptor(jenkinsRule);
 
         assertThat(
                 descriptor.doCheckEndSessionUrl(null),
@@ -91,7 +88,7 @@ public class OicServerManualConfigurationTest {
         assertThat(descriptor.doCheckEndSessionUrl("http://localhost.jwks"), hasKind(FormValidation.Kind.OK));
     }
 
-    private static DescriptorImpl getDescriptor() {
+    private static DescriptorImpl getDescriptor(JenkinsRule jenkinsRule) {
         return (DescriptorImpl) jenkinsRule.jenkins.getDescriptor(OicServerManualConfiguration.class);
     }
 

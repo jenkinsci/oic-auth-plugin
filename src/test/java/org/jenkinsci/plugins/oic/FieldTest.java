@@ -1,26 +1,27 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class FieldTest {
+@WithJenkins
+class FieldTest {
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(), true);
-
-    @Rule
-    public JenkinsRule jenkinsRule = new JenkinsRule();
+    @RegisterExtension
+    static WireMockExtension wireMock = WireMockExtension.newInstance()
+            .failOnUnmatchedRequests(true)
+            .options(wireMockConfig().dynamicPort())
+            .build();
 
     @Test
-    public void testNestedLookup() throws Exception {
+    void testNestedLookup() throws Exception {
         HashMap<String, Object> user = new HashMap<>();
         user.put("id", "100");
 
@@ -29,7 +30,7 @@ public class FieldTest {
         payload.put("user", user);
         payload.put("none", null);
 
-        TestRealm realm = new TestRealm(wireMockRule);
+        TestRealm realm = new TestRealm(wireMock);
 
         assertEquals("myemail@example.com", realm.getStringFieldFromJMESPath(payload, "email"));
         assertEquals("100", realm.getStringFieldFromJMESPath(payload, "user.id"));
@@ -40,7 +41,7 @@ public class FieldTest {
     }
 
     @Test
-    public void testNormalLookupDueToDot() throws Exception {
+    void testNormalLookupDueToDot() throws Exception {
         HashMap<String, Object> user = new HashMap<>();
         user.put("id", "100");
 
@@ -50,7 +51,7 @@ public class FieldTest {
         payload.put("none", null);
         payload.put("user.name", "myusername");
 
-        TestRealm realm = new TestRealm(wireMockRule);
+        TestRealm realm = new TestRealm(wireMock);
 
         assertEquals("myemail@example.com", realm.getStringFieldFromJMESPath(payload, "email"));
         assertNull(realm.getStringFieldFromJMESPath(payload, "unknown"));
@@ -61,7 +62,7 @@ public class FieldTest {
     }
 
     @Test
-    public void testFieldProcessing() throws Exception {
+    void testFieldProcessing() throws Exception {
         HashMap<String, Object> user = new HashMap<>();
         user.put("id", "100");
         user.put("name", "john");
@@ -70,17 +71,17 @@ public class FieldTest {
         Map<String, Object> payload = new HashMap<>();
         payload.put("user", user);
 
-        TestRealm realm = new TestRealm(wireMockRule);
+        TestRealm realm = new TestRealm(wireMock);
 
         assertEquals("john dow", realm.getStringFieldFromJMESPath(payload, "[user.name, user.surname] | join(' ', @)"));
     }
 
     @Test
-    public void testInvalidFieldName() throws Exception {
+    void testInvalidFieldName() throws Exception {
         Map<String, Object> payload = new HashMap<>();
         payload.put("user", "john");
 
-        TestRealm realm = new TestRealm(wireMockRule);
+        TestRealm realm = new TestRealm(wireMock);
 
         assertNull(realm.getStringFieldFromJMESPath(payload, "[user)"));
     }

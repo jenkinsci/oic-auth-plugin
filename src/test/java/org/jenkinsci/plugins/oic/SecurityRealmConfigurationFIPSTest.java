@@ -1,32 +1,49 @@
 package org.jenkinsci.plugins.oic;
 
 import hudson.model.Descriptor;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.jvnet.hudson.test.FlagRule;
+import jenkins.security.FIPS140;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class SecurityRealmConfigurationFIPSTest {
+class SecurityRealmConfigurationFIPSTest {
 
-    @ClassRule
-    public static FlagRule<String> FIPS_RULE = FlagRule.systemProperty("jenkins.security.FIPS140.COMPLIANCE", "true");
+    private static Object fipsProperty;
 
-    @Test(expected = Descriptor.FormException.class)
-    public void escapeHatchThrowsException() throws Exception {
-        new OicSecurityRealm("clientId", null, null, null, null, null).setEscapeHatchEnabled(true);
+    @BeforeAll
+    static void setUp() {
+        fipsProperty = System.getProperties().setProperty(FIPS140.class.getName() + ".COMPLIANCE", "true");
+    }
+
+    @AfterAll
+    static void tearDown() {
+        if (fipsProperty != null) {
+            System.setProperty(FIPS140.class.getName() + ".COMPLIANCE", String.valueOf(fipsProperty));
+        } else {
+            System.clearProperty(FIPS140.class.getName() + ".COMPLIANCE");
+        }
     }
 
     @Test
-    public void escapeHatchToFalse() throws Exception {
+    void escapeHatchThrowsException() {
+        assertThrows(
+                Descriptor.FormException.class,
+                () -> new OicSecurityRealm("clientId", null, null, null, null, null).setEscapeHatchEnabled(true));
+    }
+
+    @Test
+    void escapeHatchToFalse() throws Exception {
         OicSecurityRealm oicSecurityRealm = new OicSecurityRealm("clientId", null, null, null, null, null);
         oicSecurityRealm.setEscapeHatchEnabled(false);
         assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
     }
 
     @Test
-    public void readresolve() throws Exception {
+    void readResolve() throws Exception {
         OicSecurityRealm oicSecurityRealm = new OicSecurityRealm("clientId", null, null, null, null, null);
         oicSecurityRealm.setEscapeHatchEnabled(false);
         assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));

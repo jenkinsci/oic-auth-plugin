@@ -2,18 +2,18 @@ package org.jenkinsci.plugins.oic;
 
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class OicUserDetailsTest {
+class OicUserDetailsTest {
 
     private OicUserDetails details;
 
@@ -25,44 +25,44 @@ public class OicUserDetailsTest {
 
     private List<GrantedAuthority> grantedAuthorities = Arrays.asList(admin, read);
 
-    @Before
-    public void init() {
+    @BeforeEach
+    void init() {
         details = new OicUserDetails(userName, grantedAuthorities);
     }
 
     @Test
-    public void testGetAuthorities() {
+    void testGetAuthorities() {
         assertThat(details.getAuthorities(), containsInAnyOrder(admin, read));
     }
 
     @Test
-    public void testGetPassword() {
+    void testGetPassword() {
         // OpenID Connect => no passwords...
         assertNull(details.getPassword());
     }
 
     @Test
-    public void testGetUsername() {
+    void testGetUsername() {
         assertEquals(userName, details.getUsername());
     }
 
     @Test
-    public void TestIsAccountNonExpired() {
+    void TestIsAccountNonExpired() {
         assertTrue(details.isAccountNonExpired());
     }
 
     @Test
-    public void TestIsAccountNonLocked() {
+    void TestIsAccountNonLocked() {
         assertTrue(details.isAccountNonLocked());
     }
 
     @Test
-    public void TestIsCredentialsNonExpired() {
+    void TestIsCredentialsNonExpired() {
         assertTrue(details.isCredentialsNonExpired());
     }
 
     @Test
-    public void TestIsEnabled() {
+    void TestIsEnabled() {
         assertTrue(details.isEnabled());
     }
 }
