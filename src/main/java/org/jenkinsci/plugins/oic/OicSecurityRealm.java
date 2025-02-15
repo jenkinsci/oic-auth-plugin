@@ -320,8 +320,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     private transient ProxyAwareResourceRetriever proxyAwareResourceRetriever;
 
-    private List<OicQueryParameterConfiguration> loginQueryParamNameValuePairs;
-    private List<OicQueryParameterConfiguration> logoutQueryParamNameValuePairs;
+    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "we are not using standard serialization")
+    private List<LoginQueryParameter> loginQueryParameters;
+
+    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "we are not using standard serialization")
+    private List<LogoutQueryParameter> logoutQueryParameters;
 
     @DataBoundConstructor
     public OicSecurityRealm(
@@ -383,9 +386,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // ensure escapeHatchSecret is encrypted
         this.setEscapeHatchSecret(this.escapeHatchSecret);
 
-        this.setLoginQueryParamNameValuePairs(this.loginQueryParamNameValuePairs);
-        this.setLogoutQueryParamNameValuePairs(this.logoutQueryParamNameValuePairs);
-
         // validate this option in FIPS env or not
         try {
             this.setEscapeHatchEnabled(this.escapeHatchEnabled);
@@ -427,21 +427,21 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
-    public void setLoginQueryParamNameValuePairs(List<OicQueryParameterConfiguration> values) {
-        this.loginQueryParamNameValuePairs = values;
+    public void setLoginQueryParameters(List<LoginQueryParameter> values) {
+        this.loginQueryParameters = values;
     }
 
-    public List<OicQueryParameterConfiguration> getLoginQueryParamNameValuePairs() {
-        return loginQueryParamNameValuePairs;
+    public List<LoginQueryParameter> getLoginQueryParameters() {
+        return loginQueryParameters;
     }
 
     @DataBoundSetter
-    public void setLogoutQueryParamNameValuePairs(List<OicQueryParameterConfiguration> values) {
-        this.logoutQueryParamNameValuePairs = values;
+    public void setLogoutQueryParameters(List<LogoutQueryParameter> values) {
+        this.logoutQueryParameters = values;
     }
 
-    public List<OicQueryParameterConfiguration> getLogoutQueryParamNameValuePairs() {
-        return logoutQueryParamNameValuePairs;
+    public List<LogoutQueryParameter> getLogoutQueryParameters() {
+        return logoutQueryParameters;
     }
 
     public String getClientId() {
@@ -615,35 +615,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             conf.setDisablePkce(true);
         }
         opMetadataResolver.init();
-        if (loginQueryParamNameValuePairs != null && !loginQueryParamNameValuePairs.isEmpty()) {
-            Set<String> forbiddenKeys = Set.of(
-                    OidcConfiguration.SCOPE,
-                    OidcConfiguration.RESPONSE_TYPE,
-                    OidcConfiguration.RESPONSE_MODE,
-                    OidcConfiguration.REDIRECT_URI,
-                    OidcConfiguration.CLIENT_ID,
-                    OidcConfiguration.STATE,
-                    OidcConfiguration.MAX_AGE,
-                    OidcConfiguration.PROMPT,
-                    OidcConfiguration.NONCE,
-                    OidcConfiguration.CODE_CHALLENGE,
-                    OidcConfiguration.CODE_CHALLENGE_METHOD);
-            Map<String, String> customParameterMap =
-                    getCustomParametersMap(loginQueryParamNameValuePairs, forbiddenKeys);
-            LOGGER.info("Append the following custom parameters to the authorize endpoint: " + customParameterMap);
-            customParameterMap.forEach(conf::addCustomParam);
+        if (loginQueryParameters != null && !loginQueryParameters.isEmpty()) {
+            for (LoginQueryParameter lqp : loginQueryParameters) {
+                conf.addCustomParam(lqp.getURLEncodedKey(), lqp.getURLEncodedValue());
+            }
         }
         return conf;
-    }
-
-    Map<String, String> getCustomParametersMap(
-            List<OicQueryParameterConfiguration> queryParamNameValuePairs, Set<String> forbiddenKeys) {
-        return queryParamNameValuePairs.stream()
-                .filter(c -> Util.fixEmptyAndTrim(c.getQueryParamName()) != null)
-                .filter(c -> !forbiddenKeys.contains(c.getQueryParamName()))
-                .collect(Collectors.toMap(
-                        OicQueryParameterConfiguration::getQueryParamNameEncoded,
-                        OicQueryParameterConfiguration::getQueryParamValueEncoded));
     }
 
     // Visible for testing
@@ -1339,15 +1316,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 segmentsMap.put(
                         "post_logout_redirect_uri", URLEncoder.encode(postLogoutRedirectUrl, StandardCharsets.UTF_8));
             }
-            Set<String> forbiddenKeys = Set.of("id_token_hint", "state", "post_logout_redirect_uri");
-            if (logoutQueryParamNameValuePairs != null && !logoutQueryParamNameValuePairs.isEmpty()) {
-                Map<String, String> customParameterMap =
-                        getCustomParametersMap(logoutQueryParamNameValuePairs, forbiddenKeys);
-                LOGGER.info("Append the following custom parameters to the logout endpoint: " + customParameterMap);
-
-                customParameterMap.forEach((k, v) -> {
-                    String key = k.trim();
-                    String value = v.trim();
+            if (logoutQueryParameters != null && !logoutQueryParameters.isEmpty()) {
+                logoutQueryParameters.forEach(lqp -> {
+                    String key = lqp.getURLEncodedKey();
+                    String value = lqp.getURLEncodedValue();
                     if (value.isEmpty()) {
                         segmentsSet.add(key);
                     } else {

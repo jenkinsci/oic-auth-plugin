@@ -32,28 +32,28 @@
         <f:dropdownDescriptorSelector title="${%GroupIdStrategy}" field="groupIdStrategy" default="${descriptor.defaultGroupIdStrategy()}" descriptors="${descriptor.idStrategyDescriptors}"/>
       </f:entry>
     </f:advanced>
+
     <f:advanced title="${%LoginLogoutQueryParametersTitle}">
-        <f:entry title="${%LoginQueryParametersTitle}">
-            <f:repeatable field="loginQueryParamNameValuePairs"
-                          header="${%LoginLogoutQueryParamNameValuePairs.header}"
-                          minimum="0"
-                          add="${%LoginQueryParamNameValuePairs.add}">
-                <st:include page="config.jelly"
-                            class="org.jenkinsci.plugins.oic.OicQueryParameterConfiguration"/>
-                <div align="right"><f:repeatableDeleteButton/></div>
-            </f:repeatable>
-        </f:entry>
-        <f:entry title="${%LogoutQueryParametersTitle}">
-            <f:repeatable field="logoutQueryParamNameValuePairs"
-                          header="${%LoginLogoutQueryParamNameValuePairs.header}"
-                          minimum="0"
-                          add="${%LogoutQueryParamNameValuePairs.add}">
-                <st:include page="config.jelly"
-                            class="org.jenkinsci.plugins.oic.OicQueryParameterConfiguration"/>
-                <div align="right"><f:repeatableDeleteButton/></div>
-            </f:repeatable>
-        </f:entry>
+      <f:entry title="${%LoginQueryParametersTitle}" field="loginQueryParameters">
+        <f:repeatableProperty field="loginQueryParameters" header="${%LoginQueryParameter.Title}" hasHeader="true" add="${%Add login parameter}">
+          <f:block>
+            <div align="right">
+              <f:repeatableDeleteButton />
+            </div>
+          </f:block>
+        </f:repeatableProperty>
+      </f:entry>
+      <f:entry title="${%LogoutQueryParametersTitle}" field="logoutQueryParameters">
+        <f:repeatableProperty field="logoutQueryParameters" header="${%LogoutQueryParameter.Title}" hasHeader="true" add="${%Add logout parameter}">
+          <f:block>
+            <div align="right">
+              <f:repeatableDeleteButton />
+            </div>
+          </f:block>
+        </f:repeatableProperty>
+      </f:entry>
     </f:advanced>
+
     <f:entry title="${%LogoutFromOpenIDProvider}" field="logoutFromOpenidProvider">
       <f:checkbox id="logoutFromIDP"/>
     </f:entry>

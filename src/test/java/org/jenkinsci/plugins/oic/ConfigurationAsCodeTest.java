@@ -84,17 +84,17 @@ class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isRootURLFromRequest());
         assertEquals("http://localhost/jwks", serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
-        assertNotNull(oicSecurityRealm.getLoginQueryParamNameValuePairs());
-        assertNotNull(oicSecurityRealm.getLogoutQueryParamNameValuePairs());
+        assertNotNull(oicSecurityRealm.getLoginQueryParameters());
+        assertNotNull(oicSecurityRealm.getLogoutQueryParameters());
         assertEquals(
                 "loginkey1x\"xx@me=loginvalue1xxxx@you&?loginneu&/test==login?sunny%&/xx\"x",
-                oicSecurityRealm.getLoginQueryParamNameValuePairs().stream()
-                        .map(config -> config.getQueryParamName() + "=" + config.getQueryParamValue())
+                oicSecurityRealm.getLoginQueryParameters().stream()
+                        .map(config -> config.getKey() + "=" + config.getValue())
                         .collect(Collectors.joining("&")));
         assertEquals(
                 "logoutkey1x\"xx@me=logoutvalue1xxxx@you&?logoutneu&/test==logout?sunny%&/xx\"x",
-                oicSecurityRealm.getLogoutQueryParamNameValuePairs().stream()
-                        .map(config -> config.getQueryParamName() + "=" + config.getQueryParamValue())
+                oicSecurityRealm.getLogoutQueryParameters().stream()
+                        .map(config -> config.getKey() + "=" + config.getValue())
                         .collect(Collectors.joining("&")));
     }
 
@@ -150,8 +150,8 @@ class ConfigurationAsCodeTest {
         assertFalse(oicSecurityRealm.isRootURLFromRequest());
         assertNull(serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
-        assertNull(oicSecurityRealm.getLoginQueryParamNameValuePairs());
-        assertNull(oicSecurityRealm.getLogoutQueryParamNameValuePairs());
+        assertNull(oicSecurityRealm.getLoginQueryParameters());
+        assertNull(oicSecurityRealm.getLogoutQueryParameters());
     }
 
     @Test
@@ -182,8 +182,8 @@ class ConfigurationAsCodeTest {
 
         assertEquals(urlBase + "/well.known", serverConf.getWellKnownOpenIDConfigurationUrl());
 
-        assertNull(oicSecurityRealm.getLoginQueryParamNameValuePairs());
-        assertNull(oicSecurityRealm.getLogoutQueryParamNameValuePairs());
+        assertNull(oicSecurityRealm.getLoginQueryParameters());
+        assertNull(oicSecurityRealm.getLogoutQueryParameters());
     }
 
     /** Class to setup WellKnownMockExtension for well known with stub and setting port in env variable
