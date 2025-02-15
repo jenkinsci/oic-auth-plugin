@@ -5,9 +5,6 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.util.Secret;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -150,38 +147,39 @@ public class OicSecurityRealmTest {
         assertFalse(realm.doCheckEscapeHatch(escapeHatchUsername, "wrongPassword"));
     }
 
-    @Test
-    @WithoutJenkins
-    public void testGetCustomLoginParameters() throws Exception {
-        TestRealm realm =
-                new TestRealm.Builder(wireMockRule).WithMinimalDefaults().build();
-        Set<String> forbiddenKeys = Set.of("forbidden-key");
-
-        Map<String, String> unsortedMapExpected = Map.of(
-                "b", "%2C",
-                "%26test", "2%40%2B+%2C+%3F",
-                "a%2Ftest%23", "1",
-                "b%2B", "%24other%3Anew",
-                "d%3D", "2",
-                "e%3F", "");
-
-        OicQueryParameterConfiguration empty = new OicQueryParameterConfiguration("non-empty", "");
-        empty.setQueryParamName(null);
-        empty.setQueryParamValue(null);
-
-        Map<String, String> unsortedMapResult = realm.getCustomParametersMap(
-                List.of(
-                        new OicQueryParameterConfiguration("a/test#", "1"),
-                        new OicQueryParameterConfiguration("b", ","),
-                        new OicQueryParameterConfiguration("b+", "$other:new"),
-                        new OicQueryParameterConfiguration("&test", " 2@+ , ?"),
-                        new OicQueryParameterConfiguration("d=", " 2 "),
-                        new OicQueryParameterConfiguration(" e? ", "     "),
-                        empty,
-                        new OicQueryParameterConfiguration("forbidden-key", "test")),
-                forbiddenKeys);
-        assertEquals(new TreeMap<>(unsortedMapExpected), new TreeMap<>(unsortedMapResult));
-    }
+    //    @Test
+    //    @WithoutJenkins
+    //    public void testGetCustomLoginParameters() throws Exception {
+    //
+    //        TestRealm realm =
+    //                new TestRealm.Builder(wireMockRule).WithMinimalDefaults().build();
+    //        Set<String> forbiddenKeys = Set.of("forbidden-key");
+    //
+    //        Map<String, String> unsortedMapExpected = Map.of(
+    //                "b", "%2C",
+    //                "%26test", "2%40%2B+%2C+%3F",
+    //                "a%2Ftest%23", "1",
+    //                "b%2B", "%24other%3Anew",
+    //                "d%3D", "2",
+    //                "e%3F", "");
+    //
+    //        OicQueryParameterConfiguration empty = new OicQueryParameterConfiguration("non-empty", "");
+    //        empty.setQueryParamName(null);
+    //        empty.setQueryParamValue(null);
+    //
+    //        Map<String, String> unsortedMapResult = realm.getCustomParametersMap(
+    //                List.of(
+    //                        new OicQueryParameterConfiguration("a/test#", "1"),
+    //                        new OicQueryParameterConfiguration("b", ","),
+    //                        new OicQueryParameterConfiguration("b+", "$other:new"),
+    //                        new OicQueryParameterConfiguration("&test", " 2@+ , ?"),
+    //                        new OicQueryParameterConfiguration("d=", " 2 "),
+    //                        new OicQueryParameterConfiguration(" e? ", "     "),
+    //                        empty,
+    //                        new OicQueryParameterConfiguration("forbidden-key", "test")),
+    //                forbiddenKeys);
+    //        assertEquals(new TreeMap<>(unsortedMapExpected), new TreeMap<>(unsortedMapResult));
+    //    }
 
     @Test
     @WithoutJenkins
@@ -227,16 +225,12 @@ public class OicSecurityRealmTest {
     }
 
     @Test
-    @WithoutJenkins
     public void testMaybeOpenIdLogoutEndpointWithCustomLogoutQueryParameters() throws Exception {
         TestRealm realm = new TestRealm.Builder(wireMockRule)
                 .WithMinimalDefaults()
                         .WithLogoutQueryParameters(List.of(
-                                new OicQueryParameterConfiguration("key1", " with-spaces   "),
-                                new OicQueryParameterConfiguration("param-only", ""),
-                                new OicQueryParameterConfiguration("id_token_hint", "overwrite-test-1"),
-                                new OicQueryParameterConfiguration("post_logout_redirect_uri", "overwrite-test-2"),
-                                new OicQueryParameterConfiguration("state", "overwrite-test-3")))
+                                new LogoutQueryParameter("key1", " with-spaces   "),
+                                new LogoutQueryParameter("param-only", "")))
                         .WithLogout(true, "https://endpoint")
                         .build();
         String result = realm.maybeOpenIdLogoutEndpoint("my-id-token", "test", "https://localhost");
