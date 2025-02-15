@@ -45,8 +45,8 @@ public class TestRealm extends OicSecurityRealm {
         public String fullNameFieldName = FULL_NAME_FIELD;
         public String emailFieldName = null;
         public String scopes = null;
-        public List<OicQueryParameterConfiguration> loginQueryParameters = null;
-        public List<OicQueryParameterConfiguration> logoutQueryParameters = null;
+        public List<LoginQueryParameter> loginQueryParameters = null;
+        public List<LogoutQueryParameter> logoutQueryParameters = null;
         public String groupsFieldName = null;
         public boolean disableSslVerification = false;
         public Boolean logoutFromOpenidProvider = false;
@@ -124,12 +124,12 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
-        public Builder WithLoginQueryParameters(List<OicQueryParameterConfiguration> values) {
+        public Builder WithLoginQueryParameters(List<LoginQueryParameter> values) {
             this.loginQueryParameters = values;
             return this;
         }
 
-        public Builder WithLogoutQueryParameters(List<OicQueryParameterConfiguration> values) {
+        public Builder WithLogoutQueryParameters(List<LogoutQueryParameter> values) {
             this.logoutQueryParameters = values;
             return this;
         }
@@ -227,8 +227,8 @@ public class TestRealm extends OicSecurityRealm {
         this.setEscapeHatchSecret(builder.escapeHatchSecret);
         this.setEscapeHatchGroup(builder.escapeHatchGroup);
         this.setDisableTokenVerification(builder.disableTokenValidation);
-        this.setLoginQueryParamNameValuePairs(builder.loginQueryParameters);
-        this.setLogoutQueryParamNameValuePairs(builder.logoutQueryParameters);
+        this.setLoginQueryParameters(builder.loginQueryParameters);
+        this.setLogoutQueryParameters(builder.logoutQueryParameters);
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
         // is only called in regular use not code use.

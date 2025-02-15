@@ -394,8 +394,8 @@ class PluginTest {
         jenkins.setSecurityRealm(new TestRealm.Builder(wireMock)
                 .WithMinimalDefaults()
                         .WithAutomanualconfigure(true)
-                        .WithLoginQueryParameters(List.of(
-                                new OicQueryParameterConfiguration("queryLoginParamName", "queryLoginParamValue")))
+                        .WithLoginQueryParameters(
+                                List.of(new LoginQueryParameter("queryLoginParamName", "queryLoginParamValue")))
                         .build());
         assertAnonymous();
         browseLoginPage();
@@ -1043,10 +1043,7 @@ class PluginTest {
             throws Exception {
         final TestRealm oicsr = new TestRealm.Builder(wireMock)
                 .WithLogoutQueryParameters(List.of(
-                                new OicQueryParameterConfiguration("hello", "world"),
-                                new OicQueryParameterConfiguration("state", "test"),
-                                new OicQueryParameterConfiguration("single", ""),
-                                new OicQueryParameterConfiguration("id_token_hint", "other")))
+                                new LogoutQueryParameter("hello", "world"), new LogoutQueryParameter("single", "")))
                         .WithLogout(Boolean.TRUE, "http://provider/logout")
                         .build();
         jenkins.setSecurityRealm(oicsr);
