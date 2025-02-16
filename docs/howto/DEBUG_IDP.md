@@ -1,5 +1,9 @@
 # Debug tokens from IDP
 
+## Disclaimer
+
+Do not leave this logger enabled or even present unless used, as it might be a potential security risk in the form of leaking sensitive data.
+
 ## When/why?
 
 When it's not really well documented on IDP's side which specific fields names should be used in plugin's attribute mapping.
