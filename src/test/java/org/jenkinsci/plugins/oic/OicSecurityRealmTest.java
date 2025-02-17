@@ -8,6 +8,7 @@ import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.WithoutJenkins;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -20,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class OicSecurityRealmTest {
@@ -143,5 +145,65 @@ public class OicSecurityRealmTest {
         assertTrue(realm.doCheckEscapeHatch(escapeHatchUsername, escapeHatchPassword));
         assertFalse(realm.doCheckEscapeHatch("otherUsername", escapeHatchPassword));
         assertFalse(realm.doCheckEscapeHatch(escapeHatchUsername, "wrongPassword"));
+    }
+
+    @Test
+    @WithoutJenkins
+    public void testMaybeOpenIdLogoutEndpoint() throws Exception {
+        TestRealm realm = new TestRealm.Builder(wireMockRule)
+                .WithMinimalDefaults()
+                        .WithLogout(Boolean.FALSE, "https://endpoint")
+                        .build();
+        assertNull(realm.maybeOpenIdLogoutEndpoint("my-id-token", null, "https://localhost"));
+
+        realm = new TestRealm.Builder(wireMockRule)
+                .WithMinimalDefaults().WithLogout(Boolean.TRUE, null).build();
+        assertNull(realm.maybeOpenIdLogoutEndpoint("my-id-token", null, "https://localhost"));
+
+        realm = new TestRealm.Builder(wireMockRule)
+                .WithMinimalDefaults().WithLogout(Boolean.FALSE, null).build();
+        assertNull(realm.maybeOpenIdLogoutEndpoint("my-id-token", null, "https://localhost"));
+
+        realm = new TestRealm.Builder(wireMockRule)
+                .WithMinimalDefaults()
+                        .WithLogout(Boolean.TRUE, "https://endpoint?query-param-1=test")
+                        .build();
+        assertEquals(
+                "https://endpoint?query-param-1=test&id_token_hint=my-id-token&post_logout_redirect_uri=https%3A%2F%2Flocalhost",
+                realm.maybeOpenIdLogoutEndpoint("my-id-token", null, "https://localhost"));
+    }
+
+    @Test
+    @WithoutJenkins
+    public void testMaybeOpenIdLogoutEndpointWithNoCustomLogoutQueryParameters() throws Exception {
+        TestRealm realm = new TestRealm.Builder(wireMockRule)
+                .WithMinimalDefaults().WithLogout(true, "https://endpoint").build();
+        assertEquals(
+                "https://endpoint?id_token_hint=my-id-token&post_logout_redirect_uri=https%3A%2F%2Flocalhost",
+                realm.maybeOpenIdLogoutEndpoint("my-id-token", "null", "https://localhost"));
+        assertEquals(
+                "https://endpoint?id_token_hint=my-id-token&post_logout_redirect_uri=https%3A%2F%2Flocalhost",
+                realm.maybeOpenIdLogoutEndpoint("my-id-token", null, "https://localhost"));
+        assertEquals(
+                "https://endpoint?id_token_hint=my-id-token&state=test&post_logout_redirect_uri=https%3A%2F%2Flocalhost",
+                realm.maybeOpenIdLogoutEndpoint("my-id-token", "test", "https://localhost"));
+        assertEquals("https://endpoint", realm.maybeOpenIdLogoutEndpoint(null, null, null));
+    }
+
+    @Test
+    public void testMaybeOpenIdLogoutEndpointWithCustomLogoutQueryParameters() throws Exception {
+        TestRealm realm = new TestRealm.Builder(wireMockRule)
+                .WithMinimalDefaults()
+                        .WithLogoutQueryParameters(List.of(
+                                new LogoutQueryParameter("key1", " with-spaces   "),
+                                new LogoutQueryParameter("param-only", "")))
+                        .WithLogout(true, "https://endpoint")
+                        .build();
+        String result = realm.maybeOpenIdLogoutEndpoint("my-id-token", "test", "https://localhost");
+        assertNotNull(result);
+        assertFalse(result.contains("overwrite-test"));
+        assertEquals(
+                "https://endpoint?key1=with-spaces&id_token_hint=my-id-token&state=test&post_logout_redirect_uri=https%3A%2F%2Flocalhost&param-only",
+                result);
     }
 }
