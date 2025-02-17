@@ -1,8 +1,8 @@
 # Debug tokens from IDP
 
-## Disclaimer
-
-Do not leave this logger enabled or even present unless used, as it might be a potential security risk in the form of leaking sensitive data.
+> [!CAUTION]
+> Do not leave this logger enabled or even present unless used, as it can be a potential security risk in the form of leaking sensitive data.
+> Be extra careful if your logs are sent to an external system
 
 ## When/why?
 
