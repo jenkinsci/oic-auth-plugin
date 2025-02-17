@@ -147,40 +147,6 @@ public class OicSecurityRealmTest {
         assertFalse(realm.doCheckEscapeHatch(escapeHatchUsername, "wrongPassword"));
     }
 
-    //    @Test
-    //    @WithoutJenkins
-    //    public void testGetCustomLoginParameters() throws Exception {
-    //
-    //        TestRealm realm =
-    //                new TestRealm.Builder(wireMockRule).WithMinimalDefaults().build();
-    //        Set<String> forbiddenKeys = Set.of("forbidden-key");
-    //
-    //        Map<String, String> unsortedMapExpected = Map.of(
-    //                "b", "%2C",
-    //                "%26test", "2%40%2B+%2C+%3F",
-    //                "a%2Ftest%23", "1",
-    //                "b%2B", "%24other%3Anew",
-    //                "d%3D", "2",
-    //                "e%3F", "");
-    //
-    //        OicQueryParameterConfiguration empty = new OicQueryParameterConfiguration("non-empty", "");
-    //        empty.setQueryParamName(null);
-    //        empty.setQueryParamValue(null);
-    //
-    //        Map<String, String> unsortedMapResult = realm.getCustomParametersMap(
-    //                List.of(
-    //                        new OicQueryParameterConfiguration("a/test#", "1"),
-    //                        new OicQueryParameterConfiguration("b", ","),
-    //                        new OicQueryParameterConfiguration("b+", "$other:new"),
-    //                        new OicQueryParameterConfiguration("&test", " 2@+ , ?"),
-    //                        new OicQueryParameterConfiguration("d=", " 2 "),
-    //                        new OicQueryParameterConfiguration(" e? ", "     "),
-    //                        empty,
-    //                        new OicQueryParameterConfiguration("forbidden-key", "test")),
-    //                forbiddenKeys);
-    //        assertEquals(new TreeMap<>(unsortedMapExpected), new TreeMap<>(unsortedMapResult));
-    //    }
-
     @Test
     @WithoutJenkins
     public void testMaybeOpenIdLogoutEndpoint() throws Exception {
