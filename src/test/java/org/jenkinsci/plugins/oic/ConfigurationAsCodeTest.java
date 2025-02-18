@@ -120,7 +120,7 @@ public class ConfigurationAsCodeTest {
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertFalse(oicSecurityRealm.isRootURLFromRequest());
-        assertEquals(null, serverConf.getJwksServerUrl());
+        assertNull(serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
     }
 
