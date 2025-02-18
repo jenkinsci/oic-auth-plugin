@@ -1,12 +1,13 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import hudson.model.Descriptor;
 import hudson.security.SecurityRealm;
 import hudson.util.Secret;
 import io.burt.jmespath.Expression;
 import java.io.IOException;
 import java.io.ObjectStreamException;
+import java.io.Serial;
 import java.text.ParseException;
 import jenkins.model.IdStrategy;
 import org.kohsuke.stapler.StaplerRequest2;
@@ -57,18 +58,18 @@ public class TestRealm extends OicSecurityRealm {
         public IdStrategy userIdStrategy;
         public IdStrategy groupIdStrategy;
 
-        public Builder(WireMockRule wireMockRule, boolean useTLS) throws IOException {
+        public Builder(WireMockExtension wireMock, boolean useTLS) throws IOException {
             this(
                     useTLS
-                            ? "https://localhost:" + wireMockRule.httpsPort() + "/"
-                            : "http://localhost:" + wireMockRule.port() + "/");
+                            ? "https://localhost:" + wireMock.getHttpsPort() + "/"
+                            : "http://localhost:" + wireMock.getPort() + "/");
         }
 
-        public Builder(WireMockRule wireMockRule) throws IOException {
-            this(wireMockRule, false);
+        public Builder(WireMockExtension wireMock) throws IOException {
+            this(wireMock, false);
         }
 
-        public Builder(String rootUrl) throws IOException {
+        public Builder(String rootUrl) {
             this.wellKnownOpenIDConfigurationUrl = rootUrl + "well.known";
             this.tokenServerUrl = rootUrl + "token";
             this.authorizationServerUrl = rootUrl + "authorization";
@@ -219,30 +220,31 @@ public class TestRealm extends OicSecurityRealm {
         super.createProxyAwareResourceRetriver();
     }
 
-    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl, String emailFieldName, String groupsFieldName)
+    public TestRealm(
+            WireMockExtension wireMock, String userInfoServerUrl, String emailFieldName, String groupsFieldName)
             throws Exception {
-        this(new Builder(wireMockRule)
+        this(new Builder(wireMock)
                 .WithUserInfoServerUrl(userInfoServerUrl)
                         .WithEmailFieldName(emailFieldName)
                         .WithGroupsFieldName(groupsFieldName));
     }
 
-    public TestRealm(WireMockRule wireMockRule) throws Exception {
-        this(new Builder(wireMockRule).WithMinimalDefaults());
+    public TestRealm(WireMockExtension wireMock) throws Exception {
+        this(new Builder(wireMock).WithMinimalDefaults());
     }
 
-    public TestRealm(WireMockRule wireMockRule, String userInfoServerUrl) throws Exception {
-        this(new Builder(wireMockRule).WithMinimalDefaults().WithUserInfoServerUrl(userInfoServerUrl));
+    public TestRealm(WireMockExtension wireMock, String userInfoServerUrl) throws Exception {
+        this(new Builder(wireMock).WithMinimalDefaults().WithUserInfoServerUrl(userInfoServerUrl));
     }
 
     public TestRealm(
-            WireMockRule wireMockRule,
+            WireMockExtension wireMock,
             String userInfoServerUrl,
             String emailFieldName,
             String groupFieldName,
             boolean automanualconfigure)
             throws Exception {
-        this(new Builder(wireMockRule)
+        this(new Builder(wireMock)
                 .WithMinimalDefaults()
                         .WithUserInfoServerUrl(userInfoServerUrl)
                         .WithEmailFieldName(emailFieldName)
@@ -251,7 +253,7 @@ public class TestRealm extends OicSecurityRealm {
     }
 
     public TestRealm(
-            WireMockRule wireMockRule,
+            WireMockExtension wireMock,
             String userInfoServerUrl,
             String emailFieldName,
             String groupFieldName,
@@ -261,7 +263,7 @@ public class TestRealm extends OicSecurityRealm {
             String escapeHatchSecret,
             String escapeHatchGroup)
             throws Exception {
-        this(new Builder(wireMockRule)
+        this(new Builder(wireMock)
                 .WithMinimalDefaults()
                         .WithUserInfoServerUrl(userInfoServerUrl)
                         .WithEmailFieldName(emailFieldName)
@@ -292,13 +294,14 @@ public class TestRealm extends OicSecurityRealm {
     }
 
     public String getStringFieldFromJMESPath(Object object, String jmespathField) {
-        Expression<Object> expr = super.compileJMESPath(jmespathField, "test field");
+        Expression<Object> expr = compileJMESPath(jmespathField, "test field");
         if (expr == null) {
             return null;
         }
         return super.getStringField(object, expr);
     }
 
+    @Serial
     @Override
     public Object readResolve() throws ObjectStreamException {
         return super.readResolve();

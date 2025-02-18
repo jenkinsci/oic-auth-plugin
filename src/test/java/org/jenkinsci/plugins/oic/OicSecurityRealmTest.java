@@ -1,13 +1,13 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import hudson.util.Secret;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -16,27 +16,30 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class OicSecurityRealmTest {
+@WithJenkins
+class OicSecurityRealmTest {
 
     public static final String ADMIN = "admin";
 
     private static final SimpleGrantedAuthority GRANTED_AUTH1 = new SimpleGrantedAuthority(ADMIN);
 
-    @Rule
-    public WireMockRule wireMockRule = new WireMockRule(new WireMockConfiguration().dynamicPort(), true);
-
-    @Rule
-    public JenkinsRule jenkinsRule = new JenkinsRule();
+    @RegisterExtension
+    static WireMockExtension wireMock = WireMockExtension.newInstance()
+            .failOnUnmatchedRequests(true)
+            .options(wireMockConfig().dynamicPort())
+            .build();
 
     @Test
-    public void testAuthenticate_withAnonymousAuthenticationToken() throws Exception {
-        TestRealm realm = new TestRealm(wireMockRule);
+    void testAuthenticate_withAnonymousAuthenticationToken(JenkinsRule jenkinsRule) throws Exception {
+        TestRealm realm = new TestRealm(wireMock);
         AuthenticationManager manager = realm.getSecurityComponents().manager2;
 
         assertNotNull(manager);
@@ -49,42 +52,38 @@ public class OicSecurityRealmTest {
         assertEquals(token, manager.authenticate(token));
     }
 
-    @Test(expected = BadCredentialsException.class)
-    public void testAuthenticate_withUsernamePasswordAuthenticationToken() throws Exception {
-        TestRealm realm = new TestRealm(wireMockRule);
+    @Test
+    void testAuthenticate_withUsernamePasswordAuthenticationToken(JenkinsRule jenkinsRule) throws Exception {
+        TestRealm realm = new TestRealm(wireMock);
         AuthenticationManager manager = realm.getSecurityComponents().manager2;
-
         assertNotNull(manager);
-
         String key = "testKey";
         Object principal = "testUser";
         Collection<GrantedAuthority> authorities = List.of(GRANTED_AUTH1);
         UsernamePasswordAuthenticationToken token =
                 new UsernamePasswordAuthenticationToken(key, principal, authorities);
-
-        assertEquals(token, manager.authenticate(token));
+        assertThrows(BadCredentialsException.class, () -> assertEquals(token, manager.authenticate(token)));
     }
 
     @Test
-    public void testGetAuthenticationGatewayUrl() throws Exception {
-        TestRealm realm = new TestRealm(wireMockRule);
+    void testGetAuthenticationGatewayUrl(JenkinsRule jenkinsRule) throws Exception {
+        TestRealm realm = new TestRealm(wireMock);
         assertEquals("securityRealm/escapeHatch", realm.getAuthenticationGatewayUrl());
     }
 
     @Test
-    public void testShouldSetNullClientSecretWhenSecretIsNull() throws Exception {
-        TestRealm realm = new TestRealm.Builder(wireMockRule)
+    void testShouldSetNullClientSecretWhenSecretIsNull(JenkinsRule jenkinsRule) throws Exception {
+        TestRealm realm = new TestRealm.Builder(wireMock)
                 .WithMinimalDefaults().WithClient("id without secret", null).build();
         assertEquals("none", Secret.toString(realm.getClientSecret()));
     }
 
     @Test
-    public void testGetValidRedirectUrl() throws Exception {
+    void testGetValidRedirectUrl(JenkinsRule jenkinsRule) throws Exception {
         // root url is http://localhost:????/jenkins/
         final String rootUrl = jenkinsRule.jenkins.getRootUrl();
 
-        TestRealm realm =
-                new TestRealm.Builder(wireMockRule).WithMinimalDefaults().build();
+        TestRealm realm = new TestRealm.Builder(wireMock).WithMinimalDefaults().build();
 
         assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("foo"));
         assertEquals(rootUrl + "foo", realm.getValidRedirectUrl("/jenkins/foo"));
@@ -96,12 +95,11 @@ public class OicSecurityRealmTest {
     }
 
     @Test
-    public void testShouldReturnRootUrlWhenRedirectUrlIsInvalid() throws Exception {
+    void testShouldReturnRootUrlWhenRedirectUrlIsInvalid(JenkinsRule jenkinsRule) throws Exception {
         // root url is http://localhost:????/jenkins/
         String rootUrl = jenkinsRule.jenkins.getRootUrl();
 
-        TestRealm realm =
-                new TestRealm.Builder(wireMockRule).WithMinimalDefaults().build();
+        TestRealm realm = new TestRealm.Builder(wireMock).WithMinimalDefaults().build();
 
         assertEquals(rootUrl, realm.getValidRedirectUrl("/bar"));
         assertEquals(rootUrl, realm.getValidRedirectUrl("../bar"));
@@ -111,11 +109,11 @@ public class OicSecurityRealmTest {
     }
 
     @Test
-    public void testShouldCheckEscapeHatchWithPlainPassword() throws Exception {
+    void testShouldCheckEscapeHatchWithPlainPassword(JenkinsRule jenkinsRule) throws Exception {
         final String escapeHatchUsername = "aUsername";
         final String escapeHatchPassword = "aSecretPassword";
 
-        TestRealm realm = new TestRealm.Builder(wireMockRule)
+        TestRealm realm = new TestRealm.Builder(wireMock)
                 .WithMinimalDefaults()
                         .WithEscapeHatch(true, escapeHatchUsername, escapeHatchPassword, "Group")
                         .build();
@@ -128,12 +126,12 @@ public class OicSecurityRealmTest {
     }
 
     @Test
-    public void testShouldCheckEscapeHatchWithHashedPassword() throws Exception {
+    void testShouldCheckEscapeHatchWithHashedPassword(JenkinsRule jenkinsRule) throws Exception {
         final String escapeHatchUsername = "aUsername";
         final String escapeHatchPassword = "aSecretPassword";
         final String escapeHatchCryptedPassword = BCrypt.hashpw(escapeHatchPassword, BCrypt.gensalt());
 
-        TestRealm realm = new TestRealm.Builder(wireMockRule)
+        TestRealm realm = new TestRealm.Builder(wireMock)
                 .WithMinimalDefaults()
                         .WithEscapeHatch(true, escapeHatchUsername, escapeHatchCryptedPassword, "Group")
                         .build();

@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import jenkins.security.FIPS140;
 import org.apache.commons.io.FileUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,10 +22,10 @@ import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
-public class OicSecurityRealmFIPSAlgoTest {
+class OicSecurityRealmFIPSAlgoTest {
 
     @Test
-    public void doCheckAlgorithmFilteredNotInFipsMode() throws Exception {
+    void doCheckAlgorithmFilteredNotInFipsMode() throws Exception {
         try (MockedStatic<FIPS140> fips140Mocked = mockStatic(FIPS140.class)) {
             fips140Mocked.when(FIPS140::useCompliantAlgorithms).thenReturn(false);
 
@@ -86,7 +86,7 @@ public class OicSecurityRealmFIPSAlgoTest {
     }
 
     @Test
-    public void doCheckAlgorithmFilteredInFipsMode() throws Exception {
+    void doCheckAlgorithmFilteredInFipsMode() throws Exception {
         try (MockedStatic<FIPS140> fips140Mocked = mockStatic(FIPS140.class)) {
             fips140Mocked.when(FIPS140::useCompliantAlgorithms).thenReturn(true);
 

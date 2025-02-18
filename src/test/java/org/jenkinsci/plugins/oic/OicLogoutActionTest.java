@@ -1,28 +1,28 @@
 package org.jenkinsci.plugins.oic;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.jenkinsci.plugins.oic.OicLogoutAction.POST_LOGOUT_URL;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class OicLogoutActionTest {
+class OicLogoutActionTest {
 
     private OicLogoutAction action;
 
-    @Before
-    public void init() {
+    @BeforeEach
+    void init() {
         action = new OicLogoutAction();
     }
 
     @Test
-    public void getIconFileName() {
+    void getIconFileName() {
         assertNull(action.getIconFileName());
     }
 
     @Test
-    public void getUrlName() {
+    void getUrlName() {
         assertEquals(POST_LOGOUT_URL, action.getUrlName());
     }
 }

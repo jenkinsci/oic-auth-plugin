@@ -1,34 +1,31 @@
 package org.jenkinsci.plugins.oic;
 
 import hudson.util.FormValidation;
-import java.io.IOException;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.oic.OicSecurityRealm.DescriptorImpl;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class DescriptorImplTest {
-
-    @Rule
-    public JenkinsRule jenkinsRule = new JenkinsRule();
+@WithJenkins
+class DescriptorImplTest {
 
     private Jenkins jenkins;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp(JenkinsRule jenkinsRule) {
         jenkins = jenkinsRule.getInstance();
     }
 
     @Test
-    public void testOicSecurityRealmDescriptorImplManual() throws Exception {
+    void testOicSecurityRealmDescriptorImplManual() throws Exception {
         OicSecurityRealm.DescriptorImpl descriptor = (DescriptorImpl) jenkins.getDescriptor(OicSecurityRealm.class);
 
         assertNotNull(descriptor);
@@ -56,7 +53,7 @@ public class DescriptorImplTest {
     }
 
     @Test
-    public void testOicSecurityRealmDescriptorImplAuto() throws Exception {
+    void testOicSecurityRealmDescriptorImplAuto() throws Exception {
         OicSecurityRealm.DescriptorImpl descriptor =
                 (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
@@ -84,7 +81,7 @@ public class DescriptorImplTest {
     }
 
     @Test
-    public void doCheckUserNameField() throws IOException {
+    void doCheckUserNameField() {
         OicSecurityRealm.DescriptorImpl descriptor =
                 (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
@@ -98,7 +95,7 @@ public class DescriptorImplTest {
     }
 
     @Test
-    public void doCheckFullNameFieldName() throws IOException {
+    void doCheckFullNameFieldName() {
         OicSecurityRealm.DescriptorImpl descriptor =
                 (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
@@ -108,7 +105,7 @@ public class DescriptorImplTest {
     }
 
     @Test
-    public void doCheckEmailFieldName() throws IOException {
+    void doCheckEmailFieldName() {
         OicSecurityRealm.DescriptorImpl descriptor =
                 (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
@@ -118,7 +115,7 @@ public class DescriptorImplTest {
     }
 
     @Test
-    public void doCheckGroupsFieldName() throws IOException {
+    void doCheckGroupsFieldName() {
         OicSecurityRealm.DescriptorImpl descriptor =
                 (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
@@ -128,7 +125,7 @@ public class DescriptorImplTest {
     }
 
     @Test
-    public void doCheckTokenFieldToCheckKey() throws IOException {
+    void doCheckTokenFieldToCheckKey() {
         OicSecurityRealm.DescriptorImpl descriptor =
                 (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
@@ -138,7 +135,7 @@ public class DescriptorImplTest {
     }
 
     @Test
-    public void doCheckPostLogoutRedirectUrl() throws IOException {
+    void doCheckPostLogoutRedirectUrl() {
         OicSecurityRealm.DescriptorImpl descriptor =
                 (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 

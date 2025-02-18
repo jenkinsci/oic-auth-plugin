@@ -1,20 +1,19 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import hudson.Util;
 import hudson.util.FormValidation;
-import java.io.IOException;
 import org.hamcrest.Matcher;
 import org.jenkinsci.plugins.oic.OicServerWellKnownConfiguration.DescriptorImpl;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -22,19 +21,19 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
 
-public class OicServerWellKnownConfigurationTest {
+@WithJenkins
+class OicServerWellKnownConfigurationTest {
 
-    @ClassRule
-    public static JenkinsRule jenkinsRule = new JenkinsRule();
-
-    @Rule
-    public WireMockRule wireMockRule =
-            new WireMockRule(new WireMockConfiguration().dynamicPort().dynamicHttpsPort(), true);
+    @RegisterExtension
+    static WireMockExtension wireMock = WireMockExtension.newInstance()
+            .failOnUnmatchedRequests(true)
+            .options(wireMockConfig().dynamicPort().dynamicHttpsPort())
+            .build();
 
     @Test
-    public void doCheckWellKnownOpenIDConfigurationUrl() throws IOException {
-        configureWireMockWellKnownEndpoint();
-        DescriptorImpl descriptor = getDescriptor();
+    void doCheckWellKnownOpenIDConfigurationUrl(JenkinsRule jenkinsRule) {
+        configureWireMockWellKnownEndpoint(jenkinsRule);
+        DescriptorImpl descriptor = getDescriptor(jenkinsRule);
 
         assertThat(
                 descriptor.doCheckWellKnownOpenIDConfigurationUrl(null, false),
@@ -44,16 +43,16 @@ public class OicServerWellKnownConfigurationTest {
                 allOf(hasKind(FormValidation.Kind.ERROR), withMessage("Not a valid url.")));
         assertThat(
                 descriptor.doCheckWellKnownOpenIDConfigurationUrl(
-                        "http://localhost:" + wireMockRule.port() + ("/.well-known/openid-configuration"), false),
+                        "http://localhost:" + wireMock.getPort() + ("/.well-known/openid-configuration"), false),
                 hasKind(FormValidation.Kind.OK));
         assertThat(
                 descriptor.doCheckWellKnownOpenIDConfigurationUrl(
-                        wireMockRule.url("/.well-known/openid-configuration"), true), // disable TLS
+                        wireMock.url("/.well-known/openid-configuration"), true), // disable TLS
                 hasKind(FormValidation.Kind.OK));
         // TLS error.
         assertThat(
                 descriptor.doCheckWellKnownOpenIDConfigurationUrl(
-                        wireMockRule.url("/.well-known/openid-configuration"), false),
+                        wireMock.url("/.well-known/openid-configuration"), false),
                 allOf(
                         hasKind(FormValidation.Kind.ERROR),
                         withMessageContaining("The server presented an invalid or incorrect TLS certificate")));
@@ -80,8 +79,8 @@ public class OicServerWellKnownConfigurationTest {
     }
 
     @Test
-    public void doCheckOverrideScopes() throws IOException {
-        DescriptorImpl descriptor = getDescriptor();
+    void doCheckOverrideScopes(JenkinsRule jenkinsRule) {
+        DescriptorImpl descriptor = getDescriptor(jenkinsRule);
 
         assertThat(descriptor.doCheckScopesOverride(null), hasKind(FormValidation.Kind.OK));
         assertThat(descriptor.doCheckScopesOverride(""), hasKind(FormValidation.Kind.OK));
@@ -95,15 +94,15 @@ public class OicServerWellKnownConfigurationTest {
                         withMessage("Are you sure you don't want to include 'openid' as a scope?")));
     }
 
-    private void configureWireMockWellKnownEndpoint() {
-        String authUrl = "http://localhost:" + wireMockRule.port() + "/authorization";
-        String tokenUrl = "http://localhost:" + wireMockRule.port() + "/token";
-        String userInfoUrl = "http://localhost:" + wireMockRule.port() + "/userinfo";
-        String issuer = "http://localhost:" + wireMockRule.port() + "/";
+    private void configureWireMockWellKnownEndpoint(JenkinsRule jenkinsRule) {
+        String authUrl = "http://localhost:" + wireMock.getPort() + "/authorization";
+        String tokenUrl = "http://localhost:" + wireMock.getPort() + "/token";
+        String userInfoUrl = "http://localhost:" + wireMock.getPort() + "/userinfo";
+        String issuer = "http://localhost:" + wireMock.getPort() + "/";
         String jwksUrl = "null";
         String endSessionUrl = "null";
 
-        wireMockRule.stubFor(get(urlPathEqualTo("/.well-known/openid-configuration"))
+        wireMock.stubFor(get(urlPathEqualTo("/.well-known/openid-configuration"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "text/html; charset=utf-8")
                         .withBody(String.format(
@@ -114,7 +113,7 @@ public class OicServerWellKnownConfigurationTest {
                                 authUrl, issuer, tokenUrl, userInfoUrl, jwksUrl, endSessionUrl))));
     }
 
-    private static DescriptorImpl getDescriptor() {
+    private static DescriptorImpl getDescriptor(JenkinsRule jenkinsRule) {
         return (DescriptorImpl) jenkinsRule.jenkins.getDescriptor(OicServerWellKnownConfiguration.class);
     }
 
