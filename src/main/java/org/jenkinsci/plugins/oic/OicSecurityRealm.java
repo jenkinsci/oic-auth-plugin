@@ -1463,6 +1463,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         User user = User.get2(authentication);
+        if (user == null) {
+            return true;
+        }
 
         if (isAllowTokenAccessWithoutOicSession()) {
             // check if this is a valid api token based request
@@ -1477,10 +1480,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     return true;
                 } // else do nothing and continue evaluating this request
             }
-        }
-
-        if (user == null) {
-            return true;
         }
 
         OicCredentials credentials = user.getProperty(OicCredentials.class);
