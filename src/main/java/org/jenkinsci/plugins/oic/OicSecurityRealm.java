@@ -1473,8 +1473,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             if (authHeader != null && authHeader.startsWith("Basic ")) {
                 String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
                         .split(":")[1];
-
-                if (user.getProperty(ApiTokenProperty.class).matchesPassword(token)) {
+                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
+                if (apiTokenProperty != null && apiTokenProperty.matchesPassword(token)) {
                     // this was a valid jenkins token being used, exit this filter and let
                     // the rest of chain be processed
                     return true;
