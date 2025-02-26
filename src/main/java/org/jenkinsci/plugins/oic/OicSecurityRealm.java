@@ -1079,11 +1079,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         String avatarUrl = determineStringField(avatarFieldExpr, idToken, userInfo);
         OicAvatarProperty oicAvatarProperty;
         if (avatarUrl != null) {
-            LOGGER.finest("Avatar url is: " + avatarUrl);
+            LOGGER.finest(() -> "Avatar url is: " + avatarUrl);
             OicAvatarProperty.AvatarImage avatarImage = new OicAvatarProperty.AvatarImage(avatarUrl);
             oicAvatarProperty = new OicAvatarProperty(avatarImage);
         } else {
-            LOGGER.finest("No avatar URL found for user %s. Ensure to remove existing avatar".formatted(user.getId()));
+            LOGGER.finest(() -> "No avatar URL found for user " + user.getId() + ". Ensure to remove existing avatar");
             oicAvatarProperty = new OicAvatarProperty(null);
         }
         user.addProperty(oicAvatarProperty);
