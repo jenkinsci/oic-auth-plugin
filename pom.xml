@@ -46,7 +46,7 @@
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <jenkins.baseline>2.479</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.383</hpi.compatibleSinceVersion>
@@ -58,7 +58,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>4136.vca_c3202a_7fd1</version>
+        <version>4228.v0a_71308d905b_</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -88,6 +88,10 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>commons-text-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>json-path-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -174,6 +178,11 @@
           <!-- consume from commons-text-api plugin -->
           <groupId>commons-text</groupId>
           <artifactId>commons-text</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from json-path-api plugin -->
+          <groupId>net.minidev</groupId>
+          <artifactId>json-smart</artifactId>
         </exclusion>
         <exclusion>
           <!-- consume from Jenkins core -->
