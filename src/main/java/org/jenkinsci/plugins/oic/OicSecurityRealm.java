@@ -1076,20 +1076,17 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         // Set avatar if possible
-        try {
-            String avatarUrl = determineStringField(avatarFieldExpr, idToken, userInfo);
-            if (avatarUrl != null) {
-                LOGGER.finest("Avatar url is: " + avatarUrl);
-                OicAvatarProperty.AvatarImage avatarImage = new OicAvatarProperty.AvatarImage(avatarUrl);
-                OicAvatarProperty oicAvatarProperty = new OicAvatarProperty(avatarImage);
-                user.addProperty(oicAvatarProperty);
-            } else {
-                LOGGER.finest("No avatar URL found");
-            }
-
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Failed to save profile photo for %s".formatted(user.getId()), e);
+        String avatarUrl = determineStringField(avatarFieldExpr, idToken, userInfo);
+        OicAvatarProperty oicAvatarProperty;
+        if (avatarUrl != null) {
+            LOGGER.finest("Avatar url is: " + avatarUrl);
+            OicAvatarProperty.AvatarImage avatarImage = new OicAvatarProperty.AvatarImage(avatarUrl);
+            oicAvatarProperty = new OicAvatarProperty(avatarImage);
+        } else {
+            LOGGER.finest("No avatar URL found for user %s. Ensure to remove existing avatar".formatted(user.getId()));
+            oicAvatarProperty = new OicAvatarProperty(null);
         }
+        user.addProperty(oicAvatarProperty);
 
         user.addProperty(credentials);
 

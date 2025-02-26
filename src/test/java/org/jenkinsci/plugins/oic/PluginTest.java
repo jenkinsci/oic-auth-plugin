@@ -15,6 +15,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.User;
 import hudson.tasks.Mailer;
+import hudson.tasks.UserAvatarResolver;
 import hudson.util.VersionNumber;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
@@ -340,7 +341,7 @@ class PluginTest {
     void testLoginUsingUserInfoEndpointWithAvatar() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoWithAvatar(wireMock);
+        mockUserInfoWithAvatar();
         configureWellKnown(null, null);
 
         // Return avatar image when requested
@@ -847,11 +848,13 @@ class PluginTest {
     }
 
     private static void assertTestAvatar(User user, WireMockExtension wireMock) {
-        String expectedAvatarUrl = "http://localhost:%d/my-avatar.png".formatted(wireMock.getPort());
+        String expectedAvatarUrl = wireMock.url("/my-avatar.png");
         OicAvatarProperty avatarProperty = user.getProperty(OicAvatarProperty.class);
         assertEquals(expectedAvatarUrl, avatarProperty.getAvatarUrl(), "Avatar url should be " + expectedAvatarUrl);
-        assertEquals("Openid Connect Avatar", avatarProperty.getDisplayName());
+        assertEquals("OpenID Connect Avatar", avatarProperty.getDisplayName());
         assertNull(avatarProperty.getIconFileName(), "Icon filename must be null");
+        String urlViaAvatarResolver = UserAvatarResolver.resolve(user, "48x48");
+        assertEquals(expectedAvatarUrl, urlViaAvatarResolver, "Avatar url should be " + expectedAvatarUrl);
     }
 
     private @NonNull User assertTestUser() {
@@ -1266,18 +1269,19 @@ class PluginTest {
     }
 
     private void mockUserInfoWithGroups(@Nullable Object groups) {
-        mockUserInfo(getUserInfo(groups, null));
+        mockUserInfo(getUserInfo(groups, false));
     }
 
-    private void mockUserInfoWithAvatar(WireMockExtension wireMock) {
-        mockUserInfo(getUserInfo(null, wireMock));
+    private void mockUserInfoWithAvatar() {
+        mockUserInfo(getUserInfo(null, true));
     }
 
     private void mockUserInfoJwtWithTestGroups(KeyPair keyPair, Object testUserGroups) throws Exception {
         wireMock.stubFor(get(urlPathEqualTo("/userinfo"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/jwt")
-                        .withBody(createUserInfoJWT(keyPair.getPrivate(), toJson(getUserInfo(testUserGroups, null))))));
+                        .withBody(
+                                createUserInfoJWT(keyPair.getPrivate(), toJson(getUserInfo(testUserGroups, false))))));
     }
 
     private void mockUserInfo(Map<String, Object> userInfo) {
@@ -1287,7 +1291,7 @@ class PluginTest {
                         .withBody(toJson(userInfo))));
     }
 
-    private static Map<String, Object> getUserInfo(@Nullable Object groups, WireMockExtension wireMock) {
+    private static Map<String, Object> getUserInfo(@Nullable Object groups, boolean withAvatar) {
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("sub", TEST_USER_USERNAME);
         userInfo.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
@@ -1295,8 +1299,8 @@ class PluginTest {
         if (groups != null) {
             userInfo.put(GROUPS_FIELD, groups);
         }
-        if (wireMock != null) {
-            userInfo.put("picture", "http://localhost:" + wireMock.getPort() + "/my-avatar.png");
+        if (withAvatar) {
+            userInfo.put("picture", wireMock.url("/my-avatar.png"));
         }
         return userInfo;
     }

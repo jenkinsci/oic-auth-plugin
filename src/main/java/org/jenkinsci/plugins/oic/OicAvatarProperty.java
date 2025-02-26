@@ -5,10 +5,8 @@ import hudson.Extension;
 import hudson.model.User;
 import hudson.model.UserProperty;
 import hudson.model.UserPropertyDescriptor;
-import java.util.logging.Logger;
 
 public class OicAvatarProperty extends UserProperty {
-    private static final Logger LOGGER = Logger.getLogger(OicAvatarProperty.class.getName());
 
     private final AvatarImage avatarImage;
 
@@ -32,7 +30,7 @@ public class OicAvatarProperty extends UserProperty {
     }
 
     public String getDisplayName() {
-        return "Openid Connect Avatar";
+        return "OpenID Connect Avatar";
     }
 
     public String getIconFileName() {
@@ -49,7 +47,7 @@ public class OicAvatarProperty extends UserProperty {
         @Override
         @NonNull
         public String getDisplayName() {
-            return "Openid Connect Avatar";
+            return "OpenID Connect Avatar";
         }
 
         @Override
