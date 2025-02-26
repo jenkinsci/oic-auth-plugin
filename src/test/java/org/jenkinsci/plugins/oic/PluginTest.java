@@ -15,6 +15,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.User;
 import hudson.tasks.Mailer;
+import hudson.tasks.UserAvatarResolver;
 import hudson.util.VersionNumber;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
@@ -104,6 +105,8 @@ class PluginTest {
     private static final String[] TEST_USER_GROUPS_REFRESHED = new String[] {"group1", "group2", "group3"};
     private static final List<Map<String, String>> TEST_USER_GROUPS_MAP =
             List.of(Map.of("id", "id1", "name", "group1"), Map.of("id", "id2", "name", "group2"));
+    private static final String TEST_ENCODED_AVATAR =
+            "iVBORw0KGgoAAAANSUhEUgAAABsAAAAaCAYAAABGiCfwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAH8SURBVEhL7ZbPK0RRFMe/z/w05Mc0Mo0mZeFXGM1IFDFEfjWKks1sSIkipDSrt1M2FpY2FpSllK2yV/4DWYlSLGzw7rvufe/Rm5n3a4rJwmdz77nz3vnee865Z56QSCQoikSJNhaFvy823Ulwsf6BWFTWVpxRsFionGJ7TEZtBSCmCEoE5ykvWGxtmMDvUefRIDDf/UtibXUUEx3ZzpcHCSpKNcOGgsQyk0QZbx/ecHDxhOdXCQEvsJpU1+1wLDYVk9FYq54qc/yAtcN7HF0+K/ZMnKChxj6cjsT8Hop1lqsvPojq+F1SR0EQsDMuKXMrHIkt9smoLtMME+L1wFCL9VWwFQtXUqR7nd2nzRECt0szDLAV2xq1dqAnXAmke8yLxVIsXk+RbLZPvJ7Ffh5y43dMxVjOHSU9F37h9cWkx1RsNi6zctaMHLxuthPdmMtUjLJrkp9nVyQSEbX5NwEvxf68BJ/H2Flr1I9wtRtLI0GU+oz32xQGzm6yfzN8ciUpsxZkLMTxs01UlbmUUJvBW9t4e/bp8sSiQYq5LutSF08flQ5ycvWirRjDc8cbwhd5YdydIUo3t6KpzgeJdZGNVMg0jJyAD5CZ1vWd+kzWNwg/+tFC4RVoxTtzN7DnYS0uR4z/VYgpCeVsRz/FPYu0eO5W5v9fVz9CEcWAT+xkgmHqzLIIAAAAAElFTkSuQmCC";
 
     @RegisterExtension
     static WireMockExtension wireMock = WireMockExtension.newInstance()
@@ -332,6 +335,28 @@ class PluginTest {
             var groupName = group.get("name");
             assertTrue(user.getAuthorities().contains(groupName), "User should be part of group " + groupName);
         }
+    }
+
+    @Test
+    void testLoginUsingUserInfoEndpointWithAvatar() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        mockTokenReturnsIdTokenWithoutValues();
+        mockUserInfoWithAvatar();
+        configureWellKnown(null, null);
+
+        // Return avatar image when requested
+        wireMock.stubFor(get(urlPathEqualTo("/my-avatar.png"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "image/png")
+                        .withBody(Base64.getDecoder().decode(TEST_ENCODED_AVATAR))));
+
+        jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
+        assertAnonymous();
+        browseLoginPage();
+        var user = assertTestUser();
+        assertTestUserEmail(user);
+        assertTestAvatar(user, wireMock);
     }
 
     @Test
@@ -822,6 +847,16 @@ class PluginTest {
                 "Email should be " + TEST_USER_EMAIL_ADDRESS);
     }
 
+    private static void assertTestAvatar(User user, WireMockExtension wireMock) {
+        String expectedAvatarUrl = wireMock.url("/my-avatar.png");
+        OicAvatarProperty avatarProperty = user.getProperty(OicAvatarProperty.class);
+        assertEquals(expectedAvatarUrl, avatarProperty.getAvatarUrl(), "Avatar url should be " + expectedAvatarUrl);
+        assertEquals("OpenID Connect Avatar", avatarProperty.getDisplayName());
+        assertNull(avatarProperty.getIconFileName(), "Icon filename must be null");
+        String urlViaAvatarResolver = UserAvatarResolver.resolve(user, "48x48");
+        assertEquals(expectedAvatarUrl, urlViaAvatarResolver, "Avatar url should be " + expectedAvatarUrl);
+    }
+
     private @NonNull User assertTestUser() {
         Authentication authentication = getAuthentication();
         assertEquals(TEST_USER_USERNAME, authentication.getPrincipal(), "Should be logged-in as " + TEST_USER_USERNAME);
@@ -1234,14 +1269,19 @@ class PluginTest {
     }
 
     private void mockUserInfoWithGroups(@Nullable Object groups) {
-        mockUserInfo(getUserInfo(groups));
+        mockUserInfo(getUserInfo(groups, false));
+    }
+
+    private void mockUserInfoWithAvatar() {
+        mockUserInfo(getUserInfo(null, true));
     }
 
     private void mockUserInfoJwtWithTestGroups(KeyPair keyPair, Object testUserGroups) throws Exception {
         wireMock.stubFor(get(urlPathEqualTo("/userinfo"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/jwt")
-                        .withBody(createUserInfoJWT(keyPair.getPrivate(), toJson(getUserInfo(testUserGroups))))));
+                        .withBody(
+                                createUserInfoJWT(keyPair.getPrivate(), toJson(getUserInfo(testUserGroups, false))))));
     }
 
     private void mockUserInfo(Map<String, Object> userInfo) {
@@ -1251,13 +1291,16 @@ class PluginTest {
                         .withBody(toJson(userInfo))));
     }
 
-    private static Map<String, Object> getUserInfo(@Nullable Object groups) {
+    private static Map<String, Object> getUserInfo(@Nullable Object groups, boolean withAvatar) {
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("sub", TEST_USER_USERNAME);
         userInfo.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
         userInfo.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
         if (groups != null) {
             userInfo.put(GROUPS_FIELD, groups);
+        }
+        if (withAvatar) {
+            userInfo.put("picture", wireMock.url("/my-avatar.png"));
         }
         return userInfo;
     }

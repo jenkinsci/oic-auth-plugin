@@ -214,6 +214,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private transient Expression<Object> emailFieldExpr = null;
     private String groupsFieldName = null;
     private transient Expression<Object> groupsFieldExpr = null;
+    private transient Expression<Object> avatarFieldExpr = null;
     private transient String simpleGroupsFieldName = null;
     private transient String nestedGroupFieldName = null;
 
@@ -336,6 +337,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.serverConfiguration = serverConfiguration;
         this.userIdStrategy = userIdStrategy;
         this.groupIdStrategy = groupIdStrategy;
+        this.avatarFieldExpr =
+                compileJMESPath("picture", "avatar field"); // Default on OIDC spec, part of profile claim
     }
 
     @SuppressWarnings("deprecated")
@@ -365,6 +368,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             this.setGroupsFieldName(this.groupsFieldName);
         }
         // ensure Field JMESPath are computed
+        this.avatarFieldExpr =
+                this.compileJMESPath("picture", "avatar field"); // Default on OIDC spec, part of profile claim
         this.setUserNameField(this.userNameField);
         this.setEmailFieldName(this.emailFieldName);
         this.setFullNameFieldName(this.fullNameFieldName);
@@ -1070,6 +1075,19 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             user.setFullName(fullName);
         }
 
+        // Set avatar if possible
+        String avatarUrl = determineStringField(avatarFieldExpr, idToken, userInfo);
+        OicAvatarProperty oicAvatarProperty;
+        if (avatarUrl != null) {
+            LOGGER.finest(() -> "Avatar url is: " + avatarUrl);
+            OicAvatarProperty.AvatarImage avatarImage = new OicAvatarProperty.AvatarImage(avatarUrl);
+            oicAvatarProperty = new OicAvatarProperty(avatarImage);
+        } else {
+            LOGGER.finest(() -> "No avatar URL found for user " + user.getId() + ". Ensure to remove existing avatar");
+            oicAvatarProperty = new OicAvatarProperty(null);
+        }
+        user.addProperty(oicAvatarProperty);
+
         user.addProperty(credentials);
 
         OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
@@ -1083,10 +1101,16 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (fieldExpr != null) {
             if (userInfo != null) {
                 Object field = fieldExpr.search(userInfo);
-                if (field != null && field instanceof String) {
-                    String fieldValue = Util.fixEmptyAndTrim((String) field);
-                    if (fieldValue != null) {
-                        return fieldValue;
+                if (field != null) {
+                    if (field instanceof String) {
+                        String fieldValue = Util.fixEmptyAndTrim((String) field);
+                        if (fieldValue != null) {
+                            return fieldValue;
+                        }
+                    }
+                    // pac4j OIDC client returns URI for some fields like the "picture" field
+                    if (field instanceof URI) {
+                        return ((URI) field).toASCIIString();
                     }
                 }
             }
