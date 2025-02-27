@@ -12,6 +12,7 @@ import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import io.jenkins.plugins.casc.model.CNode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import static io.jenkins.plugins.casc.misc.Util.toYamlString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -82,6 +84,18 @@ class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isRootURLFromRequest());
         assertEquals("http://localhost/jwks", serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
+        assertNotNull(oicSecurityRealm.getLoginQueryParameters());
+        assertNotNull(oicSecurityRealm.getLogoutQueryParameters());
+        assertEquals(
+                "loginkey1x\"xx@me=loginvalue1xxxx@you&?loginneu&/test==login?sunny%&/xx\"x",
+                oicSecurityRealm.getLoginQueryParameters().stream()
+                        .map(config -> config.getKey() + "=" + config.getValue())
+                        .collect(Collectors.joining("&")));
+        assertEquals(
+                "logoutkey1x\"xx@me=logoutvalue1xxxx@you&?logoutneu&/test==logout?sunny%&/xx\"x",
+                oicSecurityRealm.getLogoutQueryParameters().stream()
+                        .map(config -> config.getKey() + "=" + config.getValue())
+                        .collect(Collectors.joining("&")));
     }
 
     @Test
@@ -136,6 +150,8 @@ class ConfigurationAsCodeTest {
         assertFalse(oicSecurityRealm.isRootURLFromRequest());
         assertNull(serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
+        assertNull(oicSecurityRealm.getLoginQueryParameters());
+        assertNull(oicSecurityRealm.getLogoutQueryParameters());
     }
 
     @Test
@@ -165,6 +181,9 @@ class ConfigurationAsCodeTest {
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
 
         assertEquals(urlBase + "/well.known", serverConf.getWellKnownOpenIDConfigurationUrl());
+
+        assertNull(oicSecurityRealm.getLoginQueryParameters());
+        assertNull(oicSecurityRealm.getLogoutQueryParameters());
     }
 
     /** Class to setup WellKnownMockExtension for well known with stub and setting port in env variable
