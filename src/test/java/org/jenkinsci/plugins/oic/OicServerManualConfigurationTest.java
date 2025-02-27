@@ -12,8 +12,8 @@ import org.jenkinsci.plugins.oic.OicServerManualConfiguration.DescriptorImpl;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
-import org.mockito.MockedStatic;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
+import org.mockito.MockedStatic;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
