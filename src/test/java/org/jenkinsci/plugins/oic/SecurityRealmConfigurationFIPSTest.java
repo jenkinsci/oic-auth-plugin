@@ -5,10 +5,12 @@ import jenkins.security.FIPS140;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mockStatic;
 
 class SecurityRealmConfigurationFIPSTest {
 
@@ -48,5 +50,32 @@ class SecurityRealmConfigurationFIPSTest {
         oicSecurityRealm.setEscapeHatchEnabled(false);
         assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
         oicSecurityRealm.readResolve();
+    }
+
+    @Test
+    void readResolveIsDisableSslVerification() throws Exception {
+        OicSecurityRealm oicSecurityRealm = null;
+        try (MockedStatic<FIPS140> fips140Mock = mockStatic(FIPS140.class)) {
+            fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(false);
+            oicSecurityRealm = new OicSecurityRealm("clientId", null, null, Boolean.TRUE, null, null);
+            oicSecurityRealm.setEscapeHatchEnabled(false);
+        }
+        assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
+        IllegalStateException ex = assertThrows(IllegalStateException.class, oicSecurityRealm::readResolve);
+        assertThat(ex.getMessage(), is(Messages.OicSecurityRealm_DisableSslVerificationFipsMode()));
+    }
+
+    @Test
+    void readResolveIsDisableTokenVerification() throws Exception {
+        OicSecurityRealm oicSecurityRealm = null;
+        try (MockedStatic<FIPS140> fips140Mock = mockStatic(FIPS140.class)) {
+            fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(false);
+            oicSecurityRealm = new OicSecurityRealm("clientId", null, null, Boolean.FALSE, null, null);
+            oicSecurityRealm.setEscapeHatchEnabled(false);
+            oicSecurityRealm.setDisableTokenVerification(true);
+        }
+        assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
+        IllegalStateException ex = assertThrows(IllegalStateException.class, oicSecurityRealm::readResolve);
+        assertThat(ex.getMessage(), is(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode()));
     }
 }
