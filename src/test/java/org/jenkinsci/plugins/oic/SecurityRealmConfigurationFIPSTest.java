@@ -2,8 +2,6 @@ package org.jenkinsci.plugins.oic;
 
 import hudson.model.Descriptor;
 import jenkins.security.FIPS140;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -14,27 +12,14 @@ import static org.mockito.Mockito.mockStatic;
 
 class SecurityRealmConfigurationFIPSTest {
 
-    private static Object fipsProperty;
-
-    @BeforeAll
-    static void setUp() {
-        fipsProperty = System.getProperties().setProperty(FIPS140.class.getName() + ".COMPLIANCE", "true");
-    }
-
-    @AfterAll
-    static void tearDown() {
-        if (fipsProperty != null) {
-            System.setProperty(FIPS140.class.getName() + ".COMPLIANCE", String.valueOf(fipsProperty));
-        } else {
-            System.clearProperty(FIPS140.class.getName() + ".COMPLIANCE");
-        }
-    }
-
     @Test
     void escapeHatchThrowsException() {
-        assertThrows(
-                Descriptor.FormException.class,
-                () -> new OicSecurityRealm("clientId", null, null, null, null, null).setEscapeHatchEnabled(true));
+        try (MockedStatic<FIPS140> fips140Mocked = mockStatic(FIPS140.class)) {
+            fips140Mocked.when(FIPS140::useCompliantAlgorithms).thenReturn(true);
+            assertThrows(
+                    Descriptor.FormException.class,
+                    () -> new OicSecurityRealm("clientId", null, null, null, null, null).setEscapeHatchEnabled(true));
+        }
     }
 
     @Test
@@ -54,28 +39,30 @@ class SecurityRealmConfigurationFIPSTest {
 
     @Test
     void readResolveIsDisableSslVerification() throws Exception {
-        OicSecurityRealm oicSecurityRealm = null;
         try (MockedStatic<FIPS140> fips140Mock = mockStatic(FIPS140.class)) {
             fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(false);
-            oicSecurityRealm = new OicSecurityRealm("clientId", null, null, Boolean.TRUE, null, null);
+            OicSecurityRealm oicSecurityRealm = new OicSecurityRealm("clientId", null, null, Boolean.TRUE, null, null);
             oicSecurityRealm.setEscapeHatchEnabled(false);
+            assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
+
+            fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(true);
+            IllegalStateException ex = assertThrows(IllegalStateException.class, oicSecurityRealm::readResolve);
+            assertThat(ex.getMessage(), is(Messages.OicSecurityRealm_DisableSslVerificationFipsMode()));
         }
-        assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
-        IllegalStateException ex = assertThrows(IllegalStateException.class, oicSecurityRealm::readResolve);
-        assertThat(ex.getMessage(), is(Messages.OicSecurityRealm_DisableSslVerificationFipsMode()));
     }
 
     @Test
     void readResolveIsDisableTokenVerification() throws Exception {
-        OicSecurityRealm oicSecurityRealm = null;
         try (MockedStatic<FIPS140> fips140Mock = mockStatic(FIPS140.class)) {
             fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(false);
-            oicSecurityRealm = new OicSecurityRealm("clientId", null, null, Boolean.FALSE, null, null);
+            OicSecurityRealm oicSecurityRealm = new OicSecurityRealm("clientId", null, null, Boolean.FALSE, null, null);
             oicSecurityRealm.setEscapeHatchEnabled(false);
             oicSecurityRealm.setDisableTokenVerification(true);
+            assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
+
+            fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(true);
+            IllegalStateException ex = assertThrows(IllegalStateException.class, oicSecurityRealm::readResolve);
+            assertThat(ex.getMessage(), is(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode()));
         }
-        assertThat(oicSecurityRealm.isEscapeHatchEnabled(), is(false));
-        IllegalStateException ex = assertThrows(IllegalStateException.class, oicSecurityRealm::readResolve);
-        assertThat(ex.getMessage(), is(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode()));
     }
 }
