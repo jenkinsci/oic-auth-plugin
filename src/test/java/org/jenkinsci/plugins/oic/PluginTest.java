@@ -352,6 +352,7 @@ class PluginTest {
                         .withBody(Base64.getDecoder().decode(TEST_ENCODED_AVATAR))));
 
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
+        assertNotNull(OicAvatarResolver.get());
         assertAnonymous();
         browseLoginPage();
         var user = assertTestUser();
