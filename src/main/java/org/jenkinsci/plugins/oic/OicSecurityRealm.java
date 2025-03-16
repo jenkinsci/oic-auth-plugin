@@ -39,7 +39,6 @@ import com.nimbusds.oauth2.sdk.token.RefreshToken;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.Util;
@@ -1014,10 +1013,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return;
     }
 
-    @SuppressFBWarnings(
-            value = "DMI_RANDOM_USED_ONLY_ONCE",
-            justification = "False positive in spotbug about DMI_RANDOM_USED_ONLY_ONCE")
-    // see https://github.com/spotbugs/spotbugs/issues/1539
     private void randomWait() {
         try {
             Thread.sleep(1000 + RANDOM.nextInt(1000));
