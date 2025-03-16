@@ -1,12 +1,10 @@
 package org.jenkinsci.plugins.oic.ssl;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import javax.net.ssl.X509TrustManager;
 import jenkins.security.FIPS140;
 
-@SuppressFBWarnings(value = "WEAK_TRUST_MANAGER", justification = "Opt in by user")
 final class AnythingGoesTrustManager implements X509TrustManager {
 
     static final X509TrustManager INSTANCE = new AnythingGoesTrustManager();
