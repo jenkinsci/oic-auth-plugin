@@ -7,12 +7,14 @@
     <useSecurity>true</useSecurity>
     <securityRealm class="org.jenkinsci.plugins.oic.OicSecurityRealm" plugin="oic-auth@4.999999-SNAPSHOT">
         <clientId>client-id</clientId>
-        <clientSecret>{AQAAABAAAAAQ6eIZw98uUCRkQ7ug3nSTzQ4EKjZWLpSQFIxRg9AMWNo=}</clientSecret>
+        <!-- 'secret' -->
+        <clientSecret>{AQAAABAAAAAQSREHrveTM/8pApzSQ+6lTSpJhBkO/GawfTbj428hwX0=}</clientSecret>
         <userNameField>sub</userNameField>
         <disableSslVerification>false</disableSslVerification>
         <logoutFromOpenidProvider>false</logoutFromOpenidProvider>
         <escapeHatchEnabled>false</escapeHatchEnabled>
-        <escapeHatchSecret>{AQAAABAAAABAPfWEOWZptuocLQqIjwfXTQ6Ky/3yq4CIWvdUYhH4jX1CuCzrFvr2ICIiBIIpp79McMBCTHq9QhVjfgbPN9XPEbjsFiWihgKHZYF+3+wz3kM=}</escapeHatchSecret>
+        <!-- '1234567890' -->
+        <escapeHatchSecret>{AQAAABAAAABAz2c6V2hWHZV2Uc2JcjnvZgqTUuuTZ6WStcbPWDqS8x5IFoaZlFO/Q7JHqCoP8RzWFffhjOVehtaGih6+rGUD6aeZcmBQZKjJ7ExIVhU07Ok=}</escapeHatchSecret>
         <serverConfiguration class="org.jenkinsci.plugins.oic.OicServerWellKnownConfiguration">
             <wellKnownOpenIDConfigurationUrl>https://example.test</wellKnownOpenIDConfigurationUrl>
         </serverConfiguration>
