@@ -182,23 +182,23 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @Deprecated
     private transient String wellKnownOpenIDConfigurationUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getTokenServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getTokenServerUrl()} */
     @Deprecated
     private transient String tokenServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getJwksServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getJwksServerUrl()} */
     @Deprecated
     private transient String jwksServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getTokenAuthMethod()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getTokenAuthMethod()} */
     @Deprecated
     private transient TokenAuthMethod tokenAuthMethod;
 
-    /** @deprecated see {@link OicServerConfiguration#getAuthorizationServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getAuthorizationServerUrl()} */
     @Deprecated
     private transient String authorizationServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getUserInfoServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getUserInfoServerUrl()} */
     @Deprecated
     private transient String userInfoServerUrl;
 
@@ -217,14 +217,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private transient String simpleGroupsFieldName = null;
     private transient String nestedGroupFieldName = null;
 
-    /** @deprecated see {@link OicServerConfiguration#getScopes()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getScopes()} */
     @Deprecated
     private transient String scopes = null;
 
     private final boolean disableSslVerification;
     private boolean logoutFromOpenidProvider = true;
 
-    /** @deprecated see {@link OicServerConfiguration#getEndSessionUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getEndSessionUrl()} */
     @Deprecated
     private transient String endSessionEndpoint = null;
 
@@ -293,7 +293,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             SystemProperties.getBoolean(OicSecurityRealm.class.getName() + ".checkNonceInRefreshFlow", false);
 
     /** old field that had an '/' implicitly added at the end,
-     * transient because we no longer want to have this value stored
+     * transient because we no longer want to have this value stored,
      * but it's still needed for backwards compatibility */
     @Deprecated
     private transient String endSessionUrl;
@@ -625,18 +625,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     oidcProviderMetadata.getUserInfoJWEEncs());
             oidcProviderMetadata.setUserInfoJWEEncs(userInfoJWEEncs);
         }
-
-        if (oidcProviderMetadata.getRequestObjectJWEEncs() != null) {
-            List<EncryptionMethod> requestObjectJweEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
-                    oidcProviderMetadata.getRequestObjectJWEEncs());
-            oidcProviderMetadata.setRequestObjectJWEEncs(requestObjectJweEncs);
-        }
-
-        if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
-            List<EncryptionMethod> authJweEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
-                    oidcProviderMetadata.getAuthorizationJWEEncs());
-            oidcProviderMetadata.setAuthorizationJWEEncs(authJweEncs);
-        }
     }
 
     private void filterJweAlgorithms(@NonNull OIDCProviderMetadata oidcProviderMetadata) {
@@ -722,9 +710,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
 
         if (oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs() != null) {
-            List<JWSAlgorithm> clientRegisterationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
+            List<JWSAlgorithm> clientRegistrationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
                     oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs());
-            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegisterationAuth);
+            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegistrationAuth);
         }
     }
 
@@ -790,14 +778,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return null;
     }
 
-    private Object applyJMESPath(Expression<Object> expression, Object map) {
-        return expression.search(map);
-    }
-
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmptyAndTrim(groupsFieldName);
-        this.groupsFieldExpr = this.compileJMESPath(this.groupsFieldName, "groups field");
+        this.groupsFieldExpr = compileJMESPath(this.groupsFieldName, "groups field");
     }
 
     @DataBoundSetter
@@ -961,7 +945,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * Validate post-login redirect URL
      *
      * For security reasons, the login must not redirect outside Jenkins
-     * realm. For useablility reason, the logout page should redirect to
+     * realm. For usability reason, the logout page should redirect to
      * root url.
      */
     protected String getValidRedirectUrl(String url) {
@@ -986,7 +970,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     /**
-     * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
+     * Handles the securityRealm/commenceLogin resource and sends the user off to the IdP
      * @param from the relative URL to the page that the user has just come from
      * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
      * @throws URISyntaxException if the provided data is invalid
@@ -1010,7 +994,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // store the redirect url for after the login.
         sessionStore.set(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY, redirectOnFinish);
         JEEHttpActionAdapter.INSTANCE.adapt(redirectionAction, webContext);
-        return;
     }
 
     private void randomWait() {
@@ -1110,11 +1093,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 }
             }
             if (idToken != null) {
-                String fieldValue = Util.fixEmptyAndTrim(
+                return Util.fixEmptyAndTrim(
                         getStringField(idToken.getJWTClaimsSet().getClaims(), fieldExpr));
-                if (fieldValue != null) {
-                    return fieldValue;
-                }
             }
         }
         return null;
@@ -1136,7 +1116,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
         if (this.groupsFieldExpr == null) {
             if (this.groupsFieldName == null) {
-                LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
+                LOGGER.fine("Not adding groups because groupsFieldName is not set.");
             } else {
                 LOGGER.fine("Not adding groups because groupsFieldName is invalid. groupsFieldName=" + groupsFieldName);
             }
@@ -1179,7 +1159,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             LOGGER.warning("userInfo did not contain a valid group field content, got null");
             return Collections.<String>emptyList();
         } else if (field instanceof String) {
-            // if its a String, the original value was not a json array.
+            // if it's a String, the original value was not a json array.
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
             // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
             String sField = (String) field;
@@ -1198,9 +1178,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 if (group instanceof String) {
                     result.add(group.toString());
                 } else if (group instanceof Map) {
-                    // if its a Map, we use the nestedGroupFieldName to grab the groups
+                    // if it's a Map, we use the nestedGroupFieldName to grab the groups
                     Map<String, String> groupMap = (Map<String, String>) group;
-                    if (nestedGroupFieldName != null && groupMap.keySet().contains(nestedGroupFieldName)) {
+                    if (nestedGroupFieldName != null && groupMap.containsKey(nestedGroupFieldName)) {
                         result.add(groupMap.get(nestedGroupFieldName));
                     }
                 }
@@ -1385,7 +1365,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         } catch (HttpAction e) {
             // this may be an OK flow for logout login is handled upstream.
             JEEHttpActionAdapter.INSTANCE.adapt(e, webContext);
-            return;
         }
     }
 
@@ -1521,8 +1500,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 User u = User.get2(a);
                 LOGGER.log(
                         Level.FINE,
-                        "Token refresh.  Current Authentitcation principal: " + a.getName() + " user id:"
-                                + (u == null ? "null user" : u.getId()) + " newly retreived username would have been: "
+                        "Token refresh.  Current Authentication principal: " + a.getName() + " user id:"
+                                + (u == null ? "null user" : u.getId()) + " newly retrieved username would have been: "
                                 + username);
             }
             username = expectedUsername;
