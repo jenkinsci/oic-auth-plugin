@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.oic;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import hudson.model.User;
+import java.time.Clock;
 import jenkins.model.Jenkins;
 import jenkins.security.ApiTokenProperty;
 import org.junit.jupiter.api.AfterEach;
@@ -13,6 +14,7 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.mockito.MockedStatic;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -88,15 +90,23 @@ public class OicSecurityRealmTokenExpirationTest {
             assertTrue(realm.handleTokenExpiration(mockHttpServletRequest, null));
         }
 
-        // ------------- W/o ApiTokenProperty
+        // ------------- With ApiTokenProperty
         ApiTokenProperty mockApiTokenProperty = mock(ApiTokenProperty.class);
         when(mockUser.getProperty(ApiTokenProperty.class)).thenReturn(mockApiTokenProperty);
-        when(mockApiTokenProperty.matchesPassword(any())).thenReturn(true);
 
         // Static method User.get2(authentication) mock
         try (MockedStatic<User> mockedUser = mockStatic(User.class)) {
             mockedUser.when((MockedStatic.Verification) User.get2(any())).thenReturn(mockUser);
 
+            when(mockApiTokenProperty.matchesPassword(any())).thenReturn(true);
+            assertTrue(realm.handleTokenExpiration(mockHttpServletRequest, null));
+
+            OicCredentials mockOicCredentials = mock(OicCredentials.class);
+            when(mockUser.getProperty(OicCredentials.class)).thenReturn(mockOicCredentials);
+            when(mockApiTokenProperty.matchesPassword(any())).thenReturn(false);
+            when(mockOicCredentials.getExpiresAtMillis())
+                    .thenReturn(Clock.systemUTC().millis() + 10);
+            assertFalse(realm.isExpired(mockOicCredentials));
             assertTrue(realm.handleTokenExpiration(mockHttpServletRequest, null));
         }
     }
