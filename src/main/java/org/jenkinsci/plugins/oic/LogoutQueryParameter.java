@@ -5,6 +5,7 @@ import hudson.model.Descriptor.FormException;
 import hudson.util.FormValidation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 public class LogoutQueryParameter extends AbstractQueryParameter<LogoutQueryParameter> {
 
@@ -16,6 +17,7 @@ public class LogoutQueryParameter extends AbstractQueryParameter<LogoutQueryPara
     @Extension
     public static class DescriptorImpl extends AbstractKeyValueDescribable.DescriptorImpl<LogoutQueryParameter> {
 
+        @POST
         @Override
         public FormValidation doCheckKey(@QueryParameter String key) {
             return switch (key.trim()) {

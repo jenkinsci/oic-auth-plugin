@@ -5,6 +5,7 @@ import hudson.model.Descriptor.FormException;
 import hudson.util.FormValidation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 import org.pac4j.oidc.config.OidcConfiguration;
 
 public class LoginQueryParameter extends AbstractQueryParameter<LoginQueryParameter> {
@@ -17,6 +18,7 @@ public class LoginQueryParameter extends AbstractQueryParameter<LoginQueryParame
     @Extension
     public static class DescriptorImpl extends AbstractKeyValueDescribable.DescriptorImpl<LoginQueryParameter> {
 
+        @POST
         @Override
         public FormValidation doCheckKey(@QueryParameter String key) {
             return switch (key.trim()) {
