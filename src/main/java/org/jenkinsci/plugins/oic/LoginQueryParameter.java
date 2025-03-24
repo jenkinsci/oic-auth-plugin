@@ -36,5 +36,11 @@ public class LoginQueryParameter extends AbstractQueryParameter<LoginQueryParame
                 default -> FormValidation.ok();
             };
         }
+
+        @POST
+        @Override
+        public FormValidation doCheckValue(String value) {
+            return FormValidation.ok();
+        }
     }
 }

@@ -65,24 +65,20 @@ public abstract class AbstractKeyValueDescribable<T extends AbstractKeyValueDesc
         return (DescriptorImpl<T>) super.getDescriptor();
     }
 
-    public static class DescriptorImpl<T extends AbstractKeyValueDescribable<T>> extends Descriptor<T> {
+    public abstract static class DescriptorImpl<T extends AbstractKeyValueDescribable<T>> extends Descriptor<T> {
 
         /**
          * Check the key for validity.
          * In addition to being used by the UI, any FormValidation of {@code Kind.ERROR} will cause a fail to create the describable.
          * By default, this method returns {@link FormValidation#ok()}, subclasses should override this in order to provide any required checking.
          */
-        public FormValidation doCheckKey(@SuppressWarnings("unused") @QueryParameter String key) {
-            return FormValidation.ok();
-        }
+        public abstract FormValidation doCheckKey(@SuppressWarnings("unused") @QueryParameter String key);
 
         /**
          * Check the key for validity.
          * In addition to being used by the UI, any FormValidation of {@code Kind.ERROR} will cause a fail to create the describable.
          * By default, this method returns {@link FormValidation#ok()}, subclasses should override this in order to provide any required checking.
          */
-        public FormValidation doCheckValue(@SuppressWarnings("unused") @QueryParameter String value) {
-            return FormValidation.ok();
-        }
+        public abstract FormValidation doCheckValue(@SuppressWarnings("unused") @QueryParameter String value);
     }
 }
