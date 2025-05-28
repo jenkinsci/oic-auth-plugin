@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.oic;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import hudson.model.Descriptor;
@@ -59,8 +60,8 @@ public class LogoutQueryParameterTest {
         LogoutQueryParameter lqp = new LogoutQueryParameter("something", "");
         assertThat(lqp.getKey(), is("something"));
         assertThat(lqp.getURLEncodedKey(), is("something"));
-        assertThat(lqp.getValue(), is(""));
-        assertThat(lqp.getURLEncodedValue(), is(""));
+        assertThat(lqp.getValue(), nullValue());
+        assertThat(lqp.getURLEncodedValue(), nullValue());
     }
 
     @Test

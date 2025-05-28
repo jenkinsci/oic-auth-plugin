@@ -1,24 +1,27 @@
 clientId: "clientId"
 disableSslVerification: true
 emailFieldName: "emailFieldName"
-escapeHatchEnabled: true
-escapeHatchGroup: "escapeHatchGroup"
-escapeHatchUsername: "escapeHatchUsername"
 fullNameFieldName: "fullNameFieldName"
 groupIdStrategy: "caseInsensitive"
 groupsFieldName: "groupsFieldName"
-loginQueryParameters:
-- key: "loginkey1x\"xx@me"
-  value: "loginvalue1xxxx@you"
-- key: "?loginneu&/test="
-  value: "login?sunny%&/xx\"x"
-logoutQueryParameters:
-- key: "logoutkey1x\"xx@me"
-  value: "logoutvalue1xxxx@you"
-- key: "?logoutneu&/test="
-  value: "logout?sunny%&/xx\"x"
-nonceDisabled: true
-pkceEnabled: true
+properties:
+- "disableNonce"
+- "pkce"
+- loginQueryParameters:
+    items:
+    - key: "loginkey1x\"xx@me"
+      value: "loginvalue1xxxx@you"
+    - key: "?loginneu&/test="
+      value: "login?sunny%&/xx\"x"
+- logoutQueryParameters:
+    items:
+    - key: "logoutkey1x\"xx@me"
+      value: "logoutvalue1xxxx@you"
+    - key: "?logoutneu&/test="
+      value: "logout?sunny%&/xx\"x"
+- escapeHatch:
+    group: "escapeHatchGroup"
+    username: "escapeHatchUsername"
 rootURLFromRequest: true
 sendScopesInTokenRequest: true
 serverConfiguration:

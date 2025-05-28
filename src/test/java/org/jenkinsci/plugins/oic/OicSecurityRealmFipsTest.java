@@ -16,6 +16,7 @@ import hudson.util.Secret;
 import java.io.IOException;
 import jenkins.security.FIPS140;
 import org.hamcrest.Matcher;
+import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -47,15 +48,16 @@ class OicSecurityRealmFipsTest {
     @WithoutJenkins
     void settingNonCompliantValuesNotAllowedTest() throws IOException, Descriptor.FormException {
         OicSecurityRealm realm = new OicSecurityRealm("clientId", Secret.fromString("secret"), null, false, null, null);
-        Descriptor.FormException ex = assertThrows(
+        Exception ex = assertThrows(
                 Descriptor.FormException.class,
                 () -> new OicSecurityRealm("clientId", Secret.fromString("secret"), null, true, null, null));
         assertThat(
                 "Exception contains the reason",
                 ex.getMessage(),
                 containsString("SSL verification can not be disabled"));
-        realm.setDisableTokenVerification(false);
-        ex = assertThrows(Descriptor.FormException.class, () -> realm.setDisableTokenVerification(true));
+        realm.getProperties().removeIf(DisableTokenVerification.class::isInstance);
+        ex = assertThrows(
+                IllegalArgumentException.class, () -> realm.getProperties().add(new DisableTokenVerification()));
         assertThat(
                 "Exception contains the reason",
                 ex.getMessage(),
@@ -75,16 +77,6 @@ class OicSecurityRealmFipsTest {
                         withMessageContaining("SSL verification can not be disabled")));
         response = descriptor.doCheckDisableSslVerification(false);
         assertThat("Validation is ok", response, hasKind(FormValidation.Kind.OK));
-
-        response = descriptor.doCheckDisableTokenVerification(true);
-        assertThat(
-                "States token verification can not be disabled",
-                response,
-                allOf(
-                        hasKind(FormValidation.Kind.ERROR),
-                        withMessageContaining("Token verification can not be disabled")));
-        response = descriptor.doCheckDisableTokenVerification(false);
-        assertThat("Validation is ok", response.kind, is(FormValidation.Kind.OK));
     }
 
     @Test

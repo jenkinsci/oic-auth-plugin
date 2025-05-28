@@ -10,7 +10,7 @@ import static io.jenkins.plugins.casc.misc.Util.toYamlString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -32,6 +32,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
+import org.jenkinsci.plugins.oic.properties.EscapeHatch;
+import org.jenkinsci.plugins.oic.properties.LoginQueryParameters;
+import org.jenkinsci.plugins.oic.properties.LogoutQueryParameters;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -68,12 +71,13 @@ class ConfigurationAsCodeTest {
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertTrue(oicSecurityRealm.isDisableSslVerification());
         assertEquals("emailFieldName", oicSecurityRealm.getEmailFieldName());
-        assertTrue(oicSecurityRealm.isEscapeHatchEnabled());
-        assertEquals("escapeHatchGroup", oicSecurityRealm.getEscapeHatchGroup());
-        assertEquals(
-                "$2a$10$fxteEkfDqwqkmUelZmTxlu9WESjVDKQhp6jsqB1AgsLQ2dC6jikga",
-                Secret.toString(oicSecurityRealm.getEscapeHatchSecret()));
-        assertEquals("escapeHatchUsername", oicSecurityRealm.getEscapeHatchUsername());
+        var escapeHatch = oicSecurityRealm.getProperties().get(EscapeHatch.class);
+        assertThat(escapeHatch, notNullValue());
+        assertThat(escapeHatch.getUsername(), is("escapeHatchUsername"));
+        assertThat(escapeHatch.getGroup(), is("escapeHatchGroup"));
+        assertThat(
+                Secret.toString(escapeHatch.getSecret()),
+                is("$2a$10$fxteEkfDqwqkmUelZmTxlu9WESjVDKQhp6jsqB1AgsLQ2dC6jikga"));
         assertEquals("fullNameFieldName", oicSecurityRealm.getFullNameFieldName());
         assertEquals("groupsFieldName", oicSecurityRealm.getGroupsFieldName());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
@@ -84,16 +88,18 @@ class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isRootURLFromRequest());
         assertEquals("http://localhost/jwks", serverConf.getJwksServerUrl());
         assertFalse(oicSecurityRealm.isDisableTokenVerification());
-        assertNotNull(oicSecurityRealm.getLoginQueryParameters());
-        assertNotNull(oicSecurityRealm.getLogoutQueryParameters());
+        var loginQueryParameters = oicSecurityRealm.getProperties().get(LoginQueryParameters.class);
+        assertThat(loginQueryParameters, notNullValue());
         assertEquals(
                 "loginkey1x\"xx@me=loginvalue1xxxx@you&?loginneu&/test==login?sunny%&/xx\"x",
-                oicSecurityRealm.getLoginQueryParameters().stream()
+                loginQueryParameters.getItems().stream()
                         .map(config -> config.getKey() + "=" + config.getValue())
                         .collect(Collectors.joining("&")));
+        var logoutQueryParameters = oicSecurityRealm.getProperties().get(LogoutQueryParameters.class);
+        assertThat(logoutQueryParameters, notNullValue());
         assertEquals(
                 "logoutkey1x\"xx@me=logoutvalue1xxxx@you&?logoutneu&/test==logout?sunny%&/xx\"x",
-                oicSecurityRealm.getLogoutQueryParameters().stream()
+                logoutQueryParameters.contributeLogoutQueryParameters().stream()
                         .map(config -> config.getKey() + "=" + config.getValue())
                         .collect(Collectors.joining("&")));
     }
@@ -112,7 +118,7 @@ class ConfigurationAsCodeTest {
         String[] lines = exported.split("\n");
         List<String> lineList = new ArrayList<>();
         for (String line : lines) {
-            if (!line.isEmpty() && !line.contains("Secret")) {
+            if (!line.isEmpty() && !line.contains("secret:") && !line.contains("clientSecret:")) {
                 lineList.add(line);
             }
         }
