@@ -1411,7 +1411,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (isAllowTokenAccessWithoutOicSession()) {
             // check if this is a valid api token based request
             String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Basic ")) {
+            if (authHeader != null && authHeader.regionMatches(true, 0, "Basic ", 0, 6)) {
                 String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
                         .split(":")[1];
 

@@ -1372,4 +1372,33 @@ class PluginTest {
     private static void withoutExpiresIn(Map<String, String> token) {
         token.compute("expires_in", (o, n) -> null);
     }
+
+    @Test
+    void testApiTokenAuthorizationHeaderCaseInsensitive() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin();
+        configureWellKnown(null, null, "authorization_code");
+        jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
+        // login
+        mockTokenReturnsIdTokenWithGroup();
+        mockUserInfoWithTestGroups();
+        browseLoginPage();
+        assertTestUser();
+        // get the user's API token
+        String token = User.getById(TEST_USER_USERNAME, false).getProperty(jenkins.security.ApiTokenProperty.class).getToken();
+        // lowercase 'basic' in Authorization header
+        HttpClient c = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
+        HttpResponse<String> rsp = c.send(
+            HttpRequest.newBuilder(URI.create(jenkinsRule.getURL() + "/whoAmI/api/xml"))
+                .header("Authorization", "basic " + Base64.getEncoder().encodeToString((TEST_USER_USERNAME + ":" + token).getBytes(StandardCharsets.UTF_8)))
+                .GET()
+                .build(),
+            HttpResponse.BodyHandlers.ofString()
+        );
+        assertThat("response should have been 200\n" + rsp.body(), rsp.statusCode(), is(200));
+        assertThat(
+            "response should have been 200\n" + rsp.body(),
+            rsp.body(),
+            containsString("<authenticated>true</authenticated>")
+        );
+    }
 }
