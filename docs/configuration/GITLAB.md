@@ -1,10 +1,10 @@
-# Gilab Provider
+# GitLab Provider
 
 [Gitlab][1] can be used as as an OpenID Connect identity provider.
 
 ## Provider configuration
 
-An application must be setup on Gitlab as describe in the documentation
+An application must be setup on GitLab as describe in the documentation
 of [OAuth 2.0 authentication identity provider][2]. The application must
 be configured with:
 
@@ -19,7 +19,7 @@ In order to obtain the client id and secret:
 
 ## Plugin configuration
 
-Gitla provides a well known configuration endpoint which can be used
+GitLab provides a well known configuration endpoint which can be used
 for automating endpoint configuration. It also supports PKCE
 verification for additional security.
 
