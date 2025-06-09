@@ -50,7 +50,7 @@ public class OicSecurityRealmTokenExpirationTest {
         jenkins.setSecurityRealm(realm);
 
         try (MockedStatic<User> userMocked = mockStatic(User.class)) {
-            userMocked.when((MockedStatic.Verification) User.get2(any())).thenReturn(null);
+            userMocked.when(() -> User.get2(any())).thenReturn(null);
             assertTrue(realm.handleTokenExpiration(
                     new MockHttpServletRequest() {
                         @Override
@@ -85,7 +85,7 @@ public class OicSecurityRealmTokenExpirationTest {
 
         // ------------- W/o ApiTokenProperty
         try (MockedStatic<User> mockedUser = mockStatic(User.class)) {
-            mockedUser.when((MockedStatic.Verification) User.get2(any())).thenReturn(mockUser);
+            mockedUser.when(() -> User.get2(any())).thenReturn(mockUser);
 
             assertTrue(realm.handleTokenExpiration(mockHttpServletRequest, null));
         }
@@ -96,7 +96,7 @@ public class OicSecurityRealmTokenExpirationTest {
 
         // Static method User.get2(authentication) mock
         try (MockedStatic<User> mockedUser = mockStatic(User.class)) {
-            mockedUser.when((MockedStatic.Verification) User.get2(any())).thenReturn(mockUser);
+            mockedUser.when(() -> User.get2(any())).thenReturn(mockUser);
 
             when(mockApiTokenProperty.matchesPassword(any())).thenReturn(true);
             assertTrue(realm.handleTokenExpiration(mockHttpServletRequest, null));
