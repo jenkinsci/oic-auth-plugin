@@ -206,7 +206,7 @@ class OicSecurityRealmTest {
         assertNotNull(result);
         assertFalse(result.contains("overwrite-test"));
         assertEquals(
-                "https://endpoint?key1=with-spaces&id_token_hint=my-id-token&state=test&post_logout_redirect_uri=https%3A%2F%2Flocalhost&param-only",
+                "https://endpoint?id_token_hint=my-id-token&state=test&post_logout_redirect_uri=https%3A%2F%2Flocalhost&key1=with-spaces&param-only",
                 result);
     }
 

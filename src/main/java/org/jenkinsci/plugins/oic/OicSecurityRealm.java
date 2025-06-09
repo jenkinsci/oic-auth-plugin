@@ -81,8 +81,8 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1305,8 +1305,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
         final URI url = serverConfiguration.toProviderMetadata().getEndSessionEndpointURI();
         if (this.logoutFromOpenidProvider && url != null) {
-            Map<String, String> segmentsMap = new HashMap<>();
-            Set<String> segmentsSet = new HashSet<>();
+            Map<String, String> segmentsMap = new LinkedHashMap<>();
+            Set<String> segmentsSet = new LinkedHashSet<>();
             if (!Strings.isNullOrEmpty(idToken)) {
                 segmentsMap.put("id_token_hint", idToken);
             }
