@@ -1450,18 +1450,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * @throws IOException a low level exception
      */
     public boolean handleTokenExpiration(HttpServletRequest httpRequest, HttpServletResponse httpResponse)
-            throws IOException, ServletException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
+            throws IOException {
         if (httpRequest.getRequestURI().endsWith("/logout")) {
             // No need to refresh token when logging out
             return true;
         }
 
-        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
-            return true;
-        }
-
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = User.get2(authentication);
         if (user == null) {
             return true;
