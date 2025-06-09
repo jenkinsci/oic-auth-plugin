@@ -1450,19 +1450,17 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * @throws IOException a low level exception
      */
     public boolean handleTokenExpiration(HttpServletRequest httpRequest, HttpServletResponse httpResponse)
-            throws IOException, ServletException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
+            throws IOException {
         if (httpRequest.getRequestURI().endsWith("/logout")) {
             // No need to refresh token when logging out
             return true;
         }
 
-        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = User.get2(authentication);
+        if (user == null) {
             return true;
         }
-
-        User user = User.get2(authentication);
 
         if (isAllowTokenAccessWithoutOicSession()) {
             // check if this is a valid api token based request
@@ -1470,17 +1468,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             if (authHeader != null && authHeader.startsWith("Basic ")) {
                 String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
                         .split(":")[1];
-
-                if (user.getProperty(ApiTokenProperty.class).matchesPassword(token)) {
+                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
+                if (apiTokenProperty != null && apiTokenProperty.matchesPassword(token)) {
                     // this was a valid jenkins token being used, exit this filter and let
                     // the rest of chain be processed
                     return true;
                 } // else do nothing and continue evaluating this request
             }
-        }
-
-        if (user == null) {
-            return true;
         }
 
         OicCredentials credentials = user.getProperty(OicCredentials.class);
