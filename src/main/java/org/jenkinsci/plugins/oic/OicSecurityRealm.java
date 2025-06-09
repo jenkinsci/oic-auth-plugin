@@ -39,6 +39,7 @@ import com.nimbusds.oauth2.sdk.token.RefreshToken;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.Util;
@@ -80,13 +81,17 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import jenkins.model.IdStrategy;
 import jenkins.model.IdStrategyDescriptor;
@@ -316,6 +321,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     private transient ProxyAwareResourceRetriever proxyAwareResourceRetriever;
 
+    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "we are not using standard serialization")
+    private List<LoginQueryParameter> loginQueryParameters;
+
+    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "we are not using standard serialization")
+    private List<LogoutQueryParameter> logoutQueryParameters;
+
     @DataBoundConstructor
     public OicSecurityRealm(
             String clientId,
@@ -414,6 +425,24 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         }
         createProxyAwareResourceRetriver();
         return this;
+    }
+
+    @DataBoundSetter
+    public void setLoginQueryParameters(List<LoginQueryParameter> values) {
+        this.loginQueryParameters = values;
+    }
+
+    public List<LoginQueryParameter> getLoginQueryParameters() {
+        return loginQueryParameters;
+    }
+
+    @DataBoundSetter
+    public void setLogoutQueryParameters(List<LogoutQueryParameter> values) {
+        this.logoutQueryParameters = values;
+    }
+
+    public List<LogoutQueryParameter> getLogoutQueryParameters() {
+        return logoutQueryParameters;
     }
 
     public String getClientId() {
@@ -587,6 +616,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             conf.setDisablePkce(true);
         }
         opMetadataResolver.init();
+        if (loginQueryParameters != null && !loginQueryParameters.isEmpty()) {
+            for (LoginQueryParameter lqp : loginQueryParameters) {
+                conf.addCustomParam(lqp.getURLEncodedKey(), lqp.getURLEncodedValue());
+            }
+        }
         return conf;
     }
 
@@ -1268,22 +1302,44 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @CheckForNull
-    private String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
+    String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
         final URI url = serverConfiguration.toProviderMetadata().getEndSessionEndpointURI();
         if (this.logoutFromOpenidProvider && url != null) {
-            StringBuilder openidLogoutEndpoint = new StringBuilder(url.toString());
-
+            Map<String, String> segmentsMap = new LinkedHashMap<>();
+            Set<String> segmentsSet = new LinkedHashSet<>();
             if (!Strings.isNullOrEmpty(idToken)) {
-                openidLogoutEndpoint.append("?id_token_hint=").append(idToken).append("&");
-            } else {
-                openidLogoutEndpoint.append("?");
+                segmentsMap.put("id_token_hint", idToken);
             }
-            openidLogoutEndpoint.append("state=").append(state);
-
+            if (!Strings.isNullOrEmpty(state) && !"null".equals(state)) {
+                segmentsMap.put("state", state);
+            }
             if (postLogoutRedirectUrl != null) {
-                openidLogoutEndpoint
-                        .append("&post_logout_redirect_uri=")
-                        .append(URLEncoder.encode(postLogoutRedirectUrl, StandardCharsets.UTF_8));
+                segmentsMap.put(
+                        "post_logout_redirect_uri", URLEncoder.encode(postLogoutRedirectUrl, StandardCharsets.UTF_8));
+            }
+            if (logoutQueryParameters != null && !logoutQueryParameters.isEmpty()) {
+                logoutQueryParameters.forEach(lqp -> {
+                    String key = lqp.getURLEncodedKey();
+                    String value = lqp.getURLEncodedValue();
+                    if (value.isEmpty()) {
+                        segmentsSet.add(key);
+                    } else {
+                        segmentsMap.put(key, value);
+                    }
+                });
+            }
+
+            StringBuilder openidLogoutEndpoint = new StringBuilder(url.toString());
+            String concatChar = openidLogoutEndpoint.toString().contains("?") ? "&" : "?";
+            if (!segmentsMap.isEmpty()) {
+                String joinedString = segmentsMap.entrySet().stream()
+                        .map(entry -> entry.getKey() + "=" + entry.getValue())
+                        .collect(Collectors.joining("&"));
+                openidLogoutEndpoint.append(concatChar).append(joinedString);
+                concatChar = "&";
+            }
+            if (!segmentsSet.isEmpty()) {
+                openidLogoutEndpoint.append(concatChar).append(String.join("&", segmentsSet));
             }
             return openidLogoutEndpoint.toString();
         }
