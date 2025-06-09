@@ -50,7 +50,7 @@
     <spotless.check.skip>false</spotless.check.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.383</hpi.compatibleSinceVersion>
-    <pac4jVersion>6.1.1</pac4jVersion>
+    <pac4jVersion>6.1.3</pac4jVersion>
   </properties>
 
   <dependencyManagement>
@@ -341,7 +341,7 @@
       <plugin>
         <groupId>org.openrewrite.maven</groupId>
         <artifactId>rewrite-maven-plugin</artifactId>
-        <version>6.2.3</version>
+        <version>6.11.0</version>
         <configuration>
           <activeRecipes>
             <recipe>org.openrewrite.jenkins.github.AddTeamToCodeowners</recipe>
