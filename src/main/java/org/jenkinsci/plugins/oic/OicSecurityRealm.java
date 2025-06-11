@@ -174,7 +174,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         ClientAuthenticationMethod toClientAuthenticationMethod() {
             return clientAuthMethod;
         }
-    };
+    }
 
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String NO_SECRET = "none";
