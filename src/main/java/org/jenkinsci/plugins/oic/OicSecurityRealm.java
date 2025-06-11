@@ -660,12 +660,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             oidcProviderMetadata.setUserInfoJWEEncs(userInfoJWEEncs);
         }
 
-        if (oidcProviderMetadata.getRequestObjectJWEEncs() != null) {
-            List<EncryptionMethod> requestObjectJweEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
-                    oidcProviderMetadata.getRequestObjectJWEEncs());
-            oidcProviderMetadata.setRequestObjectJWEEncs(requestObjectJweEncs);
-        }
-
         if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
             List<EncryptionMethod> authJweEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
                     oidcProviderMetadata.getAuthorizationJWEEncs());
