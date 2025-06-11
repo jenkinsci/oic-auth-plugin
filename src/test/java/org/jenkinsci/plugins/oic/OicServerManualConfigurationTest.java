@@ -5,10 +5,10 @@ import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import java.net.URISyntaxException;
 import jenkins.security.FIPS140;
 import org.hamcrest.Matcher;
 import org.jenkinsci.plugins.oic.OicServerManualConfiguration.DescriptorImpl;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
@@ -20,9 +20,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
 import static org.mockito.Mockito.mockStatic;
 
@@ -109,19 +107,19 @@ class OicServerManualConfigurationTest {
 
             fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(true);
             OIDCProviderMetadata data = config.toProviderMetadata();
-            assertFalse(data.getIDTokenJWSAlgs().contains(arbitraryEdAlgorithm));
+            Assertions.assertFalse(data.getIDTokenJWSAlgs().contains(arbitraryEdAlgorithm));
 
             fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(false);
             data = config.toProviderMetadata();
-            assertTrue(data.getIDTokenJWSAlgs().contains(arbitraryEdAlgorithm));
+            Assertions.assertTrue(data.getIDTokenJWSAlgs().contains(arbitraryEdAlgorithm));
         }
     }
 
     @Test
     @WithoutJenkins
-    public void testProviderMetadataWithInvalidURI() throws Descriptor.FormException, URISyntaxException {
+    public void testProviderMetadataWithInvalidURI() throws Descriptor.FormException {
         OicServerManualConfiguration config = new OicServerManualConfiguration("issuer", "t-url", "inv%alid");
-        assertThrows(IllegalStateException.class, () -> config.toProviderMetadata());
+        assertThrows(IllegalStateException.class, config::toProviderMetadata);
     }
 
     private static DescriptorImpl getDescriptor(JenkinsRule jenkinsRule) {
