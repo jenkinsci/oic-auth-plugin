@@ -1034,7 +1034,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // store the redirect url for after the login.
         sessionStore.set(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY, redirectOnFinish);
         JEEHttpActionAdapter.INSTANCE.adapt(redirectionAction, webContext);
-        return;
     }
 
     private void randomWait() {
@@ -1427,7 +1426,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         } catch (HttpAction e) {
             // this may be an OK flow for logout login is handled upstream.
             JEEHttpActionAdapter.INSTANCE.adapt(e, webContext);
-            return;
         }
     }
 
