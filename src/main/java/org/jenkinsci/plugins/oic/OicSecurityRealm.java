@@ -1058,7 +1058,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return !tokenFieldToCheckValue.equals(value);
     }
 
-    private UsernamePasswordAuthenticationToken loginAndSetUserData(
+    private void loginAndSetUserData(
             String userName, JWT idToken, Map<String, Object> userInfo, OicCredentials credentials)
             throws IOException, ParseException {
 
@@ -1111,8 +1111,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
         SecurityListener.fireAuthenticated2(userDetails);
         SecurityListener.fireLoggedIn(userName);
-
-        return token;
     }
 
     private String determineStringField(Expression<Object> fieldExpr, JWT idToken, Map userInfo) throws ParseException {
