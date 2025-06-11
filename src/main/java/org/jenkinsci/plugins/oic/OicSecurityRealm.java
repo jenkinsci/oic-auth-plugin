@@ -1199,7 +1199,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private List<String> ensureString(Object field) {
         if (field == null) {
             LOGGER.warning("userInfo did not contain a valid group field content, got null");
-            return Collections.<String>emptyList();
+            return Collections.emptyList();
         } else if (field instanceof String) {
             // if it's a String, the original value was not a json array.
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
@@ -1234,7 +1234,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             } catch (ClassCastException e) {
                 LOGGER.warning("userInfo did not contain a valid group field content, got: "
                         + field.getClass().getSimpleName());
-                return Collections.<String>emptyList();
+                return Collections.emptyList();
             }
         }
     }
