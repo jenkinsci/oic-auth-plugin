@@ -1221,7 +1221,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 } else if (group instanceof Map) {
                     // if it's a Map, we use the nestedGroupFieldName to grab the groups
                     Map<String, String> groupMap = (Map<String, String>) group;
-                    if (nestedGroupFieldName != null && groupMap.keySet().contains(nestedGroupFieldName)) {
+                    if (nestedGroupFieldName != null && groupMap.containsKey(nestedGroupFieldName)) {
                         result.add(groupMap.get(nestedGroupFieldName));
                     }
                 }
