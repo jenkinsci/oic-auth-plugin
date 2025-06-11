@@ -64,7 +64,6 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectStreamException;
@@ -1264,7 +1263,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @Override
     public String getPostLogOutUrl2(StaplerRequest2 req, Authentication auth) {
         Object idToken = req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE);
-        Object state = getStateAttribute(req.getSession());
+        Object state = getStateAttribute();
         var openidLogoutEndpoint = maybeOpenIdLogoutEndpoint(
                 Objects.toString(idToken, ""), Objects.toString(state), this.postLogoutRedirectUrl);
         if (openidLogoutEndpoint != null) {
@@ -1274,7 +1273,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @VisibleForTesting
-    Object getStateAttribute(HttpSession session) {
+    Object getStateAttribute() {
         // return null;
         OidcClient client = buildOidcClient();
         FrameworkParameters parameters =
