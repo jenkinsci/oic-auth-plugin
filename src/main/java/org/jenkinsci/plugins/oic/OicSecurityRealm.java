@@ -1554,8 +1554,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 User u = User.get2(a);
                 LOGGER.log(
                         Level.FINE,
-                        "Token refresh.  Current Authentitcation principal: " + a.getName() + " user id:"
-                                + (u == null ? "null user" : u.getId()) + " newly retreived username would have been: "
+                        "Token refresh.  Current Authentication principal: " + a.getName() + " user id:"
+                                + (u == null ? "null user" : u.getId()) + " newly retrieved username would have been: "
                                 + username);
             }
             username = expectedUsername;
