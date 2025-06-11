@@ -1113,7 +1113,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         SecurityListener.fireLoggedIn(userName);
     }
 
-    private String determineStringField(Expression<Object> fieldExpr, JWT idToken, Map userInfo) throws ParseException {
+    private String determineStringField(Expression<Object> fieldExpr, JWT idToken, Map<String, Object> userInfo)
+            throws ParseException {
         if (fieldExpr != null) {
             if (userInfo != null) {
                 Object field = fieldExpr.search(userInfo);
