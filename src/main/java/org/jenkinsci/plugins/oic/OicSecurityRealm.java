@@ -187,23 +187,23 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     @Deprecated
     private transient String wellKnownOpenIDConfigurationUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getTokenServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getTokenServerUrl()} */
     @Deprecated
     private transient String tokenServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getJwksServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getJwksServerUrl()} */
     @Deprecated
     private transient String jwksServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getTokenAuthMethod()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getTokenAuthMethod()} */
     @Deprecated
     private transient TokenAuthMethod tokenAuthMethod;
 
-    /** @deprecated see {@link OicServerConfiguration#getAuthorizationServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getAuthorizationServerUrl()} */
     @Deprecated
     private transient String authorizationServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getUserInfoServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getUserInfoServerUrl()} */
     @Deprecated
     private transient String userInfoServerUrl;
 
@@ -222,14 +222,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private transient String simpleGroupsFieldName = null;
     private transient String nestedGroupFieldName = null;
 
-    /** @deprecated see {@link OicServerConfiguration#getScopes()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getScopes()} */
     @Deprecated
     private transient String scopes = null;
 
     private final boolean disableSslVerification;
     private boolean logoutFromOpenidProvider = true;
 
-    /** @deprecated see {@link OicServerConfiguration#getEndSessionUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getEndSessionUrl()} */
     @Deprecated
     private transient String endSessionEndpoint = null;
 
