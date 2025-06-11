@@ -1200,11 +1200,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         if (field == null) {
             LOGGER.warning("userInfo did not contain a valid group field content, got null");
             return Collections.emptyList();
-        } else if (field instanceof String) {
+        } else if (field instanceof String sField) {
             // if it's a String, the original value was not a json array.
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
             // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
-            String sField = (String) field;
             String[] rawFields = sField.split("[\\s\\[\\],]");
             List<String> result = new ArrayList<>();
             for (String rawField : rawFields) {
