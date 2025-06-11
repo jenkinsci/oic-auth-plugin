@@ -21,8 +21,8 @@ public class LogoutQueryParameter extends AbstractQueryParameter<LogoutQueryPara
         @Override
         public FormValidation doCheckKey(@QueryParameter String key) {
             return switch (key.trim()) {
-                case "id_token_hint", "state", "post_logout_redirect_uri" -> FormValidation.error(
-                        key + " is a reserved word");
+                case "id_token_hint", "state", "post_logout_redirect_uri" ->
+                    FormValidation.error(key + " is a reserved word");
                 default -> FormValidation.ok();
             };
         }
