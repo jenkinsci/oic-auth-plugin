@@ -1158,7 +1158,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
         if (this.groupsFieldExpr == null) {
             if (this.groupsFieldName == null) {
-                LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
+                LOGGER.fine("Not adding groups because groupsFieldName is not set.");
             } else {
                 LOGGER.fine("Not adding groups because groupsFieldName is invalid. groupsFieldName=" + groupsFieldName);
             }
