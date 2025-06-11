@@ -1418,7 +1418,9 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             String redirectUrl = (String) sessionStore
                     .get(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY)
                     .orElse(Jenkins.get().getRootUrl());
-            response.sendRedirect(HttpURLConnection.HTTP_MOVED_TEMP, redirectUrl);
+            if (redirectUrl != null) {
+                response.sendRedirect(HttpURLConnection.HTTP_MOVED_TEMP, redirectUrl);
+            }
 
         } catch (HttpAction e) {
             // this may be an OK flow for logout login is handled upstream.
