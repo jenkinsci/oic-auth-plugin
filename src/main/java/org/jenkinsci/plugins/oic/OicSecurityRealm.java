@@ -1180,7 +1180,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
         List<String> groupNames = ensureString(groupsObject);
         if (groupNames.isEmpty()) {
-            LOGGER.warning("Could not identify groups in " + groupsFieldName + "=" + groupsObject.toString());
+            LOGGER.warning("Could not identify groups in " + groupsFieldName + "=" + groupsObject);
             return grantedAuthorities;
         }
         LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
