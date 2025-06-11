@@ -812,7 +812,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             return expr;
         } catch (RuntimeException e) {
             if (logComment != null) {
-                LOGGER.warning(logComment + " config failed " + e.toString());
+                LOGGER.warning(logComment + " config failed " + e);
             }
         }
         return null;
