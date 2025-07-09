@@ -618,7 +618,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         opMetadataResolver.init();
         if (loginQueryParameters != null && !loginQueryParameters.isEmpty()) {
             for (LoginQueryParameter lqp : loginQueryParameters) {
-                conf.addCustomParam(lqp.getURLEncodedKey(), lqp.getURLEncodedValue());
+                conf.addCustomParam(lqp.getKey(), lqp.getValue());
             }
         }
         return conf;
