@@ -1,5 +1,16 @@
 package org.jenkinsci.plugins.oic;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
+import static org.mockito.Mockito.mockStatic;
+
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import hudson.Util;
@@ -14,17 +25,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.mockito.MockedStatic;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
-import static org.mockito.Mockito.mockStatic;
 
 @WithJenkins
 class OicServerManualConfigurationTest {
