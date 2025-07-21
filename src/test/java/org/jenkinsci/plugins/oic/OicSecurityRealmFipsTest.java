@@ -1,5 +1,13 @@
 package org.jenkinsci.plugins.oic;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
+
 import hudson.Util;
 import hudson.init.InitMilestone;
 import hudson.model.Descriptor;
@@ -15,14 +23,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
 
 @WithJenkins
 class OicSecurityRealmFipsTest {

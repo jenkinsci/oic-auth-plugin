@@ -1,13 +1,13 @@
 package org.jenkinsci.plugins.oic;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EscapeHatchCrumbExclusionTest {
     private EscapeHatchCrumbExclusion crumb = new EscapeHatchCrumbExclusion();
