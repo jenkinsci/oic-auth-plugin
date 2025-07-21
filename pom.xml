@@ -295,24 +295,6 @@
         <version>3.1.1</version>
       </plugin>
       <plugin>
-        <groupId>com.diffplug.spotless</groupId>
-        <artifactId>spotless-maven-plugin</artifactId>
-        <configuration>
-          <java combine.self="override">
-            <endWithNewline />
-            <indent>
-              <spaces>true</spaces>
-            </indent>
-            <palantirJavaFormat />
-            <removeUnusedImports />
-            <trimTrailingWhitespace />
-            <importOrder>
-              <order>,\#</order>
-            </importOrder>
-          </java>
-        </configuration>
-      </plugin>
-      <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>3.6.0</version>
         <configuration>
