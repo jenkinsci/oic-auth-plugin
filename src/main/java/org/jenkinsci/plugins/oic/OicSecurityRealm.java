@@ -28,10 +28,23 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.nimbusds.jose.EncryptionMethod;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.source.JWKSourceBuilder;
+import com.nimbusds.jose.proc.BadJOSEException;
+import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTClaimNames;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
+import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import com.nimbusds.jwt.proc.ExpiredJWTException;
 import com.nimbusds.oauth2.sdk.GrantType;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
 import com.nimbusds.oauth2.sdk.pkce.CodeChallengeMethod;
@@ -83,11 +96,13 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
@@ -282,6 +297,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     /** Flag to enable traditional Jenkins API token based access (no OicSession needed)
      */
     private boolean allowTokenAccessWithoutOicSession = false;
+
+    /** Flag to enable JWT Bearer token based access (no OicSession needed)
+     */
+    private boolean allowJWTBearerTokenAccess = false;
 
     /** Additional number of seconds to add to token expiration
      */
@@ -559,6 +578,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
 
     public boolean isAllowTokenAccessWithoutOicSession() {
         return allowTokenAccessWithoutOicSession;
+    }
+
+     public boolean isAllowJWTBearerTokenAccess() {
+        return allowJWTBearerTokenAccess;
     }
 
     public Long getAllowedTokenExpirationClockSkewSeconds() {
@@ -923,6 +946,11 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
+    public void setAllowJWTBearerTokenAccess(boolean allowJWTBearerTokenAccess) {
+        this.allowJWTBearerTokenAccess = allowJWTBearerTokenAccess;
+    }
+
+    @DataBoundSetter
     public void setAllowedTokenExpirationClockSkewSeconds(Long allowedTokenExpirationClockSkewSeconds) {
         this.allowedTokenExpirationClockSkewSeconds = allowedTokenExpirationClockSkewSeconds;
     }
@@ -945,7 +973,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
                     throws IOException, ServletException {
 
-                if (OicSecurityRealm.this.handleTokenExpiration(
+                if (OicSecurityRealm.this.validateAuthentication(
                         (HttpServletRequest) request, (HttpServletResponse) response)) {
                     chain.doFilter(request, response);
                 }
@@ -1415,6 +1443,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     .orElseThrow(() -> new Failure("Could not build user profile"));
 
             AccessToken accessToken = profile.getAccessToken();
+            System.out.println(accessToken.getValue());
             JWT idToken = profile.getIdToken();
             RefreshToken refreshToken = profile.getRefreshToken();
 
@@ -1446,39 +1475,120 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     /**
-     * Handles Token Expiration.
+     * Validate authentication of the current call. Includes handling of Token Expiration.
      * @throws IOException a low level exception
      */
-    public boolean handleTokenExpiration(HttpServletRequest httpRequest, HttpServletResponse httpResponse)
+    public boolean validateAuthentication(HttpServletRequest httpRequest, HttpServletResponse httpResponse)
             throws IOException {
         if (httpRequest.getRequestURI().endsWith("/logout")) {
-            // No need to refresh token when logging out
+            // No need to validate or refresh when logging out
             return true;
+        }
+
+        var bearerTokenAuth = attemptBearerToken(httpRequest);
+        if (bearerTokenAuth.isPresent()) {
+            return bearerTokenAuth.get();
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = User.get2(authentication);
         if (user == null) {
+            // No need to validate or refresh when there is no user context
             return true;
         }
 
-        if (isAllowTokenAccessWithoutOicSession()) {
-            // check if this is a valid api token based request
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Basic ")) {
-                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
-                        .split(":")[1];
-                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
-                if (apiTokenProperty != null && apiTokenProperty.matchesPassword(token)) {
-                    // this was a valid jenkins token being used, exit this filter and let
-                    // the rest of chain be processed
-                    return true;
-                } // else do nothing and continue evaluating this request
+        var basicAuth = attemptBasicAuth(user, httpRequest);
+        if (basicAuth.isPresent()) {
+            return basicAuth.get();
+        }
+
+        return validateOicSession(user, httpRequest, httpResponse);
+    }
+
+    private Optional<Boolean> attemptBasicAuth(User user, HttpServletRequest httpRequest) {
+        if (!isAllowTokenAccessWithoutOicSession()) {
+            return Optional.empty();
+        }
+
+        // check if this is a valid api token based request
+        String authHeader = httpRequest.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Basic ")) {
+            String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
+                    .split(":")[1];
+            ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
+            if (apiTokenProperty != null && apiTokenProperty.matchesPassword(token)) {
+                // this was a valid jenkins token being used, exit this filter and let
+                // the rest of chain be processed
+                return Optional.of(true);
+            } // else do nothing and continue evaluating this request
+        }
+        return Optional.empty();
+    }
+
+    @VisibleForTesting
+    Optional<Boolean> attemptBearerToken(HttpServletRequest httpRequest) {
+        if (!isAllowJWTBearerTokenAccess()) {
+            return Optional.empty();
+        }
+
+        // check if this is a valid Bearer token based request
+        String authHeader = httpRequest.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try {
+                JWT jwt = JWTParser.parse(authHeader.substring(7));
+                OIDCProviderMetadata metadata = serverConfiguration.toProviderMetadata();
+                filterNonFIPS140CompliantAlgorithms(metadata);
+
+                ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
+                jwtProcessor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));
+
+                if (!isDisableTokenVerification()) {
+                    var jwk = JWKSourceBuilder.create(metadata.getJWKSetURI().toURL()).build();
+                    var keySelector = new JWSVerificationKeySelector<>(Set.copyOf(metadata.getIDTokenJWSAlgs()), jwk);
+                    jwtProcessor.setJWSKeySelector(keySelector);
+                }
+
+                var exactMatchClaims = new JWTClaimsSet.Builder().issuer(metadata.getIssuer().getValue()).build();
+                var requiredClaims = Set.of(JWTClaimNames.EXPIRATION_TIME, userNameField);
+                String requiredAudience = clientId;
+                var verifier = new DefaultJWTClaimsVerifier<>(requiredAudience, exactMatchClaims, requiredClaims)  {
+                    @Override
+                    protected Date currentTime() {
+                        if (isTokenExpirationCheckDisabled()) {
+                            return null; // disables expiration check
+                        }
+                        return super.currentTime();
+                    }
+                };
+                verifier.setMaxClockSkew(allowedTokenExpirationClockSkewSeconds.intValue());
+                jwtProcessor.setJWTClaimsSetVerifier(verifier);
+
+                SecurityContext ctx = null; // optional context parameter, not required here
+                jwtProcessor.process(jwt, ctx); // performs
+
+                // all checks passed: authentication successful -> set user context and continue filter chain
+                List<GrantedAuthority> grantedAuthorities = determineAuthorities(jwt, null);
+                String username = determineStringField(userNameFieldExpr, jwt, Map.of());
+                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,
+                        "", grantedAuthorities);
+                SecurityContextHolder.getContext().setAuthentication(token);
+
+                return Optional.of(true);
+            } catch (ExpiredJWTException e) {
+                    LOGGER.log(Level.WARNING, "Received expired JWT");
+                    return Optional.of(false);
+            } catch (ParseException | BadJOSEException | JOSEException | MalformedURLException e) {
+                LOGGER.log(Level.WARNING, "Received invalid JWT");
+                return Optional.of(false);
             }
         }
 
-        OicCredentials credentials = user.getProperty(OicCredentials.class);
+        return Optional.empty();
+    }
 
+    private boolean validateOicSession(User user, HttpServletRequest httpRequest, HttpServletResponse httpResponse)
+            throws IOException {
+        OicCredentials credentials = user.getProperty(OicCredentials.class);
         if (credentials == null) {
             return true;
         }
