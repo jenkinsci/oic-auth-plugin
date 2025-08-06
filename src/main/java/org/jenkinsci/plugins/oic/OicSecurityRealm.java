@@ -1443,7 +1443,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     .orElseThrow(() -> new Failure("Could not build user profile"));
 
             AccessToken accessToken = profile.getAccessToken();
-            System.out.println(accessToken.getValue());
             JWT idToken = profile.getIdToken();
             RefreshToken refreshToken = profile.getRefreshToken();
 
