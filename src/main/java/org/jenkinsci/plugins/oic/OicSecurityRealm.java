@@ -41,6 +41,7 @@ import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimNames;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
+import com.nimbusds.jwt.PlainJWT;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
@@ -1539,14 +1540,29 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 filterNonFIPS140CompliantAlgorithms(metadata);
 
                 ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
-                jwtProcessor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));
-
-                if (!isDisableTokenVerification()) {
+                if (isDisableTokenVerification()) {
+                    // nimbus (probably for good reason) by default rejects all unsigned jwt and forces us to
+                    // override this method if we want to allow it regardless of recommendations
+                    jwtProcessor = new DefaultJWTProcessor<>() {
+                        @Override
+                        public JWTClaimsSet process(PlainJWT plainJWT, SecurityContext context)
+                                throws BadJOSEException, JOSEException {
+                            if (getJWSTypeVerifier() == null) {
+                                throw new BadJOSEException(
+                                        "Plain JWT rejected: No JWS header typ (type) verifier is configured");
+                            }
+                            getJWSTypeVerifier().verify(plainJWT.getHeader().getType(), context);
+                            JWTClaimsSet claimsSet = extractJWTClaimsSet(plainJWT);
+                            return verifyJWTClaimsSet(claimsSet, context);
+                        }
+                    };
+                } else {
                     var jwk = JWKSourceBuilder.create(metadata.getJWKSetURI().toURL())
                             .build();
                     var keySelector = new JWSVerificationKeySelector<>(Set.copyOf(metadata.getIDTokenJWSAlgs()), jwk);
                     jwtProcessor.setJWSKeySelector(keySelector);
                 }
+                jwtProcessor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));
 
                 var exactMatchClaims = new JWTClaimsSet.Builder()
                         .issuer(metadata.getIssuer().getValue())
