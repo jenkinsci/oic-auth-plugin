@@ -580,7 +580,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return allowTokenAccessWithoutOicSession;
     }
 
-     public boolean isAllowJWTBearerTokenAccess() {
+    public boolean isAllowJWTBearerTokenAccess() {
         return allowJWTBearerTokenAccess;
     }
 
@@ -1542,15 +1542,18 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 jwtProcessor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));
 
                 if (!isDisableTokenVerification()) {
-                    var jwk = JWKSourceBuilder.create(metadata.getJWKSetURI().toURL()).build();
+                    var jwk = JWKSourceBuilder.create(metadata.getJWKSetURI().toURL())
+                            .build();
                     var keySelector = new JWSVerificationKeySelector<>(Set.copyOf(metadata.getIDTokenJWSAlgs()), jwk);
                     jwtProcessor.setJWSKeySelector(keySelector);
                 }
 
-                var exactMatchClaims = new JWTClaimsSet.Builder().issuer(metadata.getIssuer().getValue()).build();
+                var exactMatchClaims = new JWTClaimsSet.Builder()
+                        .issuer(metadata.getIssuer().getValue())
+                        .build();
                 var requiredClaims = Set.of(JWTClaimNames.EXPIRATION_TIME, userNameField);
                 String requiredAudience = clientId;
-                var verifier = new DefaultJWTClaimsVerifier<>(requiredAudience, exactMatchClaims, requiredClaims)  {
+                var verifier = new DefaultJWTClaimsVerifier<>(requiredAudience, exactMatchClaims, requiredClaims) {
                     @Override
                     protected Date currentTime() {
                         if (isTokenExpirationCheckDisabled()) {
@@ -1568,14 +1571,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                 // all checks passed: authentication successful -> set user context and continue filter chain
                 List<GrantedAuthority> grantedAuthorities = determineAuthorities(jwt, null);
                 String username = determineStringField(userNameFieldExpr, jwt, Map.of());
-                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,
-                        "", grantedAuthorities);
+                UsernamePasswordAuthenticationToken token =
+                        new UsernamePasswordAuthenticationToken(username, "", grantedAuthorities);
                 SecurityContextHolder.getContext().setAuthentication(token);
 
                 return Optional.of(true);
             } catch (ExpiredJWTException e) {
-                    LOGGER.log(Level.WARNING, "Received expired JWT");
-                    return Optional.of(false);
+                LOGGER.log(Level.WARNING, "Received expired JWT");
+                return Optional.of(false);
             } catch (ParseException | BadJOSEException | JOSEException | MalformedURLException e) {
                 LOGGER.log(Level.WARNING, "Received invalid JWT");
                 return Optional.of(false);

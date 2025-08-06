@@ -56,128 +56,200 @@ public class OicSecurityRealmBearerTokenTest {
     void validJWTToken_SHOULD_BeAccepted() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
-        String jwt = createJWT(TestRealm.ISSUER,TestRealm.CLIENT_ID, "Alice", List.of("group1"), Instant.now().plusSeconds(120));
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(true)));
+        String jwt = createJWT(
+                TestRealm.ISSUER,
+                TestRealm.CLIENT_ID,
+                "Alice",
+                List.of("group1"),
+                Instant.now().plusSeconds(120));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(true)));
     }
-
 
     @Test
     void invalidJWTToken_SHOULD_BeRejected() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + "not-a-jwt-token"))), Matchers.is(Optional.of(false)));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(
+                        new MockHttpServletRequest(Map.of("Authorization", "Bearer " + "not-a-jwt-token"))),
+                Matchers.is(Optional.of(false)));
     }
 
     @Test
     void JWTTokenWithMissingOrInvalidAudience_SHOULD_BeRejected() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
-        String jwt = createJWT(TestRealm.ISSUER, null, "Alice", List.of("group1"), Instant.now().plusSeconds(120));
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(false)));
+        String jwt = createJWT(
+                TestRealm.ISSUER,
+                null,
+                "Alice",
+                List.of("group1"),
+                Instant.now().plusSeconds(120));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(false)));
 
-        jwt = createJWT(TestRealm.ISSUER, "not-jenkins", "Alice", List.of("group1"), Instant.now().plusSeconds(120));
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(false)));
+        jwt = createJWT(
+                TestRealm.ISSUER,
+                "not-jenkins",
+                "Alice",
+                List.of("group1"),
+                Instant.now().plusSeconds(120));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(false)));
     }
 
     @Test
     void JWTTokenWithMissingOrWrongIssuer_SHOULD_BeRejected() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
-        String jwt = createJWT(null, TestRealm.CLIENT_ID, "Alice", List.of("group1"), Instant.now().plusSeconds(120));
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(false)));
+        String jwt = createJWT(
+                null,
+                TestRealm.CLIENT_ID,
+                "Alice",
+                List.of("group1"),
+                Instant.now().plusSeconds(120));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(false)));
 
-        jwt = createJWT("not-the-issuer", TestRealm.CLIENT_ID, "Alice", List.of("group1"), Instant.now().plusSeconds(120));
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(false)));
+        jwt = createJWT(
+                "not-the-issuer",
+                TestRealm.CLIENT_ID,
+                "Alice",
+                List.of("group1"),
+                Instant.now().plusSeconds(120));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(false)));
     }
 
     @Test
     void JWTTokenWithMissingUsername_SHOULD_BeRejected() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
-        String jwt = createJWT(TestRealm.ISSUER, TestRealm.CLIENT_ID, null, List.of("group1"), Instant.now().plusSeconds(120));
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(false)));
+        String jwt = createJWT(
+                TestRealm.ISSUER,
+                TestRealm.CLIENT_ID,
+                null,
+                List.of("group1"),
+                Instant.now().plusSeconds(120));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(false)));
     }
 
     @Test
     void JWTTokenWithMissingGroups_SHOULD_BeAccepted() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
-        String jwt = createJWT(TestRealm.ISSUER, TestRealm.CLIENT_ID, "Alice", null, Instant.now().plusSeconds(120));
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(true)));
+        String jwt = createJWT(
+                TestRealm.ISSUER,
+                TestRealm.CLIENT_ID,
+                "Alice",
+                null,
+                Instant.now().plusSeconds(120));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(true)));
     }
 
     @Test
     void expiredJWTToken_SHOULD_BeRejected() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
-        String jwt = createJWT(TestRealm.ISSUER, TestRealm.CLIENT_ID, "Alice", List.of("group1"), Instant.now().minusSeconds(120));
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(false)));
+        String jwt = createJWT(
+                TestRealm.ISSUER,
+                TestRealm.CLIENT_ID,
+                "Alice",
+                List.of("group1"),
+                Instant.now().minusSeconds(120));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(false)));
     }
 
     @Test
     void expiredJWTToken_SHOULD_BeAccepted_WHEN_TokenExpirationIsDisabled() throws Exception {
-        final TestRealm realm = defaultTestRealm().WithDisableTokenExpiration(true).build();
+        final TestRealm realm =
+                defaultTestRealm().WithDisableTokenExpiration(true).build();
 
-        String jwt = createJWT(TestRealm.ISSUER, TestRealm.CLIENT_ID, "Alice", List.of("group1"), Instant.now().minusSeconds(120));
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(true)));
+        String jwt = createJWT(
+                TestRealm.ISSUER,
+                TestRealm.CLIENT_ID,
+                "Alice",
+                List.of("group1"),
+                Instant.now().minusSeconds(120));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(true)));
     }
 
     @Test
-    void unsignedJWTToken_SHOULD_BeRejected() throws Exception {
-
-    }
+    void unsignedJWTToken_SHOULD_BeRejected() throws Exception {}
 
     @Test
     void signedJWTToken_SHOULD_BeRejected_WHEN_SignatureDoesNotMatch() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
-        String jwt = createJWT(TestRealm.ISSUER,TestRealm.CLIENT_ID, "Alice", List.of("group1"), Instant.now().plusSeconds(120));
+        String jwt = createJWT(
+                TestRealm.ISSUER,
+                TestRealm.CLIENT_ID,
+                "Alice",
+                List.of("group1"),
+                Instant.now().plusSeconds(120));
 
         // tamper with jwt payload: Replace Alice with Bob to "steal" their identity
         String[] jwtParts = jwt.split("\\.");
         jwtParts[1] = new String(Base64.getUrlDecoder().decode(jwtParts[1]), StandardCharsets.UTF_8);
         jwtParts[1] = jwtParts[1].replace("Alice", "Bob");
-        jwtParts[1] = Base64.getUrlEncoder().withoutPadding().encodeToString(jwtParts[1].getBytes(StandardCharsets.UTF_8));
+        jwtParts[1] =
+                Base64.getUrlEncoder().withoutPadding().encodeToString(jwtParts[1].getBytes(StandardCharsets.UTF_8));
         jwt = Arrays.stream(jwtParts).collect(Collectors.joining("."));
 
-        MatcherAssert.assertThat(realm.attemptBearerToken(
-                new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))), Matchers.is(Optional.of(false)));
+        MatcherAssert.assertThat(
+                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                Matchers.is(Optional.of(false)));
     }
 
     @Test
-    void unsignedJWTToken_SHOULD_BeAccepted_WHEN_TokenVerificationIsDisabled() throws Exception {
-
-    }
+    void unsignedJWTToken_SHOULD_BeAccepted_WHEN_TokenVerificationIsDisabled() throws Exception {}
 
     @Test
     void bearerTokenLogin_SHOULD_TakePrecedenceOverUserChecks() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
-        String jwt = createJWT(TestRealm.ISSUER,TestRealm.CLIENT_ID, "Alice", List.of("group1"), Instant.now().plusSeconds(120));
+        String jwt = createJWT(
+                TestRealm.ISSUER,
+                TestRealm.CLIENT_ID,
+                "Alice",
+                List.of("group1"),
+                Instant.now().plusSeconds(120));
 
         try (MockedStatic<User> userMocked = mockStatic(User.class)) {
             userMocked.when(() -> User.get2(any())).thenReturn(null);
 
             // valid token should still be accepted
-            MatcherAssert.assertThat(realm.validateAuthentication(
-                    new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null), Matchers.is(true));
+            MatcherAssert.assertThat(
+                    realm.validateAuthentication(
+                            new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null),
+                    Matchers.is(true));
 
             // invalid token should still be rejected, no matter whether User.get2(...) was null
-            jwt = createJWT(TestRealm.ISSUER, TestRealm.CLIENT_ID, "Alice", List.of("group1"), Instant.now().minusSeconds(120));
-            MatcherAssert.assertThat(realm.validateAuthentication(
-                    new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null), Matchers.is(false));
+            jwt = createJWT(
+                    TestRealm.ISSUER,
+                    TestRealm.CLIENT_ID,
+                    "Alice",
+                    List.of("group1"),
+                    Instant.now().minusSeconds(120));
+            MatcherAssert.assertThat(
+                    realm.validateAuthentication(
+                            new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null),
+                    Matchers.is(false));
         }
-
     }
 
     private ECKey setupJWK() throws Exception {
@@ -186,13 +258,15 @@ public class OicSecurityRealmBearerTokenTest {
                 .keyID("123")
                 .generate();
 
-        var jwkBody = """
+        var jwkBody =
+                """
                 {
                   "keys": [
                     %s
                   ]
                 }
-                """.formatted(jwk.toPublicJWK().toJSONString());
+                """
+                        .formatted(jwk.toPublicJWK().toJSONString());
         wireMock.stubFor(get(urlPathEqualTo("/jwk"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
@@ -203,11 +277,12 @@ public class OicSecurityRealmBearerTokenTest {
     private Builder defaultTestRealm() throws IOException {
         return new TestRealm.Builder(wireMock)
                 .WithAllowJWTBearerTokenAccess(true)
-                .WithJwksServerUrl(wireMock.url("/jwk"))
-                .WithDisableTokenValidation(false);
+                        .WithJwksServerUrl(wireMock.url("/jwk"))
+                        .WithDisableTokenValidation(false);
     }
 
-    private String createJWT(String issuer, String audience, String subject, List<String> groups, Instant expiration) throws Exception {
+    private String createJWT(String issuer, String audience, String subject, List<String> groups, Instant expiration)
+            throws Exception {
 
         var header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .type(JOSEObjectType.JWT)
@@ -215,12 +290,12 @@ public class OicSecurityRealmBearerTokenTest {
                 .build();
 
         var payload = new JWTClaimsSet.Builder()
-            .issuer(issuer)
-            .audience(audience)
-            .subject(subject)
-            .expirationTime(Date.from(expiration))
-            .claim(TestRealm.GROUPS_FIELD, groups)
-            .build();
+                .issuer(issuer)
+                .audience(audience)
+                .subject(subject)
+                .expirationTime(Date.from(expiration))
+                .claim(TestRealm.GROUPS_FIELD, groups)
+                .build();
 
         var signedJWT = new SignedJWT(header, payload);
         signedJWT.sign(new ECDSASigner(jwk.toECPrivateKey()));
