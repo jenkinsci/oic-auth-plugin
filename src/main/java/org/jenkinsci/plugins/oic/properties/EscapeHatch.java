@@ -33,6 +33,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
+/**
+ * Escape hatch for authentication, allowing users to log in with a username and password.
+ * This is intended for emergency access and should be used with caution.
+ */
 public class EscapeHatch extends OicProperty {
     public static final Pattern B_CRYPT_PATTERN = Pattern.compile("\\A\\$[^$]+\\$\\d+\\$[./0-9A-Za-z]{53}");
 

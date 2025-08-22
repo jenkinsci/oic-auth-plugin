@@ -10,6 +10,10 @@ import org.jenkinsci.plugins.oic.OicServerConfiguration;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.pac4j.oidc.config.OidcConfiguration;
 
+/**
+ * Enables and configures PKCE (Proof Key for Code Exchange) for OIDC authentication.
+ * PKCE is a security measure to prevent authorization code interception attacks.
+ */
 public class Pkce extends OicProperty {
     @DataBoundConstructor
     public Pkce() {}

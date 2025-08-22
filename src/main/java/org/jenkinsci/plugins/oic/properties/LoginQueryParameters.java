@@ -13,6 +13,9 @@ import org.jenkinsci.plugins.oic.OicServerConfiguration;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.pac4j.oidc.config.OidcConfiguration;
 
+/**
+ * Allows the addition of custom query parameters to the login request.
+ */
 public class LoginQueryParameters extends OicProperty {
     @NonNull
     private List<LoginQueryParameter> items;

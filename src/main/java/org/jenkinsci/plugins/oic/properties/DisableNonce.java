@@ -9,6 +9,10 @@ import org.jenkinsci.plugins.oic.OicServerConfiguration;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.pac4j.oidc.config.OidcConfiguration;
 
+/**
+ * Disables the use of nonce in OIDC authentication.
+ * This is generally not recommended as it can lead to replay attacks.
+ */
 public class DisableNonce extends OicProperty {
     @DataBoundConstructor
     public DisableNonce() {}

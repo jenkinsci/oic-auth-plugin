@@ -9,6 +9,10 @@ import org.jenkinsci.plugins.oic.OicServerConfiguration;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.pac4j.oidc.config.OidcConfiguration;
 
+/**
+ * Configures the allowed clock skew for token expiration.
+ * This is useful to accommodate for clock differences between the server and the OIDC provider.
+ */
 public class AllowedTokenExpirationClockSkew extends OicProperty {
     private int value;
 

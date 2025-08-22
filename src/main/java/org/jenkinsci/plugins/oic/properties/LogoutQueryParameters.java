@@ -10,6 +10,9 @@ import org.jenkinsci.plugins.oic.OicProperty;
 import org.jenkinsci.plugins.oic.OicPropertyDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+/**
+ * Allows the addition of custom query parameters to the logout request.
+ */
 public class LogoutQueryParameters extends OicProperty {
     @NonNull
     private final List<LogoutQueryParameter> items;
