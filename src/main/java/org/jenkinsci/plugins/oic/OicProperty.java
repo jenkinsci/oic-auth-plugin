@@ -7,7 +7,7 @@ import java.util.Optional;
 import org.springframework.security.core.Authentication;
 
 /**
- * Represents a property that can be configured for SAML authentication.
+ * Represents a property that can be configured for OIDC authentication.
  */
 public abstract class OicProperty extends AbstractDescribableImpl<OicProperty> {
     /**
