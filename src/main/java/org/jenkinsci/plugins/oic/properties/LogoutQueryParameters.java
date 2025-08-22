@@ -20,6 +20,11 @@ public class LogoutQueryParameters extends OicProperty {
     }
 
     @NonNull
+    public List<LogoutQueryParameter> getItems() {
+        return items;
+    }
+
+    @NonNull
     @Override
     public List<LogoutQueryParameter> contributeLogoutQueryParameters() {
         return items;
