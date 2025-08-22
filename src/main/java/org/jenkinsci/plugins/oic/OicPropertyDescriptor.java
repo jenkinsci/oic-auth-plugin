@@ -11,10 +11,16 @@ public abstract class OicPropertyDescriptor extends Descriptor<OicProperty> impl
         return ExtensionList.lookup(OicPropertyDescriptor.class);
     }
 
+    /**
+     * Allows the property to restrict its applicability depending on the context (for example, FIPS)
+     */
     public boolean isApplicable() {
         return true;
     }
 
+    /**
+     * This method gets called if the property is not configured explicitly. For example, providing a default value.
+     */
     public void getFallbackConfiguration(
             @NonNull OicServerConfiguration serverConfiguration, @NonNull OidcConfiguration configuration) {
         // no-op
