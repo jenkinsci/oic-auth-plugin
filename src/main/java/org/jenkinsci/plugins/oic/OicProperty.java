@@ -22,7 +22,7 @@ public abstract class OicProperty extends AbstractDescribableImpl<OicProperty> {
 
     /**
      * Allows a property to authenticate the user.
-     * @see {@link org.jenkinsci.plugins.oic.properties.EscapeHatch}.
+     * @see org.jenkinsci.plugins.oic.properties.EscapeHatch
      */
     public Optional<Authentication> authenticate(Authentication authentication) {
         return Optional.empty();
