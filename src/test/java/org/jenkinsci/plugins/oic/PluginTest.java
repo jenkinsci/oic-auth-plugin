@@ -142,7 +142,7 @@ class PluginTest {
         wireMock.verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*&scope=.*")));
         webClient.executeOnServer(() -> {
             HttpSession session = Stapler.getCurrentRequest2().getSession();
-            assertNotNull(((OicSecurityRealm) Jenkins.get().getSecurityRealm()).getStateAttribute(session));
+            assertNotNull(((OicSecurityRealm) Jenkins.get().getSecurityRealm()).getStateAttribute());
             return null;
         });
     }
