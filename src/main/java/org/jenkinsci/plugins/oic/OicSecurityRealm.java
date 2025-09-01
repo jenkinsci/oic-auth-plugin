@@ -1420,6 +1420,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     .orElse(Jenkins.get().getRootUrl());
             if (redirectUrl != null) {
                 response.sendRedirect(HttpURLConnection.HTTP_MOVED_TEMP, redirectUrl);
+            } else {
+                response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "redirectUrl was null for the current flow");
             }
 
         } catch (HttpAction e) {
