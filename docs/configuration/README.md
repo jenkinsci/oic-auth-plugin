@@ -21,7 +21,7 @@ which will also help discovering your settings
 
 From 1.5 and onward the well known configuration location may be used to
 populate the configuration simplifying the configuration greatly.
-The switch between modes is controled by the `serverConfiguration` field
+The switch between modes is controlled by the `serverConfiguration` field
 
 | field                | format  | description                                                                                                                                          |
 |----------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -170,7 +170,7 @@ jenkins:
       tokenExpirationCheckDisabled: <boolean>
       # escape hatch
       escapeHatchEnabled: <boolean>
-      escapeHatchUsername: escapeHatchUsername
+      escapeHatchUsername: <string>
       escapeHatchSecret: <string:secret>
       escapeHatchGroup: <string>
 ```

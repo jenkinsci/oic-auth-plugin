@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>5.22</version>
+    <version>5.24</version>
     <relativePath />
   </parent>
 
@@ -51,7 +51,7 @@
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.383</hpi.compatibleSinceVersion>
-    <pac4jVersion>6.1.3</pac4jVersion>
+    <pac4jVersion>6.2.1</pac4jVersion>
   </properties>
 
   <dependencyManagement>
@@ -308,7 +308,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.26.1</version>
+            <version>11.0.1</version>
           </dependency>
         </dependencies>
         <executions>
@@ -324,7 +324,7 @@
       <plugin>
         <groupId>org.openrewrite.maven</groupId>
         <artifactId>rewrite-maven-plugin</artifactId>
-        <version>6.13.0</version>
+        <version>6.17.0</version>
         <configuration>
           <activeRecipes>
             <recipe>org.openrewrite.jenkins.github.AddTeamToCodeowners</recipe>
@@ -334,7 +334,7 @@
           <dependency>
             <groupId>org.openrewrite.recipe</groupId>
             <artifactId>rewrite-jenkins</artifactId>
-            <version>0.28.0</version>
+            <version>0.30.1</version>
           </dependency>
         </dependencies>
       </plugin>
