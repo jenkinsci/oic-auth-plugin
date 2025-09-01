@@ -1,14 +1,29 @@
 package org.jenkinsci.plugins.oic;
 
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasItemInArray;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import hudson.util.Secret;
+import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
+import org.htmlunit.Page;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.WithoutJenkins;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -18,14 +33,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCrypt;
-
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @WithJenkins
 class OicSecurityRealmTest {
@@ -247,5 +254,39 @@ class OicSecurityRealmTest {
                         .sorted()
                         .toList(),
                 Stream.of(queryParams.split("&")).sorted().toList());
+    }
+
+    @Test
+    public void testOpenIdLoginEndpointWithCustomLoginQueryParameters(JenkinsRule jenkinsRule) throws Exception {
+        jenkinsRule
+                .jenkins
+                .getDescriptorList(LogoutQueryParameter.class)
+                .add(new LogoutQueryParameter.DescriptorImpl());
+        TestRealm realm = new TestRealm.Builder(wireMock)
+                .WithMinimalDefaults()
+                        .WithLoginQueryParameters(List.of(
+                                new LoginQueryParameter("key1", "value1"),
+                                new LoginQueryParameter("key with space", " space "),
+                                new LoginQueryParameter("blah:wibble", "anything:here"),
+                                new LoginQueryParameter("emailaddr", "joe@example.com")))
+                        .build();
+        jenkinsRule.jenkins.setSecurityRealm(realm);
+        try (WebClient wc = jenkinsRule.createWebClient()) {
+            wc.getOptions().setRedirectEnabled(false);
+            wc.getOptions().setThrowExceptionOnFailingStatusCode(false);
+            Page redirect = wc.goTo("securityRealm/commenceLogin", null);
+            String locationHeader = redirect.getWebResponse().getResponseHeaderValue("Location");
+            // alas PAC4j does not maintain any ordering of its built URL
+            assertThat(locationHeader, startsWith(wireMock.baseUrl()));
+            URL u = new URL(locationHeader);
+            String[] queries = u.getQuery().split("&");
+            assertThat(
+                    queries,
+                    allOf(
+                            hasItemInArray("key1=value1"),
+                            hasItemInArray("key%20with%20space=space"),
+                            hasItemInArray("blah%3Awibble=anything%3Ahere"),
+                            hasItemInArray("emailaddr=joe%40example.com")));
+        }
     }
 }
