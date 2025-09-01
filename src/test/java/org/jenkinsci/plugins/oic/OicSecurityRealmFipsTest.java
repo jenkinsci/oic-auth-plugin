@@ -4,7 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
 
@@ -16,7 +19,10 @@ import hudson.util.Secret;
 import java.io.IOException;
 import jenkins.security.FIPS140;
 import org.hamcrest.Matcher;
+import org.jenkinsci.plugins.oic.properties.AllowedTokenExpirationClockSkew;
+import org.jenkinsci.plugins.oic.properties.DisableNonce;
 import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
+import org.jenkinsci.plugins.oic.properties.Pkce;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -83,6 +89,26 @@ class OicSecurityRealmFipsTest {
     @LocalData
     void worksOnMigrationWithValidValuesTest(JenkinsRule j) {
         assertThat("Instance is up and running with no errors", j.jenkins.getInitLevel(), is(InitMilestone.COMPLETED));
+        OicSecurityRealm realm = (OicSecurityRealm) j.jenkins.getSecurityRealm();
+        assertThat(realm.getClientId(), is("client-id"));
+        assertThat(realm.getUserNameField(), is("sub"));
+        assertThat(realm.isDisableSslVerification(), is(false));
+        assertThat(realm.isLogoutFromOpenidProvider(), is(false));
+        assertThat(realm.getProperties().get(DisableTokenVerification.class), nullValue());
+        var serverConfiguration = realm.getServerConfiguration();
+        assertThat(serverConfiguration, instanceOf(OicServerWellKnownConfiguration.class));
+        OicServerWellKnownConfiguration swk = (OicServerWellKnownConfiguration) serverConfiguration;
+        assertThat(swk.getWellKnownOpenIDConfigurationUrl(), is("https://example.test"));
+        assertThat(realm.isRootURLFromRequest(), is(false));
+        assertThat(realm.isSendScopesInTokenRequest(), is(false));
+        assertThat(realm.getProperties().get(Pkce.class), nullValue());
+        assertThat(realm.getProperties().get(DisableTokenVerification.class), nullValue());
+        assertThat(realm.getProperties().get(DisableNonce.class), nullValue());
+        assertThat(realm.isTokenExpirationCheckDisabled(), is(false));
+        assertThat(realm.isAllowTokenAccessWithoutOicSession(), is(false));
+        var allowedTokenExpirationClockSkew = realm.getProperties().get(AllowedTokenExpirationClockSkew.class);
+        assertThat(allowedTokenExpirationClockSkew, notNullValue());
+        assertThat(allowedTokenExpirationClockSkew.getValue(), is(0));
     }
 
     private static Matcher<FormValidation> withMessageContaining(String message) {
