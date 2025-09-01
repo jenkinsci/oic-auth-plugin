@@ -21,6 +21,10 @@ public class AllowedTokenExpirationClockSkew extends OicProperty {
         this.value = value;
     }
 
+    public int getValue() {
+        return value;
+    }
+
     @NonNull
     @Override
     public OicPropertyExecution newExecution(@NonNull OicServerConfiguration serverConfiguration) {
