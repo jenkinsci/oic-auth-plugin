@@ -60,7 +60,6 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectStreamException;
@@ -91,7 +90,7 @@ import jenkins.security.ApiTokenProperty;
 import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
 import jenkins.util.SystemProperties;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.oic.properties.AllowedTokenExpirationClockSkew;
 import org.jenkinsci.plugins.oic.properties.DisableNonce;
 import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
@@ -167,7 +166,7 @@ public class OicSecurityRealm extends SecurityRealm {
         ClientAuthenticationMethod toClientAuthenticationMethod() {
             return clientAuthMethod;
         }
-    };
+    }
 
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
     private static final String NO_SECRET = "none";
@@ -180,23 +179,23 @@ public class OicSecurityRealm extends SecurityRealm {
     @Deprecated
     private transient String wellKnownOpenIDConfigurationUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getTokenServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getTokenServerUrl()} */
     @Deprecated
     private transient String tokenServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getJwksServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getJwksServerUrl()} */
     @Deprecated
     private transient String jwksServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getTokenAuthMethod()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getTokenAuthMethod()} */
     @Deprecated
     private transient TokenAuthMethod tokenAuthMethod;
 
-    /** @deprecated see {@link OicServerConfiguration#getAuthorizationServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getAuthorizationServerUrl()} */
     @Deprecated
     private transient String authorizationServerUrl;
 
-    /** @deprecated see {@link OicServerConfiguration#getUserInfoServerUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getUserInfoServerUrl()} */
     @Deprecated
     private transient String userInfoServerUrl;
 
@@ -215,14 +214,14 @@ public class OicSecurityRealm extends SecurityRealm {
     private transient String simpleGroupsFieldName = null;
     private transient String nestedGroupFieldName = null;
 
-    /** @deprecated see {@link OicServerConfiguration#getScopes()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getScopes()} */
     @Deprecated
     private transient String scopes = null;
 
     private final boolean disableSslVerification;
     private boolean logoutFromOpenidProvider = true;
 
-    /** @deprecated see {@link OicServerConfiguration#getEndSessionUrl()} */
+    /** @deprecated see {@link OicServerManualConfiguration#getEndSessionUrl()} */
     @Deprecated
     private transient String endSessionEndpoint = null;
 
@@ -311,7 +310,7 @@ public class OicSecurityRealm extends SecurityRealm {
             SystemProperties.getBoolean(OicSecurityRealm.class.getName() + ".checkNonceInRefreshFlow", false);
 
     /** old field that had an '/' implicitly added at the end,
-     * transient because we no longer want to have this value stored
+     * transient because we no longer want to have this value stored,
      * but it's still needed for backwards compatibility */
     @Deprecated
     private transient String endSessionUrl;
@@ -426,7 +425,7 @@ public class OicSecurityRealm extends SecurityRealm {
         }
         // ensure Field JMESPath are computed
         this.avatarFieldExpr =
-                this.compileJMESPath("picture", "avatar field"); // Default on OIDC spec, part of profile claim
+                compileJMESPath("picture", "avatar field"); // Default on OIDC spec, part of profile claim
         this.setUserNameField(this.userNameField);
         this.setEmailFieldName(this.emailFieldName);
         this.setFullNameFieldName(this.fullNameFieldName);
@@ -716,20 +715,16 @@ public class OicSecurityRealm extends SecurityRealm {
             return expr;
         } catch (RuntimeException e) {
             if (logComment != null) {
-                LOGGER.warning(logComment + " config failed " + e.toString());
+                LOGGER.warning(logComment + " config failed " + e);
             }
         }
         return null;
     }
 
-    private Object applyJMESPath(Expression<Object> expression, Object map) {
-        return expression.search(map);
-    }
-
     @DataBoundSetter
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmptyAndTrim(groupsFieldName);
-        this.groupsFieldExpr = this.compileJMESPath(this.groupsFieldName, "groups field");
+        this.groupsFieldExpr = compileJMESPath(this.groupsFieldName, "groups field");
     }
 
     @DataBoundSetter
@@ -883,7 +878,7 @@ public class OicSecurityRealm extends SecurityRealm {
      * Validate post-login redirect URL
      *
      * For security reasons, the login must not redirect outside Jenkins
-     * realm. For useablility reason, the logout page should redirect to
+     * realm. For usability reason, the logout page should redirect to
      * root url.
      */
     protected String getValidRedirectUrl(String url) {
@@ -908,7 +903,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     /**
-     * Handles the the securityRealm/commenceLogin resource and sends the user off to the IdP
+     * Handles the securityRealm/commenceLogin resource and sends the user off to the IdP
      * @param from the relative URL to the page that the user has just come from
      * @param referer the HTTP referer header (where to redirect the user back to after login has finished)
      * @throws URISyntaxException if the provided data is invalid
@@ -932,7 +927,6 @@ public class OicSecurityRealm extends SecurityRealm {
         // store the redirect url for after the login.
         sessionStore.set(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY, redirectOnFinish);
         JEEHttpActionAdapter.INSTANCE.adapt(redirectionAction, webContext);
-        return;
     }
 
     private boolean failedCheckOfTokenField(JWT idToken) throws ParseException {
@@ -949,7 +943,7 @@ public class OicSecurityRealm extends SecurityRealm {
         return !tokenFieldToCheckValue.equals(value);
     }
 
-    private UsernamePasswordAuthenticationToken loginAndSetUserData(
+    private void loginAndSetUserData(
             String userName, JWT idToken, Map<String, Object> userInfo, OicCredentials credentials)
             throws IOException, ParseException {
 
@@ -1002,11 +996,10 @@ public class OicSecurityRealm extends SecurityRealm {
         OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
         SecurityListener.fireAuthenticated2(userDetails);
         SecurityListener.fireLoggedIn(userName);
-
-        return token;
     }
 
-    private String determineStringField(Expression<Object> fieldExpr, JWT idToken, Map userInfo) throws ParseException {
+    private String determineStringField(Expression<Object> fieldExpr, JWT idToken, Map<String, Object> userInfo)
+            throws ParseException {
         if (fieldExpr != null) {
             if (userInfo != null) {
                 Object field = fieldExpr.search(userInfo);
@@ -1050,7 +1043,7 @@ public class OicSecurityRealm extends SecurityRealm {
         grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
         if (this.groupsFieldExpr == null) {
             if (this.groupsFieldName == null) {
-                LOGGER.fine("Not adding groups because groupsFieldName is not set. groupsFieldName=" + groupsFieldName);
+                LOGGER.fine("Not adding groups because groupsFieldName is not set.");
             } else {
                 LOGGER.fine("Not adding groups because groupsFieldName is invalid. groupsFieldName=" + groupsFieldName);
             }
@@ -1073,7 +1066,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
         List<String> groupNames = ensureString(groupsObject);
         if (groupNames.isEmpty()) {
-            LOGGER.warning("Could not identify groups in " + groupsFieldName + "=" + groupsObject.toString());
+            LOGGER.warning("Could not identify groups in " + groupsFieldName + "=" + groupsObject);
             return grantedAuthorities;
         }
         LOGGER.fine("Number of groups in groupNames: " + groupNames.size());
@@ -1091,12 +1084,11 @@ public class OicSecurityRealm extends SecurityRealm {
     private List<String> ensureString(Object field) {
         if (field == null) {
             LOGGER.warning("userInfo did not contain a valid group field content, got null");
-            return Collections.<String>emptyList();
-        } else if (field instanceof String) {
-            // if its a String, the original value was not a json array.
+            return Collections.emptyList();
+        } else if (field instanceof String sField) {
+            // if it's a String, the original value was not a json array.
             // We try to convert the string to list based on comma while ignoring whitespaces and square brackets.
             // Example value "[demo-user-group, demo-test-group, demo-admin-group]"
-            String sField = (String) field;
             String[] rawFields = sField.split("[\\s\\[\\],]");
             List<String> result = new ArrayList<>();
             for (String rawField : rawFields) {
@@ -1112,9 +1104,9 @@ public class OicSecurityRealm extends SecurityRealm {
                 if (group instanceof String) {
                     result.add(group.toString());
                 } else if (group instanceof Map) {
-                    // if its a Map, we use the nestedGroupFieldName to grab the groups
+                    // if it's a Map, we use the nestedGroupFieldName to grab the groups
                     Map<String, String> groupMap = (Map<String, String>) group;
-                    if (nestedGroupFieldName != null && groupMap.keySet().contains(nestedGroupFieldName)) {
+                    if (nestedGroupFieldName != null && groupMap.containsKey(nestedGroupFieldName)) {
                         result.add(groupMap.get(nestedGroupFieldName));
                     }
                 }
@@ -1126,7 +1118,7 @@ public class OicSecurityRealm extends SecurityRealm {
             } catch (ClassCastException e) {
                 LOGGER.warning("userInfo did not contain a valid group field content, got: "
                         + field.getClass().getSimpleName());
-                return Collections.<String>emptyList();
+                return Collections.emptyList();
             }
         }
     }
@@ -1157,7 +1149,7 @@ public class OicSecurityRealm extends SecurityRealm {
     @Override
     public String getPostLogOutUrl2(StaplerRequest2 req, Authentication auth) {
         Object idToken = req.getAttribute(ID_TOKEN_REQUEST_ATTRIBUTE);
-        Object state = getStateAttribute(req.getSession());
+        Object state = getStateAttribute();
         var openidLogoutEndpoint = maybeOpenIdLogoutEndpoint(
                 Objects.toString(idToken, ""), Objects.toString(state), this.postLogoutRedirectUrl);
         if (openidLogoutEndpoint != null) {
@@ -1167,7 +1159,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     @VisibleForTesting
-    Object getStateAttribute(HttpSession session) {
+    Object getStateAttribute() {
         // return null;
         OidcClient client = buildOidcClient();
         FrameworkParameters parameters =
@@ -1226,10 +1218,6 @@ public class OicSecurityRealm extends SecurityRealm {
         } else {
             return rootUrl;
         }
-    }
-
-    private String buildOauthCommenceLogin() {
-        return ensureRootUrl() + getLoginUrl();
     }
 
     public String buildOAuthRedirectUrl() throws NullPointerException {
@@ -1294,12 +1282,15 @@ public class OicSecurityRealm extends SecurityRealm {
             String redirectUrl = (String) sessionStore
                     .get(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY)
                     .orElse(Jenkins.get().getRootUrl());
-            response.sendRedirect(HttpURLConnection.HTTP_MOVED_TEMP, redirectUrl);
+            if (redirectUrl != null) {
+                response.sendRedirect(HttpURLConnection.HTTP_MOVED_TEMP, redirectUrl);
+            } else {
+                response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "redirectUrl was null for the current flow");
+            }
 
         } catch (HttpAction e) {
             // this may be an OK flow for logout login is handled upstream.
             JEEHttpActionAdapter.INSTANCE.adapt(e, webContext);
-            return;
         }
     }
 
@@ -1309,7 +1300,7 @@ public class OicSecurityRealm extends SecurityRealm {
      */
     public boolean handleTokenExpiration(HttpServletRequest httpRequest, HttpServletResponse httpResponse)
             throws IOException {
-        if (httpRequest.getRequestURI().endsWith("/logout")) {
+        if (isLogoutRequest(httpRequest)) {
             // No need to refresh token when logging out
             return true;
         }
@@ -1320,31 +1311,18 @@ public class OicSecurityRealm extends SecurityRealm {
             return true;
         }
 
-        if (isAllowTokenAccessWithoutOicSession()) {
-            // check if this is a valid api token based request
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Basic ")) {
-                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
-                        .split(":")[1];
-                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
-                if (apiTokenProperty != null && apiTokenProperty.matchesPassword(token)) {
-                    // this was a valid jenkins token being used, exit this filter and let
-                    // the rest of chain be processed
-                    return true;
-                } // else do nothing and continue evaluating this request
-            }
-        }
-
         OicCredentials credentials = user.getProperty(OicCredentials.class);
 
         if (credentials == null) {
             return true;
         }
 
+        if (isValidApiTokenRequest(httpRequest, user)) {
+            return true;
+        }
+
         if (isExpired(credentials)) {
-            if (serverConfiguration.toProviderMetadata().getGrantTypes() != null
-                    && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
-                    && !Strings.isNullOrEmpty(credentials.getRefreshToken())) {
+            if (canRefreshToken(credentials)) {
                 LOGGER.log(Level.FINEST, "Attempting to refresh credential for user: {0}", user.getId());
                 boolean retVal = refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
                 LOGGER.log(Level.FINEST, "Refresh credential for user returned {0}", retVal);
@@ -1356,6 +1334,34 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         return true;
+    }
+
+    boolean isLogoutRequest(HttpServletRequest request) {
+        return request.getRequestURI().endsWith("/logout");
+    }
+
+    boolean isValidApiTokenRequest(HttpServletRequest httpRequest, User user) {
+        if (isAllowTokenAccessWithoutOicSession()) {
+            // check if this is a valid api token based request
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Basic ")) {
+                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
+                        .split(":")[1];
+
+                // this was a valid jenkins token being used, exit this filter and let
+                // the rest of chain be processed
+                // else do nothing and continue evaluating this request
+                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
+                return apiTokenProperty != null && apiTokenProperty.matchesPassword(token);
+            }
+        }
+        return false;
+    }
+
+    boolean canRefreshToken(OicCredentials credentials) {
+        return serverConfiguration.toProviderMetadata().getGrantTypes() != null
+                && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
+                && !Strings.isNullOrEmpty(credentials.getRefreshToken());
     }
 
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
@@ -1430,8 +1436,8 @@ public class OicSecurityRealm extends SecurityRealm {
                 User u = User.get2(a);
                 LOGGER.log(
                         Level.FINE,
-                        "Token refresh.  Current Authentitcation principal: " + a.getName() + " user id:"
-                                + (u == null ? "null user" : u.getId()) + " newly retreived username would have been: "
+                        "Token refresh.  Current Authentication principal: " + a.getName() + " user id:"
+                                + (u == null ? "null user" : u.getId()) + " newly retrieved username would have been: "
                                 + username);
             }
             username = expectedUsername;
