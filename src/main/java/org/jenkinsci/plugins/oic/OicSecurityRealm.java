@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.plugins.oic;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.nimbusds.jose.EncryptionMethod;
@@ -99,7 +101,7 @@ import jenkins.security.ApiTokenProperty;
 import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
 import jenkins.util.SystemProperties;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -144,8 +146,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.util.Assert;
-
-import static org.apache.commons.lang.StringUtils.isNotBlank;
 
 /**
  * Login with OpenID Connect / OAuth 2
@@ -617,7 +617,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         opMetadataResolver.init();
         if (loginQueryParameters != null && !loginQueryParameters.isEmpty()) {
             for (LoginQueryParameter lqp : loginQueryParameters) {
-                conf.addCustomParam(lqp.getURLEncodedKey(), lqp.getURLEncodedValue());
+                conf.addCustomParam(lqp.getKey(), lqp.getValue());
             }
         }
         return conf;
@@ -1420,6 +1420,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
                     .orElse(Jenkins.get().getRootUrl());
             if (redirectUrl != null) {
                 response.sendRedirect(HttpURLConnection.HTTP_MOVED_TEMP, redirectUrl);
+            } else {
+                response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "redirectUrl was null for the current flow");
             }
 
         } catch (HttpAction e) {

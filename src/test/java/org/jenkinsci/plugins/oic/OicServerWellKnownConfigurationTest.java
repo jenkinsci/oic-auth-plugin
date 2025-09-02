@@ -1,15 +1,5 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import hudson.Util;
-import hudson.util.FormValidation;
-import org.hamcrest.Matcher;
-import org.jenkinsci.plugins.oic.OicServerWellKnownConfiguration.DescriptorImpl;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -20,6 +10,16 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.jvnet.hudson.test.JenkinsMatchers.hasKind;
+
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import hudson.Util;
+import hudson.util.FormValidation;
+import org.hamcrest.Matcher;
+import org.jenkinsci.plugins.oic.OicServerWellKnownConfiguration.DescriptorImpl;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
 class OicServerWellKnownConfigurationTest {

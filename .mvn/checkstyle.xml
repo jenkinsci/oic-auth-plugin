@@ -12,7 +12,7 @@
   <module name="TreeWalker">
     <module name="ImportOrder">
       <property name="separatedStaticGroups" value="true" />
-      <property name="option" value="bottom" />
+      <property name="option" value="top" />
     </module>
     <module name="UnusedImports" />
     <module name="AvoidStarImport" />

@@ -1,2 +1,4 @@
 # Initial spotless formating
 57eca2d7b5951b6227ae06c04c07c0d26018c4f8
+# reformat with spotless to apply settings from parent
+d2a134100bae43638db11202c2a1dd00cc6be788

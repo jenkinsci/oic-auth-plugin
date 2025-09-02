@@ -1,5 +1,12 @@
 package org.jenkinsci.plugins.oic.plugintest;
 
+import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
+import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
+import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -30,13 +37,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.xml.sax.SAXException;
-
-import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
-import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PluginTestHelper {
 

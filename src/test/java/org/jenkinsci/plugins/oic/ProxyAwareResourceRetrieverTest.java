@@ -1,14 +1,14 @@
 package org.jenkinsci.plugins.oic;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import hudson.ProxyConfiguration;
 import java.net.HttpURLConnection;
 import java.net.UnknownHostException;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @WithJenkins
 class ProxyAwareResourceRetrieverTest {

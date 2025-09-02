@@ -1,13 +1,13 @@
 package org.jenkinsci.plugins.oic;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
+
 import com.nimbusds.jose.JWSAlgorithm;
 import jenkins.security.FIPS140;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mockStatic;
 
 class OicAlgorithmValidatorFIPS140Test {
 

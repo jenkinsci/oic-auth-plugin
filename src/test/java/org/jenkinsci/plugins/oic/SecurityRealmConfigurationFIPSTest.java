@@ -1,14 +1,14 @@
 package org.jenkinsci.plugins.oic;
 
-import hudson.model.Descriptor;
-import jenkins.security.FIPS140;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mockStatic;
+
+import hudson.model.Descriptor;
+import jenkins.security.FIPS140;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 class SecurityRealmConfigurationFIPSTest {
 

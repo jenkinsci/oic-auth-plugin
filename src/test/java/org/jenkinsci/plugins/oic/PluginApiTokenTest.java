@@ -1,18 +1,5 @@
 package org.jenkinsci.plugins.oic;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import hudson.model.User;
-import java.net.http.HttpResponse;
-import jenkins.model.Jenkins;
-import jenkins.security.ApiTokenProperty;
-import org.hamcrest.MatcherAssert;
-import org.jenkinsci.plugins.oic.plugintest.PluginTestHelper;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
-
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -26,6 +13,19 @@ import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockAuthoriza
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockTokenReturnsIdTokenWithGroup;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockUserInfoWithTestGroups;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import hudson.model.User;
+import java.net.http.HttpResponse;
+import jenkins.model.Jenkins;
+import jenkins.security.ApiTokenProperty;
+import org.hamcrest.MatcherAssert;
+import org.jenkinsci.plugins.oic.plugintest.PluginTestHelper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /**
  * goes through a login scenario, the openid provider is mocked and always

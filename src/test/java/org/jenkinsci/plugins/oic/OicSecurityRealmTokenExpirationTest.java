@@ -1,5 +1,14 @@
 package org.jenkinsci.plugins.oic;
 
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.nimbusds.oauth2.sdk.GrantType;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
@@ -22,15 +31,6 @@ import org.mockito.MockedStatic;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 @WithJenkins
 public class OicSecurityRealmTokenExpirationTest {

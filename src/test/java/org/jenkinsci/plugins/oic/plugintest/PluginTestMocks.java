@@ -1,5 +1,13 @@
 package org.jenkinsci.plugins.oic.plugintest;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.google.gson.JsonParser.parseString;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.getUserInfo;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.toJson;
+
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.google.api.client.auth.openidconnect.IdToken;
 import com.google.api.client.json.gson.GsonFactory;
@@ -22,14 +30,6 @@ import java.util.function.Consumer;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.oic.OicSecurityRealm;
 import org.jenkinsci.plugins.oic.TestRealm;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.google.gson.JsonParser.parseString;
-import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.getUserInfo;
-import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.toJson;
 
 public class PluginTestMocks {
 
