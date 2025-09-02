@@ -8,7 +8,7 @@ class DebugUtils {
     static boolean isDebugging() {
         List<String> inputArguments = ManagementFactory.getRuntimeMXBean().getInputArguments();
         for (String arg : inputArguments) {
-            if (arg.startsWith(" -agentlib:jdwp")) {
+            if (arg.startsWith("-agentlib:jdwp")) {
                 return true;
             }
         }
