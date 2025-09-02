@@ -154,16 +154,15 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
             // server is mandated to support HS256 but if we do not specify things that it produces
             // then they would never be checked.
             // rather we just say "I support anything, and let the check for the specific ones fail and fall through
-            ArrayList<JWSAlgorithm> allAlgorthms = new ArrayList<>();
-            allAlgorthms.addAll(JWSAlgorithm.Family.HMAC_SHA);
+            ArrayList<JWSAlgorithm> allAlgorithms = new ArrayList<>(JWSAlgorithm.Family.HMAC_SHA);
             if (FIPS140.useCompliantAlgorithms()) {
                 // In FIPS-140 Family.ED is not supported
-                allAlgorthms.addAll(JWSAlgorithm.Family.RSA);
-                allAlgorthms.addAll(JWSAlgorithm.Family.EC);
+                allAlgorithms.addAll(JWSAlgorithm.Family.RSA);
+                allAlgorithms.addAll(JWSAlgorithm.Family.EC);
             } else {
-                allAlgorthms.addAll(JWSAlgorithm.Family.SIGNATURE);
+                allAlgorithms.addAll(JWSAlgorithm.Family.SIGNATURE);
             }
-            providerMetadata.setIDTokenJWSAlgs(allAlgorthms);
+            providerMetadata.setIDTokenJWSAlgs(allAlgorithms);
             return providerMetadata;
         } catch (URISyntaxException e) {
             throw new IllegalStateException("could not create provider metadata", e);
