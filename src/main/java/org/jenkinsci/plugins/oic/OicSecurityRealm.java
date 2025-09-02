@@ -1220,7 +1220,7 @@ public class OicSecurityRealm extends SecurityRealm {
         }
     }
 
-    public String buildOAuthRedirectUrl() throws NullPointerException {
+    private String buildOAuthRedirectUrl() throws NullPointerException {
         return ensureRootUrl() + "securityRealm/finishLogin";
     }
 
