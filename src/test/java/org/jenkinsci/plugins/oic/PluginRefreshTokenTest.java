@@ -8,7 +8,6 @@ import org.jenkinsci.plugins.oic.plugintest.PluginTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.junit.rules.DisableOnDebug;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Url;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
@@ -66,7 +65,7 @@ public class PluginRefreshTokenTest {
         this.jenkinsRule = jenkinsRule;
         jenkins = jenkinsRule.getInstance();
         webClient = jenkinsRule.createWebClient();
-        if (new DisableOnDebug(null).isDebugging()) {
+        if (DebugUtils.isDebugging()) {
             webClient.getOptions().setTimeout(0);
         }
     }
