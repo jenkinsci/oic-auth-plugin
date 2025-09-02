@@ -22,7 +22,15 @@ import java.util.Map;
 
 public class MockHttpServletRequest implements HttpServletRequest {
 
-    public MockHttpServletRequest() {}
+    private Map<String, String> headers;
+
+    public MockHttpServletRequest() {
+        this(Map.of());
+    }
+
+    public MockHttpServletRequest(Map<String, String> headers) {
+        this.headers = headers;
+    }
 
     @Override
     public String getAuthType() {
@@ -41,7 +49,7 @@ public class MockHttpServletRequest implements HttpServletRequest {
 
     @Override
     public String getHeader(String name) {
-        throw new UnsupportedOperationException();
+        return headers.get(name);
     }
 
     @Override

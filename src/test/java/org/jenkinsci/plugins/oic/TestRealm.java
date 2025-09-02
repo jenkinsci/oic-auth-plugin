@@ -58,8 +58,10 @@ public class TestRealm extends OicSecurityRealm {
         public String escapeHatchGroup = null;
         public boolean automanualconfigure = false;
         public boolean disableTokenValidation = true; // opt in for some specific tests
+        public boolean disableTokenExpiration = false;
         public IdStrategy userIdStrategy;
         public IdStrategy groupIdStrategy;
+        public boolean allowJWTBearerTokenAccess = false;
 
         public Builder(WireMockExtension wireMock, boolean useTLS) throws IOException {
             this(
@@ -161,6 +163,11 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
+        public Builder WithDisableTokenExpiration(boolean disableTokenExpiration) {
+            this.disableTokenExpiration = disableTokenExpiration;
+            return this;
+        }
+
         public Builder WithDisableSslVerification(boolean disableSslVerification) {
             this.disableSslVerification = disableSslVerification;
             return this;
@@ -173,6 +180,11 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithGroupIdStrategy(IdStrategy groupIdStrategy) {
             this.groupIdStrategy = groupIdStrategy;
+            return this;
+        }
+
+        public Builder WithAllowJWTBearerTokenAccess(boolean allowJWTBearerTokenAccess) {
+            this.allowJWTBearerTokenAccess = allowJWTBearerTokenAccess;
             return this;
         }
 
@@ -227,8 +239,10 @@ public class TestRealm extends OicSecurityRealm {
         this.setEscapeHatchSecret(builder.escapeHatchSecret);
         this.setEscapeHatchGroup(builder.escapeHatchGroup);
         this.setDisableTokenVerification(builder.disableTokenValidation);
+        this.setTokenExpirationCheckDisabled(builder.disableTokenExpiration);
         this.setLoginQueryParameters(builder.loginQueryParameters);
         this.setLogoutQueryParameters(builder.logoutQueryParameters);
+        this.setAllowJWTBearerTokenAccess(builder.allowJWTBearerTokenAccess);
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
         // is only called in regular use not code use.

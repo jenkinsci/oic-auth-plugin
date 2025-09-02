@@ -1,0 +1,13 @@
+<div>
+    Enabling this functionality allows JWT Bearer Token based access even if the associated user has
+    completly logged out from Jenkins. The Bearer Token can be obtained by whatever means necessary from the IdP as long as it fulfills the following criteria:
+
+    <ul>
+		<li>The Bearer Token needs to be a JWT access token</li>
+		<li>The issuer claim (iss) needs to match the issuer configured above, either manually or by .well-known discovery</li>
+		<li>If token verification has not been disabled, the token needs be signed by the IdP</li>
+		<li>If token expiration has not been disabled, the token needs to be valid regarding the not-before (nbf) and expiration (exp) claims</li>
+		<li>The token needs to contain the claim configured above containing the username. Usually this is the subject claim (sub)</li>
+		<li>The token needs to contain the claim configured above containing the groups, otherwise the user will only be "authenticated"</li>
+	</ul>
+</div>
