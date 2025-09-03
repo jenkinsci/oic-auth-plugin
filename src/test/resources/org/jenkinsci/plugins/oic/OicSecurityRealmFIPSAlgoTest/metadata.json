@@ -297,5 +297,20 @@
     "pushed_authorization_request_endpoint": "http://localhost:9090/realms/master/protocol/openid-connect/ext/par/request",
     "backchannel_authentication_endpoint": "http://localhost:9090/realms/master/protocol/openid-connect/ext/ciba/auth"
   },
-  "authorization_response_iss_parameter_supported": true
+  "authorization_response_iss_parameter_supported": true,
+  "dpop_signing_alg_values_supported": [
+    "RS256",
+    "ES256",
+    "PS256"
+  ],
+  "client_registration_types_supported": [
+    "RS256",
+    "ES256",
+    "PS256"
+  ],
+  "request_authentication_signing_alg_values_supported": [
+    "RS256",
+    "ES256",
+    "PS256"
+  ]
 }

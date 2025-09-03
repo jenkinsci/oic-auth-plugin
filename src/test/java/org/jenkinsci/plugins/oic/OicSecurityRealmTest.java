@@ -13,8 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import hudson.model.User;
+import hudson.security.SecurityRealm;
 import hudson.util.Secret;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
@@ -32,6 +35,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 @WithJenkins
@@ -151,6 +155,27 @@ class OicSecurityRealmTest {
         assertTrue(realm.doCheckEscapeHatch(escapeHatchUsername, escapeHatchPassword));
         assertFalse(realm.doCheckEscapeHatch("otherUsername", escapeHatchPassword));
         assertFalse(realm.doCheckEscapeHatch(escapeHatchUsername, "wrongPassword"));
+    }
+
+    @Test
+    public void testIsValidApiTokenRequest_NoTokenAccessWithoutOicSession(JenkinsRule jenkinsRule) throws Exception {
+        TestRealm realm = new TestRealm.Builder(wireMock).WithMinimalDefaults().build();
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        assertFalse(realm.isLogoutRequest(request));
+
+        List<org.springframework.security.core.GrantedAuthority> grantedAuthorities = new ArrayList<>();
+        grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
+        UsernamePasswordAuthenticationToken token =
+                new UsernamePasswordAuthenticationToken("test-user", "", grantedAuthorities);
+        SecurityContextHolder.getContext().setAuthentication(token);
+
+        jenkinsRule.jenkins.getUser(token.getName());
+        User user = User.get2(token);
+        assertNotNull(user);
+        user.addProperty(new OicCredentials("test", "test", "test", 1L, 1L, 1L));
+        assertNotNull(user.getProperty(OicCredentials.class));
+        assertFalse(realm.isValidApiTokenRequest(request, user));
     }
 
     @Test
