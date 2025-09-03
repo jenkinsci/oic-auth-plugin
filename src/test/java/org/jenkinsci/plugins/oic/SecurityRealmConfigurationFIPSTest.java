@@ -7,19 +7,34 @@ import static org.mockito.Mockito.mockStatic;
 
 import hudson.model.Descriptor;
 import jenkins.security.FIPS140;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 class SecurityRealmConfigurationFIPSTest {
 
+    private static Object fipsProperty;
+
+    @BeforeAll
+    static void setUp() {
+        fipsProperty = System.getProperties().setProperty(FIPS140.class.getName() + ".COMPLIANCE", "true");
+    }
+
+    @AfterAll
+    static void tearDown() {
+        if (fipsProperty != null) {
+            System.setProperty(FIPS140.class.getName() + ".COMPLIANCE", String.valueOf(fipsProperty));
+        } else {
+            System.clearProperty(FIPS140.class.getName() + ".COMPLIANCE");
+        }
+    }
+
     @Test
     void escapeHatchThrowsException() {
-        try (MockedStatic<FIPS140> fips140Mocked = mockStatic(FIPS140.class)) {
-            fips140Mocked.when(FIPS140::useCompliantAlgorithms).thenReturn(true);
-            assertThrows(
-                    Descriptor.FormException.class,
-                    () -> new OicSecurityRealm("clientId", null, null, null, null, null).setEscapeHatchEnabled(true));
-        }
+        assertThrows(
+                Descriptor.FormException.class,
+                () -> new OicSecurityRealm("clientId", null, null, null, null, null).setEscapeHatchEnabled(true));
     }
 
     @Test
@@ -39,6 +54,7 @@ class SecurityRealmConfigurationFIPSTest {
 
     @Test
     void readResolveIsDisableSslVerification() throws Exception {
+        // using a mock as we need to disable FIPS mode to create the state
         try (MockedStatic<FIPS140> fips140Mock = mockStatic(FIPS140.class)) {
             fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(false);
             OicSecurityRealm oicSecurityRealm = new OicSecurityRealm("clientId", null, null, Boolean.TRUE, null, null);
@@ -53,6 +69,7 @@ class SecurityRealmConfigurationFIPSTest {
 
     @Test
     void readResolveIsDisableTokenVerification() throws Exception {
+        // using a mock as we need to disable FIPS mode to create the state
         try (MockedStatic<FIPS140> fips140Mock = mockStatic(FIPS140.class)) {
             fips140Mock.when(FIPS140::useCompliantAlgorithms).thenReturn(false);
             OicSecurityRealm oicSecurityRealm = new OicSecurityRealm("clientId", null, null, Boolean.FALSE, null, null);
