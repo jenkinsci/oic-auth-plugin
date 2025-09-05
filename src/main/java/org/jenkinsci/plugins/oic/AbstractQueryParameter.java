@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Descriptor;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +26,7 @@ public abstract class AbstractQueryParameter<T extends AbstractQueryParameter<T>
     /**
      * Return {@link #getValue()} encoded with {@code application/x-www-form-urlencoded} in {@code UTF-8}
      */
+    @NonNull
     public String getURLEncodedValue() {
         return URLEncoder.encode(getValue(), StandardCharsets.UTF_8);
     }

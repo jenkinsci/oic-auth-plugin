@@ -32,28 +32,6 @@
         <f:dropdownDescriptorSelector title="${%GroupIdStrategy}" field="groupIdStrategy" default="${descriptor.defaultGroupIdStrategy()}" descriptors="${descriptor.idStrategyDescriptors}"/>
       </f:entry>
     </f:advanced>
-
-    <f:advanced title="${%LoginLogoutQueryParametersTitle}">
-      <f:entry title="${%LoginQueryParametersTitle}" field="loginQueryParameters">
-        <f:repeatableProperty field="loginQueryParameters" header="${%LoginQueryParameter.Title}" hasHeader="true" add="${%Add login parameter}">
-          <f:block>
-            <div align="right">
-              <f:repeatableDeleteButton />
-            </div>
-          </f:block>
-        </f:repeatableProperty>
-      </f:entry>
-      <f:entry title="${%LogoutQueryParametersTitle}" field="logoutQueryParameters">
-        <f:repeatableProperty field="logoutQueryParameters" header="${%LogoutQueryParameter.Title}" hasHeader="true" add="${%Add logout parameter}">
-          <f:block>
-            <div align="right">
-              <f:repeatableDeleteButton />
-            </div>
-          </f:block>
-        </f:repeatableProperty>
-      </f:entry>
-    </f:advanced>
-
     <f:entry title="${%LogoutFromOpenIDProvider}" field="logoutFromOpenidProvider">
       <f:checkbox id="logoutFromIDP"/>
     </f:entry>
@@ -77,42 +55,15 @@
       <f:entry title="${%UseRootUrlFromRequest}" field="rootURLFromRequest">
         <f:checkbox/>
       </f:entry>
-      <f:entry title="${%EnablePKCE}" field="pkceEnabled">
-        <f:checkbox/>
-      </f:entry>
-      <f:entry title="${%DisableNonceVerification}" field="nonceDisabled">
-        <f:checkbox/>
-      </f:entry>
-      <f:entry title="${%DisableTokenVerification}" field="disableTokenVerification">
-        <f:checkbox/>
-      </f:entry>
       <f:entry title="${%DisableTokenExpirationCheck}" field="tokenExpirationCheckDisabled">
         <f:checkbox/>
-      </f:entry>
-      <f:entry title="${%AllowedTokenExpirationClockSkewSeconds}" field="allowedTokenExpirationClockSkewSeconds">
-        <f:textbox/>
       </f:entry>
       <f:entry title="${%AllowTokenAccessWithoutOicSession}" field="allowTokenAccessWithoutOicSession">
         <f:checkbox/>
       </f:entry>
     </f:advanced>
-    <j:if test="${!descriptor.isFipsEnabled()}">
-      <f:block>
-        <table>
-          <f:optionalBlock inline="true" title="${%ConfigureEscapeHatch}" field="escapeHatchEnabled">
-            <f:entry title="${%Username}" field="escapeHatchUsername">
-              <f:textbox/>
-            </f:entry>
-            <f:entry title="${%Secret}" field="escapeHatchSecret">
-              <f:password/>
-            </f:entry>
-            <f:entry title="${%Group}" field="escapeHatchGroup">
-              <f:textbox/>
-            </f:entry>
-          </f:optionalBlock>
-        </table>
-      </f:block>
-    </j:if>
-
+    <f:entry title="Properties">
+      <f:repeatableHeteroProperty field="properties" hasHeader="true" oneEach="true"/>
+    </f:entry>
   </f:section>
 </j:jelly>

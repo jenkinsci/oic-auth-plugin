@@ -123,7 +123,7 @@ public class OicServerManualConfiguration extends OicServerConfiguration {
     }
 
     @Override
-    public OIDCProviderMetadata toProviderMetadata() {
+    protected OIDCProviderMetadata toProviderMetadataInternal() {
         try {
             final OIDCProviderMetadata providerMetadata;
             if (jwksServerUrl == null) {

@@ -76,6 +76,9 @@ import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.htmlunit.CookieManager;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.util.Cookie;
+import org.jenkinsci.plugins.oic.properties.DisableNonce;
+import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
+import org.jenkinsci.plugins.oic.properties.Pkce;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -272,7 +275,7 @@ class PluginTest {
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithGroup();
 
-        configureTestRealm(sc -> sc.setPkceEnabled(true));
+        configureTestRealm(sc -> sc.getProperties().add(new Pkce()));
         browseLoginPage();
 
         wireMock.verify(getRequestedFor(urlPathEqualTo("/authorization"))
@@ -310,7 +313,7 @@ class PluginTest {
     void testLoginWithNonceDisabled() throws Exception {
         mockAuthorizationRedirectsToFinishLogin();
         mockTokenReturnsIdTokenWithGroup();
-        configureTestRealm(sc -> sc.setNonceDisabled(true));
+        configureTestRealm(sc -> sc.getProperties().add(new DisableNonce()));
         browseLoginPage();
 
         wireMock.verify(getRequestedFor(urlPathEqualTo("/authorization")).withQueryParam("nonce", absent()));
@@ -767,7 +770,7 @@ class PluginTest {
         assertAnonymous();
         browseLoginPage();
         assertAnonymous();
-        testRealm.setDisableTokenVerification(true);
+        testRealm.getProperties().add(new DisableTokenVerification());
         browseLoginPage();
         Authentication authentication = getAuthentication();
         assertEquals(TEST_USER_USERNAME, authentication.getPrincipal(), "Should be logged-in as " + TEST_USER_USERNAME);

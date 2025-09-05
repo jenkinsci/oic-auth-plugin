@@ -1,0 +1,12 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:entry title="${%Username}" field="username">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Secret}" field="secret">
+    <f:password/>
+  </f:entry>
+  <f:entry title="${%Group}" field="group">
+    <f:textbox/>
+  </f:entry>
+</j:jelly>

@@ -4,9 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.not;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
 import com.nimbusds.jose.EncryptionMethod;
@@ -30,12 +27,7 @@ class OicSecurityRealmFIPSAlgoTest {
             fips140Mocked.when(FIPS140::useCompliantAlgorithms).thenReturn(false);
 
             OIDCProviderMetadata oidcProviderMetadata = generateProviderMetadata();
-
-            OicSecurityRealm mocked = mock(OicSecurityRealm.class);
-            doCallRealMethod().when(mocked).filterNonFIPS140CompliantAlgorithms(any());
-
-            mocked.filterNonFIPS140CompliantAlgorithms(oidcProviderMetadata);
-
+            OicServerConfiguration.filterNonFIPS140CompliantAlgorithms(oidcProviderMetadata);
             /*
             Original List: "PS384", "RS384", "EdDSA", "ES384", "HS256", "HS512", "ES256", "RS256", "HS384", "ES512",
                            "PS256", "PS512", "RS512"
@@ -91,11 +83,7 @@ class OicSecurityRealmFIPSAlgoTest {
             fips140Mocked.when(FIPS140::useCompliantAlgorithms).thenReturn(true);
 
             OIDCProviderMetadata oidcProviderMetadata = generateProviderMetadata();
-
-            OicSecurityRealm mocked = mock(OicSecurityRealm.class);
-            doCallRealMethod().when(mocked).filterNonFIPS140CompliantAlgorithms(any());
-
-            mocked.filterNonFIPS140CompliantAlgorithms(oidcProviderMetadata);
+            OicServerConfiguration.filterNonFIPS140CompliantAlgorithms(oidcProviderMetadata);
 
             /*
             Original List: "PS384", "RS384", "EdDSA", "ES384", "HS256", "HS512", "ES256", "RS256", "HS384", "ES512",
