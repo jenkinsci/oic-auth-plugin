@@ -1190,7 +1190,11 @@ public class OicSecurityRealm extends SecurityRealm {
             }
             properties.stream()
                     .flatMap(p -> p.contributeLogoutQueryParameters().stream())
-                    .forEach(lqp -> uriComponentsBuilder.queryParam(lqp.getURLEncodedKey(), lqp.getURLEncodedValue()));
+                    .forEach(lqp -> {
+                        var urlEncodedValue = lqp.getURLEncodedValue();
+                        uriComponentsBuilder.queryParam(
+                                lqp.getURLEncodedKey(), urlEncodedValue.isEmpty() ? null : urlEncodedValue);
+                    });
             return uriComponentsBuilder.build().toUriString();
         }
         return null;
