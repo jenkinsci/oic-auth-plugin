@@ -126,12 +126,12 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
-        public Builder WithLoginQueryParameters(List<LoginQueryParameter> values) {
+        public Builder WithLoginQueryParameters(List<LoginQueryParameter> values) throws Descriptor.FormException {
             this.properties.add(new LoginQueryParameters(values));
             return this;
         }
 
-        public Builder WithLogoutQueryParameters(List<LogoutQueryParameter> values) {
+        public Builder WithLogoutQueryParameters(List<LogoutQueryParameter> values) throws Descriptor.FormException {
             this.properties.add(new LogoutQueryParameters(values));
             return this;
         }

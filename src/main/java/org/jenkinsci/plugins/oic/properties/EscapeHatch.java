@@ -51,13 +51,14 @@ public class EscapeHatch extends OidcProperty {
     private final Secret secret;
 
     @DataBoundConstructor
-    public EscapeHatch(@NonNull String username, @CheckForNull String group, @NonNull Secret secret) throws Descriptor.FormException {
+    public EscapeHatch(@NonNull String username, @CheckForNull String group, @NonNull Secret secret)
+            throws Descriptor.FormException {
         if (FIPS140.useCompliantAlgorithms()) {
             throw new IllegalStateException("Cannot use Escape Hatch in FIPS-140 mode");
         }
         var sanitizedUsername = Util.fixEmptyAndTrim(username);
         if (sanitizedUsername == null) {
-             throw new Descriptor.FormException("Username must not be blank", "username");
+            throw new Descriptor.FormException("Username must not be blank", "username");
         }
         this.username = sanitizedUsername;
         this.group = Util.fixEmptyAndTrim(group);

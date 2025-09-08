@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.oic.properties;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.model.Descriptor;
 import java.util.ArrayList;
 import java.util.List;
 import org.jenkinsci.plugins.oic.LoginQueryParameter;
@@ -21,8 +22,11 @@ public class LoginQueryParameters extends OidcProperty {
     private List<LoginQueryParameter> items;
 
     @DataBoundConstructor
-    public LoginQueryParameters(@CheckForNull List<LoginQueryParameter> items) {
-        this.items = items == null ? List.of() : new ArrayList<>(items);
+    public LoginQueryParameters(@CheckForNull List<LoginQueryParameter> items) throws Descriptor.FormException {
+        if (items == null || items.isEmpty()) {
+            throw new Descriptor.FormException("There must be at least one login query parameter defined", "items");
+        }
+        this.items = new ArrayList<>(items);
     }
 
     public List<LoginQueryParameter> getItems() {
