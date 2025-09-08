@@ -7,10 +7,10 @@ import hudson.model.Descriptor;
 import java.util.ArrayList;
 import java.util.List;
 import org.jenkinsci.plugins.oic.LoginQueryParameter;
-import org.jenkinsci.plugins.oic.OidcProperty;
-import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
 import org.jenkinsci.plugins.oic.OicPropertyExecution;
 import org.jenkinsci.plugins.oic.OicServerConfiguration;
+import org.jenkinsci.plugins.oic.OidcProperty;
+import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.pac4j.oidc.config.OidcConfiguration;
 

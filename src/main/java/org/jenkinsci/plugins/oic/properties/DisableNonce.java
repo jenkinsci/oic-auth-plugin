@@ -2,10 +2,10 @@ package org.jenkinsci.plugins.oic.properties;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import org.jenkinsci.plugins.oic.OidcProperty;
-import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
 import org.jenkinsci.plugins.oic.OicPropertyExecution;
 import org.jenkinsci.plugins.oic.OicServerConfiguration;
+import org.jenkinsci.plugins.oic.OidcProperty;
+import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.pac4j.oidc.config.OidcConfiguration;
 
