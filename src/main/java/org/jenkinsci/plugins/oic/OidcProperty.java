@@ -14,11 +14,11 @@ public abstract class OidcProperty extends AbstractDescribableImpl<OidcProperty>
      * @return a new execution for this property, holding any required state.
      */
     @NonNull
-    public OicPropertyExecution newExecution(@NonNull OicServerConfiguration serverConfiguration) {
+    public OidcPropertyExecution newExecution(@NonNull OicServerConfiguration serverConfiguration) {
         return new EmptyExecution();
     }
 
-    private record EmptyExecution() implements OicPropertyExecution {}
+    private record EmptyExecution() implements OidcPropertyExecution {}
 
     /**
      * Allows a property to authenticate the user.

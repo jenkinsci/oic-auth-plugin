@@ -7,10 +7,10 @@ import hudson.model.Descriptor;
 import java.util.ArrayList;
 import java.util.List;
 import org.jenkinsci.plugins.oic.LoginQueryParameter;
-import org.jenkinsci.plugins.oic.OicPropertyExecution;
 import org.jenkinsci.plugins.oic.OicServerConfiguration;
 import org.jenkinsci.plugins.oic.OidcProperty;
 import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
+import org.jenkinsci.plugins.oic.OidcPropertyExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.pac4j.oidc.config.OidcConfiguration;
 
@@ -35,11 +35,11 @@ public class LoginQueryParameters extends OidcProperty {
 
     @NonNull
     @Override
-    public OicPropertyExecution newExecution(@NonNull OicServerConfiguration serverConfiguration) {
+    public OidcPropertyExecution newExecution(@NonNull OicServerConfiguration serverConfiguration) {
         return new ExecutionImpl(items);
     }
 
-    private record ExecutionImpl(@NonNull List<LoginQueryParameter> items) implements OicPropertyExecution {
+    private record ExecutionImpl(@NonNull List<LoginQueryParameter> items) implements OidcPropertyExecution {
         @Override
         public void customizeConfiguration(@NonNull OidcConfiguration configuration) {
             for (LoginQueryParameter lqp : items) {

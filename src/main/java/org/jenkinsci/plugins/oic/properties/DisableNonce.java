@@ -2,10 +2,10 @@ package org.jenkinsci.plugins.oic.properties;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import org.jenkinsci.plugins.oic.OicPropertyExecution;
 import org.jenkinsci.plugins.oic.OicServerConfiguration;
 import org.jenkinsci.plugins.oic.OidcProperty;
 import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
+import org.jenkinsci.plugins.oic.OidcPropertyExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.pac4j.oidc.config.OidcConfiguration;
 
@@ -19,11 +19,11 @@ public class DisableNonce extends OidcProperty {
 
     @NonNull
     @Override
-    public OicPropertyExecution newExecution(@NonNull OicServerConfiguration serverConfiguration) {
+    public OidcPropertyExecution newExecution(@NonNull OicServerConfiguration serverConfiguration) {
         return new ExecutionImpl();
     }
 
-    private record ExecutionImpl() implements OicPropertyExecution {
+    private record ExecutionImpl() implements OidcPropertyExecution {
         @Override
         public void customizeConfiguration(@NonNull OidcConfiguration configuration) {
             configuration.setUseNonce(false);
