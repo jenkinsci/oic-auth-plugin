@@ -327,7 +327,7 @@ public class TestRealm extends OicSecurityRealm {
 
     @Serial
     @Override
-    public Object readResolve() throws IOException {
+    public Object readResolve() throws IOException, Descriptor.FormException {
         return super.readResolve();
     }
 

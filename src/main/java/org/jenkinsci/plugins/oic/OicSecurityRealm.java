@@ -372,7 +372,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     @SuppressWarnings("deprecated")
-    protected Object readResolve() throws IOException {
+    protected Object readResolve() throws IOException, FormException {
         if (properties == null) {
             properties = new DescribableList<>(Saveable.NOOP);
         }
