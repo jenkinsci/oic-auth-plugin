@@ -21,8 +21,8 @@ import java.util.Random;
 import java.util.regex.Pattern;
 import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
-import org.jenkinsci.plugins.oic.OicProperty;
-import org.jenkinsci.plugins.oic.OicPropertyDescriptor;
+import org.jenkinsci.plugins.oic.OidcProperty;
+import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
 import org.jenkinsci.plugins.oic.OicUserDetails;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -37,7 +37,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
  * Escape hatch for authentication, allowing users to log in with a username and password.
  * This is intended for emergency access and should be used with caution.
  */
-public class EscapeHatch extends OicProperty {
+public class EscapeHatch extends OidcProperty {
     public static final Pattern B_CRYPT_PATTERN = Pattern.compile("\\A\\$[^$]+\\$\\d+\\$[./0-9A-Za-z]{53}");
 
     @CheckForNull
@@ -119,7 +119,7 @@ public class EscapeHatch extends OicProperty {
     }
 
     @Extension
-    public static class DescriptorImpl extends OicPropertyDescriptor {
+    public static class DescriptorImpl extends OidcPropertyDescriptor {
         @Override
         public boolean isApplicable() {
             return !FIPS140.useCompliantAlgorithms();

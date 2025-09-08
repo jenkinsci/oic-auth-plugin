@@ -6,9 +6,9 @@ import hudson.ExtensionPoint;
 import hudson.model.Descriptor;
 import org.pac4j.oidc.config.OidcConfiguration;
 
-public abstract class OicPropertyDescriptor extends Descriptor<OicProperty> implements ExtensionPoint {
-    public static ExtensionList<OicPropertyDescriptor> all() {
-        return ExtensionList.lookup(OicPropertyDescriptor.class);
+public abstract class OidcPropertyDescriptor extends Descriptor<OidcProperty> implements ExtensionPoint {
+    public static ExtensionList<OidcPropertyDescriptor> all() {
+        return ExtensionList.lookup(OidcPropertyDescriptor.class);
     }
 
     /**

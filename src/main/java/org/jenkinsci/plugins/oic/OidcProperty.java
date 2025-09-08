@@ -9,7 +9,7 @@ import org.springframework.security.core.Authentication;
 /**
  * Represents a property that can be configured for OIDC authentication.
  */
-public abstract class OicProperty extends AbstractDescribableImpl<OicProperty> {
+public abstract class OidcProperty extends AbstractDescribableImpl<OidcProperty> {
     /**
      * @return a new execution for this property, holding any required state.
      */

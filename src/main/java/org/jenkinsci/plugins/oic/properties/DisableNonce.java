@@ -2,8 +2,8 @@ package org.jenkinsci.plugins.oic.properties;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import org.jenkinsci.plugins.oic.OicProperty;
-import org.jenkinsci.plugins.oic.OicPropertyDescriptor;
+import org.jenkinsci.plugins.oic.OidcProperty;
+import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
 import org.jenkinsci.plugins.oic.OicPropertyExecution;
 import org.jenkinsci.plugins.oic.OicServerConfiguration;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -13,7 +13,7 @@ import org.pac4j.oidc.config.OidcConfiguration;
  * Disables the use of nonce in OIDC authentication.
  * This is generally not recommended as it can lead to replay attacks.
  */
-public class DisableNonce extends OicProperty {
+public class DisableNonce extends OidcProperty {
     @DataBoundConstructor
     public DisableNonce() {}
 
@@ -31,7 +31,7 @@ public class DisableNonce extends OicProperty {
     }
 
     @Extension
-    public static class DescriptorImpl extends OicPropertyDescriptor {
+    public static class DescriptorImpl extends OidcPropertyDescriptor {
         @NonNull
         @Override
         public String getDisplayName() {

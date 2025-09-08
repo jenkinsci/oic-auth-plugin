@@ -6,8 +6,8 @@ import hudson.Extension;
 import java.util.ArrayList;
 import java.util.List;
 import org.jenkinsci.plugins.oic.LoginQueryParameter;
-import org.jenkinsci.plugins.oic.OicProperty;
-import org.jenkinsci.plugins.oic.OicPropertyDescriptor;
+import org.jenkinsci.plugins.oic.OidcProperty;
+import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
 import org.jenkinsci.plugins.oic.OicPropertyExecution;
 import org.jenkinsci.plugins.oic.OicServerConfiguration;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -16,7 +16,7 @@ import org.pac4j.oidc.config.OidcConfiguration;
 /**
  * Allows the addition of custom query parameters to the login request.
  */
-public class LoginQueryParameters extends OicProperty {
+public class LoginQueryParameters extends OidcProperty {
     @NonNull
     private List<LoginQueryParameter> items;
 
@@ -45,7 +45,7 @@ public class LoginQueryParameters extends OicProperty {
     }
 
     @Extension
-    public static class DescriptorImpl extends OicPropertyDescriptor {
+    public static class DescriptorImpl extends OidcPropertyDescriptor {
         @NonNull
         @Override
         public String getDisplayName() {

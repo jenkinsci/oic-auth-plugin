@@ -60,7 +60,7 @@ public class TestRealm extends OicSecurityRealm {
         public boolean automanualconfigure = false;
         public IdStrategy userIdStrategy;
         public IdStrategy groupIdStrategy;
-        public List<OicProperty> properties = new ArrayList<>();
+        public List<OidcProperty> properties = new ArrayList<>();
 
         public Builder(WireMockExtension wireMock, boolean useTLS) throws IOException {
             this(
@@ -182,7 +182,7 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
-        public Builder AddToProperties(List<OicProperty> properties) {
+        public Builder AddToProperties(List<OidcProperty> properties) {
             this.properties.addAll(properties);
             return this;
         }

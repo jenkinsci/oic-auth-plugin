@@ -315,7 +315,7 @@ public class OicSecurityRealm extends SecurityRealm {
     @Deprecated
     private transient String endSessionUrl;
 
-    private DescribableList<OicProperty, OicPropertyDescriptor> properties = new DescribableList<>(Saveable.NOOP);
+    private DescribableList<OidcProperty, OidcPropertyDescriptor> properties = new DescribableList<>(Saveable.NOOP);
 
     /** Random generator needed for robust random wait
      */
@@ -612,12 +612,12 @@ public class OicSecurityRealm extends SecurityRealm {
         return allowedTokenExpirationClockSkewSeconds;
     }
 
-    public DescribableList<OicProperty, OicPropertyDescriptor> getProperties() {
+    public DescribableList<OidcProperty, OidcPropertyDescriptor> getProperties() {
         return properties;
     }
 
     @DataBoundSetter
-    public void setProperties(List<OicProperty> properties) throws IOException {
+    public void setProperties(List<OidcProperty> properties) throws IOException {
         this.properties.replaceBy(properties);
     }
 
@@ -657,7 +657,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 .map(p -> p.newExecution(serverConfiguration))
                 .toList();
         OidcConfiguration oidcConfiguration = buildOidcConfiguration();
-        OicPropertyDescriptor.all().stream()
+        OidcPropertyDescriptor.all().stream()
                 .filter(d -> !properties.contains(d))
                 .forEach(d -> d.getFallbackConfiguration(serverConfiguration, oidcConfiguration));
         executions.forEach(execution -> execution.customizeConfiguration(oidcConfiguration));
@@ -1613,9 +1613,9 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         @SuppressWarnings("unused") // stapler
-        public List<OicPropertyDescriptor> getPropertiesDescriptors() {
-            return ExtensionList.lookup(OicPropertyDescriptor.class).stream()
-                    .filter(OicPropertyDescriptor::isApplicable)
+        public List<OidcPropertyDescriptor> getPropertiesDescriptors() {
+            return ExtensionList.lookup(OidcPropertyDescriptor.class).stream()
+                    .filter(OidcPropertyDescriptor::isApplicable)
                     .toList();
         }
     }

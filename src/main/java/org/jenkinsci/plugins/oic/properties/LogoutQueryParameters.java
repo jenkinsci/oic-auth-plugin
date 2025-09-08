@@ -6,14 +6,14 @@ import hudson.Extension;
 import java.util.ArrayList;
 import java.util.List;
 import org.jenkinsci.plugins.oic.LogoutQueryParameter;
-import org.jenkinsci.plugins.oic.OicProperty;
-import org.jenkinsci.plugins.oic.OicPropertyDescriptor;
+import org.jenkinsci.plugins.oic.OidcProperty;
+import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Allows the addition of custom query parameters to the logout request.
  */
-public class LogoutQueryParameters extends OicProperty {
+public class LogoutQueryParameters extends OidcProperty {
     @NonNull
     private final List<LogoutQueryParameter> items;
 
@@ -34,7 +34,7 @@ public class LogoutQueryParameters extends OicProperty {
     }
 
     @Extension
-    public static class DescriptorImpl extends OicPropertyDescriptor {
+    public static class DescriptorImpl extends OidcPropertyDescriptor {
         @NonNull
         @Override
         public String getDisplayName() {
