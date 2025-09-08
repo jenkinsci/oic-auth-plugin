@@ -14,27 +14,27 @@ import org.pac4j.oidc.config.OidcConfiguration;
  * This is useful to accommodate for clock differences between the server and the OIDC provider.
  */
 public class AllowedTokenExpirationClockSkew extends OidcProperty {
-    private int value;
+    private int valueSeconds;
 
     @DataBoundConstructor
-    public AllowedTokenExpirationClockSkew(int value) {
-        this.value = value;
+    public AllowedTokenExpirationClockSkew(int valueSeconds) {
+        this.valueSeconds = valueSeconds;
     }
 
-    public int getValue() {
-        return value;
+    public int getValueSeconds() {
+        return valueSeconds;
     }
 
     @NonNull
     @Override
     public OicPropertyExecution newExecution(@NonNull OicServerConfiguration serverConfiguration) {
-        return new ExecutionImpl(value);
+        return new ExecutionImpl(valueSeconds);
     }
 
-    private record ExecutionImpl(int value) implements OicPropertyExecution {
+    private record ExecutionImpl(int valueSeconds) implements OicPropertyExecution {
         @Override
         public void customizeConfiguration(@NonNull OidcConfiguration configuration) {
-            configuration.setMaxClockSkew(value);
+            configuration.setMaxClockSkew(valueSeconds);
         }
     }
 
@@ -49,10 +49,10 @@ public class AllowedTokenExpirationClockSkew extends OidcProperty {
         @Override
         public void getFallbackConfiguration(
                 @NonNull OicServerConfiguration serverConfiguration, @NonNull OidcConfiguration configuration) {
-            configuration.setMaxClockSkew(getDefaultValue());
+            configuration.setMaxClockSkew(getDefaultValueSeconds());
         }
 
-        public int getDefaultValue() {
+        public int getDefaultValueSeconds() {
             return 60; // Default value for clock skew in seconds
         }
     }

@@ -108,7 +108,7 @@ class OicSecurityRealmFipsTest {
         assertThat(realm.isAllowTokenAccessWithoutOicSession(), is(false));
         var allowedTokenExpirationClockSkew = realm.getProperties().get(AllowedTokenExpirationClockSkew.class);
         assertThat(allowedTokenExpirationClockSkew, notNullValue());
-        assertThat(allowedTokenExpirationClockSkew.getValue(), is(0));
+        assertThat(allowedTokenExpirationClockSkew.getValueSeconds(), is(0));
     }
 
     private static Matcher<FormValidation> withMessageContaining(String message) {
