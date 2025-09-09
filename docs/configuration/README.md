@@ -71,7 +71,7 @@ or some oddities they required.
 
 | field                     | format   | description                                                                                         |
 |---------------------------|----------|-----------------------------------------------------------------------------------------------------|
-| logoutFromOpenidProvider  | boolean  | Enable the logout from provider when user logout from Jenkisn.                                      |
+| logoutFromOpenidProvider  | boolean  | Enable the logout from provider when user logout from Jenkins.                                      |
 | sendScopesInTokenRequest  | boolean  | Some providers expects scopes to be sent in token request                                           |
 | rootURLFromRequest        | boolean  | When computing Jenkins redirect, the root url is either deduced from configured root url or request |
 
@@ -82,11 +82,7 @@ Most security feature are activated by default if possible.
 | field                                  | format    | description                                                                                                                   |
 |----------------------------------------|-----------|-------------------------------------------------------------------------------------------------------------------------------|
 | allowTokenAccessWithoutOicSession      | boolean   | Allows Jenkins API token based access even if the associated user has completly logged out from Jenkins and the OIC Provider  |
-| allowedTokenExpirationClockSkewSeconds | integer   | Additional number of seconds to add to access token expiry time in case of clock sync issues                                  |
 | disableSslVerification                 | boolean   | Disable SSL verification (in case of self signed certificates by example)                                                     |
-| nonceDisabled                          | boolean   | Disable nonce verification                                                                                                    |
-| pkceEnable                             | boolean   | Enable PKCE challenge                                                                                                         |
-| disableTokenVerification               | boolean   | Disable IdToken and UserInfo verification (not recommended)                                                                   |
 | tokenFieldToCheckKey                   | jmespath  | Field(s) to check to authorize user                                                                                           |
 | tokenFieldToCheckValue                 | string    | TokenFieldToCheckValue expected value                                                                                         |
 | tokenExpirationCheckDisabled           | boolean   | Disable checking of token expiration                                                                                          |
@@ -103,15 +99,30 @@ They are called claims in OpenID Connect terminology.
 | emailFieldName    | jmes path | claim to use for populating user email      |
 | groupsFieldName   | jmes path | groups the user belongs to                  |
 
+## Properties
+
+Additional properties can be configured. Third-party plugins may also add new properties.
+
+
+| property                        | format          | description                                                                                  |
+|---------------------------------|-----------------|----------------------------------------------------------------------------------------------|
+| escapeHatch                     | object          | Allows to bypass openID connect auth using a user and password.                              |
+| disableNonce                    | boolean         | Disable nonce verification                                                                   |
+| disableTokenVerification        | boolean         | Disable IdToken and UserInfo verification (not recommended)                                  |
+| pkce                            | boolean         | Enable PKCE challenge                                                                        |
+| allowedTokenExpirationClockSkew | integer         | Additional number of seconds to add to access token expiry time in case of clock sync issues |
+| loginQueryParameters            | QueryParameters | A list of query parameters to add to the login query                                         |
+| logoutQueryParameters           | QueryParameters | A list of query parameters to add to the logout query                                        |
+
 ## Custom Query Parameters For Login and Logout Endpoints
 
-Optional list of key / value query parameter pairs which will be appended 
+Optional list of key / value query parameter pairs which will be appended
 when calling the login resp. the logout endpoint.
 
-| field           | format | description                                                        |
-|-----------------|--------|--------------------------------------------------------------------|
-| queryParamName  | string | Name of the query parameter.                                       |
-| queryParamValue | string | Value of the query parameter. If empty, only the key will be sent. |
+| field | format | description                                                        |
+|-------|--------|--------------------------------------------------------------------|
+| name  | string | Name of the query parameter.                                       |
+| value | string | Value of the query parameter. If empty, only the key will be sent. |
 
 
 ## JCasC configuration reference
@@ -152,25 +163,28 @@ jenkins:
       rootURLFromRequest: <boolean>
       sendScopesInTokenRequest: <boolean>
       postLogoutRedirectUrl: <url>
-      loginQueryParamNameValuePairs:
-        - queryParamName: <string>
-          queryParamValue: <string>
-      logoutQueryParamNameValuePairs:
-        - queryParamName: <string>
-          queryParamValue: <string>
       # Security
       allowTokenAccessWithoutOicSession: <boolean>
-      allowedTokenExpirationClockSkewSeconds: <integer>
       disableSslVerification: <boolean>
-      nonceDisabled: <boolean>
-      pkceEnabled: <boolean>
-      disableTokenVerification: <boolean>
       tokenFieldToCheckKey: <string:jmes path>
       tokenFieldToCheckValue: <string>
       tokenExpirationCheckDisabled: <boolean>
-      # escape hatch
-      escapeHatchEnabled: <boolean>
-      escapeHatchUsername: <string>
-      escapeHatchSecret: <string:secret>
-      escapeHatchGroup: <string>
+      properties:
+      - escapeHatch:
+          secret: <string:secret>
+          username: <string>
+          group: <string>
+      - "disableNonce"
+      - "disableTokenVerification"
+      - "pkce"
+      - allowedTokenExpirationClockSkew:
+          valueSeconds: 0
+      - loginQueryParameters:
+          items:
+            - key: <string>
+              value: <string>    
+      - logoutQueryParameters:
+          items:
+            - key: <string>
+              value: <string>
 ```
