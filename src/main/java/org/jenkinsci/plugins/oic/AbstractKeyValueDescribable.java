@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.oic;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
@@ -10,7 +11,10 @@ import org.kohsuke.stapler.QueryParameter;
 public abstract class AbstractKeyValueDescribable<T extends AbstractKeyValueDescribable<T>>
         extends AbstractDescribableImpl<T> {
 
+    @NonNull
     private final String key;
+
+    @NonNull
     private final String value;
 
     /**
@@ -52,10 +56,12 @@ public abstract class AbstractKeyValueDescribable<T extends AbstractKeyValueDesc
         this.value = value == null ? "" : value.trim();
     }
 
+    @NonNull
     public String getKey() {
         return key;
     }
 
+    @NonNull
     public String getValue() {
         return value;
     }

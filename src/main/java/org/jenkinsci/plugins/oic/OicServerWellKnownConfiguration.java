@@ -81,7 +81,7 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
      * has not yet been obtained or requires a refresh.
      */
     @Override
-    public OIDCProviderMetadata toProviderMetadata() {
+    protected OIDCProviderMetadata toProviderMetadataInternal() {
         // we perform this download manually rather than letting pac4j perform it
         // so that we can cache and expire the result.
         // pac4j will cache the result yet never expire it.
