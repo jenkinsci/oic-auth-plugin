@@ -322,6 +322,7 @@ public class OicSecurityRealmBearerTokenTest {
     private Builder defaultTestRealm() throws IOException {
         return new TestRealm.Builder(wireMock)
                 .WithAllowJWTBearerTokenAccess(true)
+                        .WithAllowedClockSkew(60)
                         .WithJwksServerUrl(wireMock.url("/jwk"))
                         .WithDisableTokenValidation(false);
     }

@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import jenkins.model.IdStrategy;
+import org.jenkinsci.plugins.oic.properties.AllowedTokenExpirationClockSkew;
 import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
 import org.jenkinsci.plugins.oic.properties.LoginQueryParameters;
 import org.jenkinsci.plugins.oic.properties.LogoutQueryParameters;
@@ -192,6 +193,11 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithAllowJWTBearerTokenAccess(boolean allowJWTBearerTokenAccess) {
             this.allowJWTBearerTokenAccess = allowJWTBearerTokenAccess;
+            return this;
+        }
+
+        public Builder WithAllowedClockSkew(int clockSkew) {
+            this.properties.add(new AllowedTokenExpirationClockSkew(clockSkew));
             return this;
         }
 

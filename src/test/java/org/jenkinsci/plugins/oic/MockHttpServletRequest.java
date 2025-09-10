@@ -16,13 +16,16 @@ import jakarta.servlet.http.Part;
 import java.io.BufferedReader;
 import java.security.Principal;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
 public class MockHttpServletRequest implements HttpServletRequest {
 
     private Map<String, String> headers;
+    private Map<String, Object> attributes;
 
     public MockHttpServletRequest() {
         this(Map.of());
@@ -30,6 +33,7 @@ public class MockHttpServletRequest implements HttpServletRequest {
 
     public MockHttpServletRequest(Map<String, String> headers) {
         this.headers = headers;
+        this.attributes = new HashMap<>();
     }
 
     @Override
@@ -194,12 +198,12 @@ public class MockHttpServletRequest implements HttpServletRequest {
 
     @Override
     public Object getAttribute(String name) {
-        throw new UnsupportedOperationException();
+        return attributes.get(name);
     }
 
     @Override
     public Enumeration<String> getAttributeNames() {
-        throw new UnsupportedOperationException();
+        return Collections.enumeration(attributes.keySet());
     }
 
     @Override
@@ -289,12 +293,12 @@ public class MockHttpServletRequest implements HttpServletRequest {
 
     @Override
     public void setAttribute(String name, Object o) {
-        throw new UnsupportedOperationException();
+        attributes.put(name, o);
     }
 
     @Override
     public void removeAttribute(String name) {
-        throw new UnsupportedOperationException();
+        attributes.remove(name);
     }
 
     @Override
