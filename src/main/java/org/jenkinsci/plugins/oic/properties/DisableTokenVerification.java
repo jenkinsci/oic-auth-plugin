@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.oic.properties;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import java.io.Serial;
@@ -35,7 +34,8 @@ public class DisableTokenVerification extends OidcProperty {
     @Serial
     protected Object readResolve() {
         if (FIPS140.useCompliantAlgorithms()) {
-            throw new IllegalStateException(org.jenkinsci.plugins.oic.Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
+            throw new IllegalStateException(
+                    org.jenkinsci.plugins.oic.Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
         }
         return this;
     }

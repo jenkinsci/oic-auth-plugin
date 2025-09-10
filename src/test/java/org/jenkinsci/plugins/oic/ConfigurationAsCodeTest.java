@@ -8,6 +8,7 @@ import static io.jenkins.plugins.casc.misc.Util.getJenkinsRoot;
 import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
 import static io.jenkins.plugins.casc.misc.Util.toYamlString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -87,7 +88,6 @@ class ConfigurationAsCodeTest {
         assertEquals("userNameField", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isRootURLFromRequest());
         assertEquals("http://localhost/jwks", serverConf.getJwksServerUrl());
-        assertFalse(oicSecurityRealm.isDisableTokenVerification());
         var loginQueryParameters = oicSecurityRealm.getProperties().get(LoginQueryParameters.class);
         assertThat(loginQueryParameters, notNullValue());
         assertEquals(
@@ -145,7 +145,6 @@ class ConfigurationAsCodeTest {
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
         assertNull(oicSecurityRealm.getEmailFieldName());
-        assertFalse(oicSecurityRealm.isEscapeHatchEnabled());
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
         assertEquals("openid email", serverConf.getScopes());
@@ -155,9 +154,7 @@ class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertFalse(oicSecurityRealm.isRootURLFromRequest());
         assertNull(serverConf.getJwksServerUrl());
-        assertFalse(oicSecurityRealm.isDisableTokenVerification());
-        assertNull(oicSecurityRealm.getLoginQueryParameters());
-        assertNull(oicSecurityRealm.getLogoutQueryParameters());
+        assertThat(oicSecurityRealm.getProperties(), empty());
     }
 
     @Test
@@ -175,7 +172,6 @@ class ConfigurationAsCodeTest {
 
         assertFalse(oicSecurityRealm.isDisableSslVerification());
         assertNull(oicSecurityRealm.getEmailFieldName());
-        assertFalse(oicSecurityRealm.isEscapeHatchEnabled());
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
 
@@ -184,12 +180,9 @@ class ConfigurationAsCodeTest {
 
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
-        assertFalse(oicSecurityRealm.isDisableTokenVerification());
 
         assertEquals(urlBase + "/well.known", serverConf.getWellKnownOpenIDConfigurationUrl());
-
-        assertNull(oicSecurityRealm.getLoginQueryParameters());
-        assertNull(oicSecurityRealm.getLogoutQueryParameters());
+        assertThat(oicSecurityRealm.getProperties(), empty());
     }
 
     /** Class to setup WellKnownMockExtension for well known with stub and setting port in env variable

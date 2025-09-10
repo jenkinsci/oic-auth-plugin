@@ -56,7 +56,7 @@ public class EscapeHatch extends OidcProperty {
     public EscapeHatch(@NonNull String username, @CheckForNull String group, @NonNull Secret secret)
             throws Descriptor.FormException {
         if (FIPS140.useCompliantAlgorithms()) {
-            throw new IllegalStateException("Cannot use Escape Hatch in FIPS-140 mode");
+            throw new Descriptor.FormException("Cannot use Escape Hatch in FIPS-140 mode", "escapeHatch");
         }
         var sanitizedUsername = Util.fixEmptyAndTrim(username);
         if (sanitizedUsername == null) {
@@ -106,8 +106,9 @@ public class EscapeHatch extends OidcProperty {
     public Optional<Authentication> authenticate(@NonNull Authentication authentication) {
         if (authentication instanceof UsernamePasswordAuthenticationToken) {
             randomWait(); // to slowdown brute forcing
-            if (authentication.getPrincipal().toString().equals(this.username)
-                    && BCrypt.checkpw(authentication.getCredentials().toString(), Secret.toString(this.secret))) {
+            if (check(
+                    authentication.getPrincipal().toString(),
+                    authentication.getCredentials().toString())) {
                 List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
                 grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
                 if (isNotBlank(group)) {
@@ -124,6 +125,13 @@ public class EscapeHatch extends OidcProperty {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Check a given username and password against the configured ones.
+     */
+    public boolean check(@NonNull String username, @CheckForNull String password) {
+        return username.equals(this.username) && BCrypt.checkpw(password, Secret.toString(this.secret));
     }
 
     public static class DescriptorImpl extends OidcPropertyDescriptor {

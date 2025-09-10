@@ -550,18 +550,6 @@ public class OicSecurityRealm extends SecurityRealm {
         return sendScopesInTokenRequest;
     }
 
-    public boolean isPkceEnabled() {
-        return pkceEnabled;
-    }
-
-    public boolean isDisableTokenVerification() {
-        return disableTokenVerification;
-    }
-
-    public boolean isNonceDisabled() {
-        return nonceDisabled;
-    }
-
     public boolean isTokenExpirationCheckDisabled() {
         return tokenExpirationCheckDisabled;
     }
