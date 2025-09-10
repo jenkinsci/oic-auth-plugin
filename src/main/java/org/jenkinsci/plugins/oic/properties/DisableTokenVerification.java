@@ -62,14 +62,12 @@ public class DisableTokenVerification extends OidcProperty {
         }
     }
 
+    @Extension
     public static class DescriptorImpl extends OidcPropertyDescriptor {
-        @Extension
-        @CheckForNull
-        public static DescriptorImpl createIfApplicable() {
-            if (FIPS140.useCompliantAlgorithms()) {
-                return null;
-            }
-            return new DescriptorImpl();
+
+        @Override
+        public boolean isApplicable() {
+            return !FIPS140.useCompliantAlgorithms();
         }
 
         @Override
