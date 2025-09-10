@@ -6,6 +6,7 @@ import hudson.security.SecurityRealm;
 import hudson.util.Secret;
 import io.burt.jmespath.Expression;
 import java.io.IOException;
+import java.io.ObjectStreamException;
 import java.io.Serial;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -327,7 +328,7 @@ public class TestRealm extends OicSecurityRealm {
 
     @Serial
     @Override
-    public Object readResolve() throws IOException, Descriptor.FormException {
+    public Object readResolve() throws ObjectStreamException {
         return super.readResolve();
     }
 

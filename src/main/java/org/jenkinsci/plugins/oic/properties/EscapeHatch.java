@@ -15,6 +15,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,7 @@ import java.util.Random;
 import java.util.regex.Pattern;
 import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
+import org.jenkinsci.plugins.oic.Messages;
 import org.jenkinsci.plugins.oic.OicUserDetails;
 import org.jenkinsci.plugins.oic.OidcProperty;
 import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
@@ -139,6 +141,14 @@ public class EscapeHatch extends OidcProperty {
         public String getDisplayName() {
             return "Escape Hatch";
         }
+    }
+
+    @Serial
+    protected Object readResolve() {
+        if (FIPS140.useCompliantAlgorithms()) {
+            throw new IllegalStateException(Messages.OicSecurityRealm_EscapeHatchFipsMode());
+        }
+        return this;
     }
 
     /**

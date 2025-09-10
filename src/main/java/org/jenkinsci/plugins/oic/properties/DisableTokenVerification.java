@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.oic.properties;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import java.io.Serial;
 import jenkins.security.FIPS140;
 import org.apache.commons.lang.Validate;
 import org.jenkinsci.plugins.oic.AnythingGoesTokenValidator;
@@ -29,6 +30,14 @@ public class DisableTokenVerification extends OidcProperty {
     @Override
     public OidcPropertyExecution newExecution(@NonNull OicServerConfiguration serverConfiguration) {
         return new ExecutionImpl(serverConfiguration);
+    }
+
+    @Serial
+    protected Object readResolve() {
+        if (FIPS140.useCompliantAlgorithms()) {
+            throw new IllegalStateException(org.jenkinsci.plugins.oic.Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
+        }
+        return this;
     }
 
     private record ExecutionImpl(OicServerConfiguration serverConfiguration) implements OidcPropertyExecution {
