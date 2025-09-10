@@ -1,0 +1,10 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:repeatableProperty field="items" header="${%Title}" hasHeader="true" minimum="1">
+    <f:block>
+      <div align="right">
+        <f:repeatableDeleteButton />
+      </div>
+    </f:block>
+  </f:repeatableProperty>
+</j:jelly>

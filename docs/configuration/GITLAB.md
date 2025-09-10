@@ -54,7 +54,8 @@ jenkins:
       fullNameFieldName: name
       emailFieldName: email
       groupFieldName: groups
-      pkceEnabled: true
+      properties:
+      - "pkce"
 ```
 
 [1]: https://docs.gitlab.com/ee/integration/openid_connect_provider.html

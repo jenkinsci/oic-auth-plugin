@@ -6,11 +6,14 @@ import hudson.security.SecurityRealm;
 import hudson.util.Secret;
 import io.burt.jmespath.Expression;
 import java.io.IOException;
-import java.io.ObjectStreamException;
 import java.io.Serial;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 import jenkins.model.IdStrategy;
+import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
+import org.jenkinsci.plugins.oic.properties.LoginQueryParameters;
+import org.jenkinsci.plugins.oic.properties.LogoutQueryParameters;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.pac4j.core.context.FrameworkParameters;
@@ -45,8 +48,6 @@ public class TestRealm extends OicSecurityRealm {
         public String fullNameFieldName = FULL_NAME_FIELD;
         public String emailFieldName = null;
         public String scopes = null;
-        public List<LoginQueryParameter> loginQueryParameters = null;
-        public List<LogoutQueryParameter> logoutQueryParameters = null;
         public String groupsFieldName = null;
         public boolean disableSslVerification = false;
         public Boolean logoutFromOpenidProvider = false;
@@ -62,6 +63,7 @@ public class TestRealm extends OicSecurityRealm {
         public IdStrategy userIdStrategy;
         public IdStrategy groupIdStrategy;
         public boolean allowJWTBearerTokenAccess = false;
+        public List<OidcProperty> properties = new ArrayList<>();
 
         public Builder(WireMockExtension wireMock, boolean useTLS) throws IOException {
             this(
@@ -78,6 +80,7 @@ public class TestRealm extends OicSecurityRealm {
             this.wellKnownOpenIDConfigurationUrl = rootUrl + "well.known";
             this.tokenServerUrl = rootUrl + "token";
             this.authorizationServerUrl = rootUrl + "authorization";
+            this.properties.add(new DisableTokenVerification());
         }
 
         public Builder WithClient(String clientId, String clientSecret) {
@@ -126,13 +129,13 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
-        public Builder WithLoginQueryParameters(List<LoginQueryParameter> values) {
-            this.loginQueryParameters = values;
+        public Builder WithLoginQueryParameters(List<LoginQueryParameter> values) throws Descriptor.FormException {
+            this.properties.add(new LoginQueryParameters(values));
             return this;
         }
 
-        public Builder WithLogoutQueryParameters(List<LogoutQueryParameter> values) {
-            this.logoutQueryParameters = values;
+        public Builder WithLogoutQueryParameters(List<LogoutQueryParameter> values) throws Descriptor.FormException {
+            this.properties.add(new LogoutQueryParameters(values));
             return this;
         }
 
@@ -159,7 +162,11 @@ public class TestRealm extends OicSecurityRealm {
         }
 
         public Builder WithDisableTokenValidation(boolean disableTokenValidation) {
-            this.disableTokenValidation = disableTokenValidation;
+            if (disableTokenValidation) {
+                this.properties.add(new DisableTokenVerification());
+            } else {
+                this.properties.removeIf(DisableTokenVerification.class::isInstance);
+            }
             return this;
         }
 
@@ -185,6 +192,11 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithAllowJWTBearerTokenAccess(boolean allowJWTBearerTokenAccess) {
             this.allowJWTBearerTokenAccess = allowJWTBearerTokenAccess;
+            return this;
+        }
+      
+        public Builder AddToProperties(List<OidcProperty> properties) {
+            this.properties.addAll(properties);
             return this;
         }
 
@@ -243,6 +255,7 @@ public class TestRealm extends OicSecurityRealm {
         this.setLoginQueryParameters(builder.loginQueryParameters);
         this.setLogoutQueryParameters(builder.logoutQueryParameters);
         this.setAllowJWTBearerTokenAccess(builder.allowJWTBearerTokenAccess);
+        this.setProperties(builder.properties);
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
         // is only called in regular use not code use.
@@ -332,7 +345,7 @@ public class TestRealm extends OicSecurityRealm {
 
     @Serial
     @Override
-    public Object readResolve() throws ObjectStreamException {
+    public Object readResolve() throws IOException, Descriptor.FormException {
         return super.readResolve();
     }
 

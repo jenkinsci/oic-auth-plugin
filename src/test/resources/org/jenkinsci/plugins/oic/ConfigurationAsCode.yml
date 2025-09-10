@@ -13,25 +13,28 @@ jenkins:
       clientSecret: clientSecret
       disableSslVerification: true
       emailFieldName: emailFieldName
-      escapeHatchEnabled: true
-      escapeHatchGroup: escapeHatchGroup
-      escapeHatchSecret: "$2a$10$fxteEkfDqwqkmUelZmTxlu9WESjVDKQhp6jsqB1AgsLQ2dC6jikga"
-      escapeHatchUsername: escapeHatchUsername
       fullNameFieldName: fullNameFieldName
       groupsFieldName: groupsFieldName
       logoutFromOpenidProvider: true
       userNameField: userNameField
       rootURLFromRequest: true
       sendScopesInTokenRequest: true
-      pkceEnabled: true
-      nonceDisabled: true
-      loginQueryParameters:
-        - key: "loginkey1x\"xx@me"
-          value: "loginvalue1xxxx@you"
-        - key: "?loginneu&/test="
-          value: "login?sunny%&/xx\"x"
-      logoutQueryParameters:
-        - key: "logoutkey1x\"xx@me"
-          value: "logoutvalue1xxxx@you"
-        - key: "?logoutneu&/test="
-          value: "logout?sunny%&/xx\"x"
+      properties:
+        - "disableNonce"
+        - "pkce"
+        - loginQueryParameters:
+            items:
+            - key: "loginkey1x\"xx@me"
+              value: "loginvalue1xxxx@you"
+            - key: "?loginneu&/test="
+              value: "login?sunny%&/xx\"x"
+        - logoutQueryParameters:
+            items:
+            - key: "logoutkey1x\"xx@me"
+              value: "logoutvalue1xxxx@you"
+            - key: "?logoutneu&/test="
+              value: "logout?sunny%&/xx\"x"
+        - escapeHatch:
+            group: escapeHatchGroup
+            secret: "$2a$10$fxteEkfDqwqkmUelZmTxlu9WESjVDKQhp6jsqB1AgsLQ2dC6jikga"
+            username: escapeHatchUsername

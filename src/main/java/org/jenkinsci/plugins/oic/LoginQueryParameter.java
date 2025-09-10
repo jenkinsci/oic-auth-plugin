@@ -21,6 +21,9 @@ public class LoginQueryParameter extends AbstractQueryParameter<LoginQueryParame
         @POST
         @Override
         public FormValidation doCheckKey(@QueryParameter String key) {
+            if (key == null || key.trim().isEmpty()) {
+                return FormValidation.error("key must not be blank");
+            }
             return switch (key.trim()) {
                 case OidcConfiguration.SCOPE,
                         OidcConfiguration.RESPONSE_TYPE,

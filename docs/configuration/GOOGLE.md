@@ -56,7 +56,8 @@ jenkins:
       userNameField: sub
       fullNameFieldName: name
       emailFieldName: email
-      pkceEnabled: true
+      properties:
+      - "pkce"
 ```
 
 [1]: https://developers.google.com/identity/openid-connect/openid-connect

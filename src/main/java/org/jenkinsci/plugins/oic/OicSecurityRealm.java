@@ -23,8 +23,6 @@
  */
 package org.jenkinsci.plugins.oic;
 
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.nimbusds.jose.EncryptionMethod;
@@ -48,24 +46,23 @@ import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import com.nimbusds.jwt.proc.ExpiredJWTException;
 import com.nimbusds.oauth2.sdk.GrantType;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
-import com.nimbusds.oauth2.sdk.pkce.CodeChallengeMethod;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.oauth2.sdk.token.RefreshToken;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
 import hudson.model.Failure;
+import hudson.model.Saveable;
 import hudson.model.User;
 import hudson.security.ChainedServletFilter2;
 import hudson.security.SecurityRealm;
 import hudson.tasks.Mailer;
+import hudson.util.DescribableList;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import io.burt.jmespath.Expression;
@@ -83,7 +80,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectStreamException;
-import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -104,11 +100,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import jenkins.model.IdStrategy;
 import jenkins.model.IdStrategyDescriptor;
@@ -118,6 +112,13 @@ import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
 import jenkins.util.SystemProperties;
 import org.apache.commons.lang3.StringUtils;
+import org.jenkinsci.plugins.oic.properties.AllowedTokenExpirationClockSkew;
+import org.jenkinsci.plugins.oic.properties.DisableNonce;
+import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
+import org.jenkinsci.plugins.oic.properties.EscapeHatch;
+import org.jenkinsci.plugins.oic.properties.LoginQueryParameters;
+import org.jenkinsci.plugins.oic.properties.LogoutQueryParameters;
+import org.jenkinsci.plugins.oic.properties.Pkce;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -146,10 +147,7 @@ import org.pac4j.jee.http.adapter.JEEHttpActionAdapter;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.oidc.credentials.authenticator.OidcAuthenticator;
-import org.pac4j.oidc.metadata.OidcOpMetadataResolver;
-import org.pac4j.oidc.metadata.StaticOidcOpMetadataResolver;
 import org.pac4j.oidc.profile.OidcProfile;
-import org.pac4j.oidc.profile.creator.TokenValidator;
 import org.pac4j.oidc.redirect.OidcRedirectionActionBuilder;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -162,6 +160,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.util.Assert;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Login with OpenID Connect / OAuth 2
@@ -169,8 +168,7 @@ import org.springframework.util.Assert;
  * @author Michael Bischoff
  * @author Steve Arch
  */
-public class OicSecurityRealm extends SecurityRealm implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class OicSecurityRealm extends SecurityRealm {
 
     private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
     private IdStrategy userIdStrategy;
@@ -249,10 +247,18 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     private transient String endSessionEndpoint = null;
 
     private String postLogoutRedirectUrl;
-    private boolean escapeHatchEnabled = false;
-    private String escapeHatchUsername = null;
-    private Secret escapeHatchSecret = null;
-    private String escapeHatchGroup = null;
+
+    @Deprecated
+    private transient boolean escapeHatchEnabled = false;
+
+    @Deprecated
+    private transient String escapeHatchUsername = null;
+
+    @Deprecated
+    private transient Secret escapeHatchSecret = null;
+
+    @Deprecated
+    private transient String escapeHatchGroup = null;
 
     @Deprecated
     /** @deprecated with no replacement.  See sub classes of {@link OicServerConfiguration} */
@@ -278,17 +284,26 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     private boolean sendScopesInTokenRequest = false;
 
-    /** Flag to enable PKCE challenge
+    /**
+     * Flag to enable PKCE challenge
+     * @deprecated Use {@link Pkce} property instead.
      */
-    private boolean pkceEnabled = false;
+    @Deprecated
+    private transient boolean pkceEnabled = false;
 
-    /** Flag to disable JWT signature verification
+    /**
+     * Flag to disable JWT signature verification
+     * @deprecated Use {@link DisableTokenVerification} property instead.
      */
-    private boolean disableTokenVerification = false;
+    @Deprecated
+    private transient boolean disableTokenVerification = false;
 
-    /** Flag to disable nonce security
+    /**
+     * Flag to disable nonce security
+     * @deprecated Use {@link DisableNonce} property instead.
      */
-    private boolean nonceDisabled = false;
+    @Deprecated
+    private transient boolean nonceDisabled = false;
 
     /** Flag to disable token expiration check
      */
@@ -302,9 +317,12 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     private boolean allowJWTBearerTokenAccess = false;
 
-    /** Additional number of seconds to add to token expiration
+    /**
+     * Additional number of seconds to add to token expiration
+     * @deprecated Use {@link AllowedTokenExpirationClockSkew} property instead.
      */
-    private Long allowedTokenExpirationClockSkewSeconds = 60L;
+    @Deprecated
+    private transient Long allowedTokenExpirationClockSkewSeconds = 60L;
 
     /**
      * Flag when set to true will cause enforce nonce checking in the refresh flow.
@@ -321,6 +339,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      * but it's still needed for backwards compatibility */
     @Deprecated
     private transient String endSessionUrl;
+
+    private DescribableList<OidcProperty, OidcPropertyDescriptor> properties = new DescribableList<>(Saveable.NOOP);
 
     /** Random generator needed for robust random wait
      */
@@ -340,11 +360,17 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
      */
     private transient ProxyAwareResourceRetriever proxyAwareResourceRetriever;
 
-    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "we are not using standard serialization")
-    private List<LoginQueryParameter> loginQueryParameters;
+    /**
+     * @deprecated Use @{link LoginQueryParameters} property instead.
+     */
+    @Deprecated
+    private transient List<LoginQueryParameter> loginQueryParameters;
 
-    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "we are not using standard serialization")
-    private List<LogoutQueryParameter> logoutQueryParameters;
+    /**
+     * @deprecated Use @{link LogoutQueryParameters} property instead.
+     */
+    @Deprecated
+    private transient List<LogoutQueryParameter> logoutQueryParameters;
 
     @DataBoundConstructor
     public OicSecurityRealm(
@@ -371,17 +397,43 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @SuppressWarnings("deprecated")
-    protected Object readResolve() throws ObjectStreamException {
+    protected Object readResolve() throws IOException, FormException {
+        if (properties == null) {
+            properties = new DescribableList<>(Saveable.NOOP);
+        }
         // Fail if migrating to a FIPS non-compliant config
         if (FIPS140.useCompliantAlgorithms()) {
             if (isDisableSslVerification()) {
                 throw new IllegalStateException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
             }
-            if (isDisableTokenVerification()) {
+            if (isDisableTokenVerification() || properties.get(DisableTokenVerification.class) != null) {
                 throw new IllegalStateException(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
             }
+            if (isEscapeHatchEnabled() || properties.get(EscapeHatch.class) != null) {
+                throw new IllegalStateException(Messages.OicSecurityRealm_EscapeHatchFipsMode());
+            }
         }
-
+        if (nonceDisabled) {
+            properties.replace(new DisableNonce());
+        }
+        if (pkceEnabled) {
+            properties.replace(new Pkce());
+        }
+        if (disableTokenVerification) {
+            properties.replace(new DisableTokenVerification());
+        }
+        if (allowedTokenExpirationClockSkewSeconds != null && allowedTokenExpirationClockSkewSeconds != 60L) {
+            properties.replace(new AllowedTokenExpirationClockSkew(allowedTokenExpirationClockSkewSeconds.intValue()));
+        }
+        if (loginQueryParameters != null) {
+            properties.replace(new LoginQueryParameters(loginQueryParameters));
+        }
+        if (logoutQueryParameters != null) {
+            properties.replace(new LogoutQueryParameters(logoutQueryParameters));
+        }
+        if (escapeHatchEnabled) {
+            properties.replace(new EscapeHatch(escapeHatchUsername, escapeHatchGroup, escapeHatchSecret));
+        }
         if (!Strings.isNullOrEmpty(endSessionUrl)) {
             this.endSessionEndpoint = endSessionUrl + "/";
         }
@@ -403,16 +455,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.setEmailFieldName(this.emailFieldName);
         this.setFullNameFieldName(this.fullNameFieldName);
         this.setTokenFieldToCheckKey(this.tokenFieldToCheckKey);
-        // ensure escapeHatchSecret is encrypted
-        this.setEscapeHatchSecret(this.escapeHatchSecret);
-
-        // validate this option in FIPS env or not
-        try {
-            this.setEscapeHatchEnabled(this.escapeHatchEnabled);
-        } catch (FormException e) {
-            throw new IllegalArgumentException(e.getFormField() + ": " + e.getMessage());
-        }
-
         try {
             if (automanualconfigure != null) {
                 if ("auto".equals(automanualconfigure)) {
@@ -446,20 +488,22 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return this;
     }
 
-    @DataBoundSetter
+    @Deprecated
     public void setLoginQueryParameters(List<LoginQueryParameter> values) {
         this.loginQueryParameters = values;
     }
 
+    @Deprecated
     public List<LoginQueryParameter> getLoginQueryParameters() {
         return loginQueryParameters;
     }
 
-    @DataBoundSetter
+    @Deprecated
     public void setLogoutQueryParameters(List<LogoutQueryParameter> values) {
         this.logoutQueryParameters = values;
     }
 
+    @Deprecated
     public List<LogoutQueryParameter> getLogoutQueryParameters() {
         return logoutQueryParameters;
     }
@@ -536,18 +580,22 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return postLogoutRedirectUrl;
     }
 
+    @Deprecated
     public boolean isEscapeHatchEnabled() {
         return escapeHatchEnabled;
     }
 
+    @Deprecated
     public String getEscapeHatchUsername() {
         return escapeHatchUsername;
     }
 
+    @Deprecated
     public Secret getEscapeHatchSecret() {
         return escapeHatchSecret;
     }
 
+    @Deprecated
     public String getEscapeHatchGroup() {
         return escapeHatchGroup;
     }
@@ -584,8 +632,22 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return allowJWTBearerTokenAccess;
     }
 
+    /**
+     * @deprecated use {@link AllowedTokenExpirationClockSkew} instead.
+     * @return
+     */
+    @Deprecated
     public Long getAllowedTokenExpirationClockSkewSeconds() {
         return allowedTokenExpirationClockSkewSeconds;
+    }
+
+    public DescribableList<OidcProperty, OidcPropertyDescriptor> getProperties() {
+        return properties;
+    }
+
+    @DataBoundSetter
+    public void setProperties(List<OidcProperty> properties) throws IOException {
+        this.properties.replaceBy(properties);
     }
 
     @PostConstruct
@@ -610,178 +672,24 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // set many more as needed...
 
         OIDCProviderMetadata oidcProviderMetadata = serverConfiguration.toProviderMetadata();
-        filterNonFIPS140CompliantAlgorithms(oidcProviderMetadata);
-        OidcOpMetadataResolver opMetadataResolver;
-        if (this.isDisableTokenVerification()) {
-            conf.setAllowUnsignedIdTokens(true);
-            opMetadataResolver = new StaticOidcOpMetadataResolver(conf, oidcProviderMetadata) {
-                @Override
-                protected TokenValidator createTokenValidator() {
-                    return new AnythingGoesTokenValidator();
-                }
-            };
-        } else {
-            opMetadataResolver = new StaticOidcOpMetadataResolver(conf, oidcProviderMetadata);
-        }
-        conf.setOpMetadataResolver(opMetadataResolver);
         if (oidcProviderMetadata.getScopes() != null) {
             // auto configuration does not need to supply scopes
             conf.setScope(oidcProviderMetadata.getScopes().toString());
         }
-        conf.setUseNonce(!this.nonceDisabled);
-        if (allowedTokenExpirationClockSkewSeconds != null) {
-            conf.setMaxClockSkew(allowedTokenExpirationClockSkewSeconds.intValue());
-        }
         conf.setResourceRetriever(getResourceRetriever());
-        if (this.isPkceEnabled()) {
-            conf.setPkceMethod(CodeChallengeMethod.S256);
-        } else {
-            conf.setDisablePkce(true);
-        }
-        opMetadataResolver.init();
-        if (loginQueryParameters != null && !loginQueryParameters.isEmpty()) {
-            for (LoginQueryParameter lqp : loginQueryParameters) {
-                conf.addCustomParam(lqp.getKey(), lqp.getValue());
-            }
-        }
         return conf;
-    }
-
-    // Visible for testing
-    @Restricted(NoExternalUse.class)
-    protected void filterNonFIPS140CompliantAlgorithms(@NonNull OIDCProviderMetadata oidcProviderMetadata) {
-        if (FIPS140.useCompliantAlgorithms()) {
-            // If FIPS is not enabled, then we don't have to filter the algorithms
-            filterJwsAlgorithms(oidcProviderMetadata);
-            filterJweAlgorithms(oidcProviderMetadata);
-            filterEncryptionMethods(oidcProviderMetadata);
-        }
-    }
-
-    private void filterEncryptionMethods(@NonNull OIDCProviderMetadata oidcProviderMetadata) {
-        if (oidcProviderMetadata.getRequestObjectJWEEncs() != null) {
-            List<EncryptionMethod> requestObjectJWEEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
-                    oidcProviderMetadata.getRequestObjectJWEEncs());
-            oidcProviderMetadata.setRequestObjectJWEEncs(requestObjectJWEEncs);
-        }
-
-        if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
-            List<EncryptionMethod> authorizationJWEEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
-                    oidcProviderMetadata.getAuthorizationJWEEncs());
-            oidcProviderMetadata.setAuthorizationJWEEncs(authorizationJWEEncs);
-        }
-
-        if (oidcProviderMetadata.getIDTokenJWEEncs() != null) {
-            List<EncryptionMethod> idTokenJWEEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
-                    oidcProviderMetadata.getIDTokenJWEEncs());
-            oidcProviderMetadata.setIDTokenJWEEncs(idTokenJWEEncs);
-        }
-
-        if (oidcProviderMetadata.getUserInfoJWEEncs() != null) {
-            List<EncryptionMethod> userInfoJWEEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
-                    oidcProviderMetadata.getUserInfoJWEEncs());
-            oidcProviderMetadata.setUserInfoJWEEncs(userInfoJWEEncs);
-        }
-
-        if (oidcProviderMetadata.getAuthorizationJWEEncs() != null) {
-            List<EncryptionMethod> authJweEncs = OicAlgorithmValidatorFIPS140.getFipsCompliantEncryptionMethod(
-                    oidcProviderMetadata.getAuthorizationJWEEncs());
-            oidcProviderMetadata.setAuthorizationJWEEncs(authJweEncs);
-        }
-    }
-
-    private void filterJweAlgorithms(@NonNull OIDCProviderMetadata oidcProviderMetadata) {
-        if (oidcProviderMetadata.getIDTokenJWEAlgs() != null) {
-            List<JWEAlgorithm> idTokenJWEAlgs =
-                    OicAlgorithmValidatorFIPS140.getFipsCompliantJWEAlgorithm(oidcProviderMetadata.getIDTokenJWEAlgs());
-            oidcProviderMetadata.setIDTokenJWEAlgs(idTokenJWEAlgs);
-        }
-
-        if (oidcProviderMetadata.getUserInfoJWEAlgs() != null) {
-            List<JWEAlgorithm> userTokenJWEAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWEAlgorithm(
-                    oidcProviderMetadata.getUserInfoJWEAlgs());
-            oidcProviderMetadata.setUserInfoJWEAlgs(userTokenJWEAlgs);
-        }
-
-        if (oidcProviderMetadata.getRequestObjectJWEAlgs() != null) {
-            List<JWEAlgorithm> requestObjectJWEAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWEAlgorithm(
-                    oidcProviderMetadata.getRequestObjectJWEAlgs());
-            oidcProviderMetadata.setRequestObjectJWEAlgs(requestObjectJWEAlgs);
-        }
-
-        if (oidcProviderMetadata.getAuthorizationJWEAlgs() != null) {
-            List<JWEAlgorithm> authorizationJWEAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWEAlgorithm(
-                    oidcProviderMetadata.getAuthorizationJWEAlgs());
-            oidcProviderMetadata.setAuthorizationJWEAlgs(authorizationJWEAlgs);
-        }
-    }
-
-    private void filterJwsAlgorithms(@NonNull OIDCProviderMetadata oidcProviderMetadata) {
-        if (oidcProviderMetadata.getIDTokenJWSAlgs() != null) {
-            List<JWSAlgorithm> idTokenJWSAlgs =
-                    OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(oidcProviderMetadata.getIDTokenJWSAlgs());
-            oidcProviderMetadata.setIDTokenJWSAlgs(idTokenJWSAlgs);
-        }
-
-        if (oidcProviderMetadata.getUserInfoJWSAlgs() != null) {
-            List<JWSAlgorithm> userInfoJwsAlgo = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
-                    oidcProviderMetadata.getUserInfoJWSAlgs());
-            oidcProviderMetadata.setUserInfoJWSAlgs(userInfoJwsAlgo);
-        }
-
-        if (oidcProviderMetadata.getTokenEndpointJWSAlgs() != null) {
-            List<JWSAlgorithm> tokenEndpointJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
-                    oidcProviderMetadata.getTokenEndpointJWSAlgs());
-            oidcProviderMetadata.setTokenEndpointJWSAlgs(tokenEndpointJWSAlgs);
-        }
-
-        if (oidcProviderMetadata.getIntrospectionEndpointJWSAlgs() != null) {
-            List<JWSAlgorithm> introspectionEndpointJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
-                    oidcProviderMetadata.getIntrospectionEndpointJWSAlgs());
-            oidcProviderMetadata.setIntrospectionEndpointJWSAlgs(introspectionEndpointJWSAlgs);
-        }
-
-        if (oidcProviderMetadata.getRevocationEndpointJWSAlgs() != null) {
-            List<JWSAlgorithm> revocationEndpointJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
-                    oidcProviderMetadata.getRevocationEndpointJWSAlgs());
-            oidcProviderMetadata.setRevocationEndpointJWSAlgs(revocationEndpointJWSAlgs);
-        }
-
-        if (oidcProviderMetadata.getRequestObjectJWSAlgs() != null) {
-            List<JWSAlgorithm> requestObjectJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
-                    oidcProviderMetadata.getRequestObjectJWSAlgs());
-            oidcProviderMetadata.setRequestObjectJWSAlgs(requestObjectJWSAlgs);
-        }
-
-        if (oidcProviderMetadata.getDPoPJWSAlgs() != null) {
-            List<JWSAlgorithm> dPoPJWSAlgs =
-                    OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(oidcProviderMetadata.getDPoPJWSAlgs());
-            oidcProviderMetadata.setDPoPJWSAlgs(dPoPJWSAlgs);
-        }
-
-        if (oidcProviderMetadata.getAuthorizationJWSAlgs() != null) {
-            List<JWSAlgorithm> authorizationJWSAlgs = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
-                    oidcProviderMetadata.getAuthorizationJWSAlgs());
-            oidcProviderMetadata.setAuthorizationJWSAlgs(authorizationJWSAlgs);
-        }
-
-        if (oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs() != null) {
-            List<JWSAlgorithm> backChannelAuthenticationRequestJWSAlgs =
-                    OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
-                            oidcProviderMetadata.getBackChannelAuthenticationRequestJWSAlgs());
-            oidcProviderMetadata.setBackChannelAuthenticationRequestJWSAlgs(backChannelAuthenticationRequestJWSAlgs);
-        }
-
-        if (oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs() != null) {
-            List<JWSAlgorithm> clientRegistrationAuth = OicAlgorithmValidatorFIPS140.getFipsCompliantJWSAlgorithm(
-                    oidcProviderMetadata.getClientRegistrationAuthnJWSAlgs());
-            oidcProviderMetadata.setClientRegistrationAuthnJWSAlgs(clientRegistrationAuth);
-        }
     }
 
     @Restricted(NoExternalUse.class) // exposed for testing only
     protected OidcClient buildOidcClient() {
+        var executions = properties.stream()
+                .map(p -> p.newExecution(serverConfiguration))
+                .toList();
         OidcConfiguration oidcConfiguration = buildOidcConfiguration();
+        OidcPropertyDescriptor.all().stream()
+                .filter(d -> !properties.contains(d))
+                .forEach(d -> d.getFallbackConfiguration(serverConfiguration, oidcConfiguration));
+        executions.forEach(execution -> execution.customizeConfiguration(oidcConfiguration));
         OidcClient client = new OidcClient(oidcConfiguration);
         // add the extra settings for the client...
         client.setCallbackUrl(buildOAuthRedirectUrl());
@@ -790,6 +698,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // redirectURL.
         // OPs will reject this for existing clients as the redirect URL is not the same as previously configured
         client.setCallbackUrlResolver(new NoParameterCallbackUrlResolver());
+        executions.forEach(execution -> execution.customizeClient(client));
         return client;
     }
 
@@ -857,7 +766,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.postLogoutRedirectUrl = Util.fixEmptyAndTrim(postLogoutRedirectUrl);
     }
 
-    @DataBoundSetter
+    @Deprecated
     public void setEscapeHatchEnabled(boolean escapeHatchEnabled) throws FormException {
         if (FIPS140.useCompliantAlgorithms() && escapeHatchEnabled) {
             throw new FormException("Escape Hatch cannot be enabled in FIPS environment", "escapeHatchEnabled");
@@ -865,7 +774,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.escapeHatchEnabled = escapeHatchEnabled;
     }
 
-    @DataBoundSetter
+    @Deprecated
     public void setEscapeHatchUsername(String escapeHatchUsername) {
         this.escapeHatchUsername = Util.fixEmptyAndTrim(escapeHatchUsername);
     }
@@ -885,13 +794,14 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.escapeHatchSecret = escapeHatchSecret;
     }
 
+    @Deprecated
     protected boolean checkEscapeHatch(String username, String password) {
         final boolean isUsernameMatch = username.equals(this.escapeHatchUsername);
         final boolean isPasswordMatch = BCrypt.checkpw(password, Secret.toString(this.escapeHatchSecret));
         return isUsernameMatch & isPasswordMatch;
     }
 
-    @DataBoundSetter
+    @Deprecated
     public void setEscapeHatchGroup(String escapeHatchGroup) {
         this.escapeHatchGroup = Util.fixEmptyAndTrim(escapeHatchGroup);
     }
@@ -906,12 +816,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.sendScopesInTokenRequest = sendScopesInTokenRequest;
     }
 
-    @DataBoundSetter
+    @Deprecated
     public void setPkceEnabled(boolean pkceEnabled) {
         this.pkceEnabled = pkceEnabled;
     }
 
     @DataBoundSetter
+    @Deprecated
     public void setDisableTokenVerification(boolean disableTokenVerification) throws FormException {
         if (FIPS140.useCompliantAlgorithms() && disableTokenVerification) {
             throw new FormException(
@@ -920,7 +831,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         this.disableTokenVerification = disableTokenVerification;
     }
 
-    @DataBoundSetter
+    @Deprecated
     public void setNonceDisabled(boolean nonceDisabled) {
         this.nonceDisabled = nonceDisabled;
     }
@@ -941,6 +852,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     }
 
     @DataBoundSetter
+    /**
+     * @deprecated use {@link AllowedTokenExpirationClockSkew} instead.
+     */
+    @Deprecated
     public void setAllowedTokenExpirationClockSkewSeconds(Long allowedTokenExpirationClockSkewSeconds) {
         this.allowedTokenExpirationClockSkewSeconds = allowedTokenExpirationClockSkewSeconds;
     }
@@ -983,25 +898,10 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         return new SecurityComponents(new AuthenticationManager() {
             public Authentication authenticate(Authentication authentication) throws AuthenticationException {
                 if (authentication instanceof AnonymousAuthenticationToken) return authentication;
-
-                if (authentication instanceof UsernamePasswordAuthenticationToken && escapeHatchEnabled) {
-                    randomWait(); // to slowdown brute forcing
-                    if (checkEscapeHatch(
-                            authentication.getPrincipal().toString(),
-                            authentication.getCredentials().toString())) {
-                        List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
-                        grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
-                        if (isNotBlank(escapeHatchGroup)) {
-                            grantedAuthorities.add(new SimpleGrantedAuthority(escapeHatchGroup));
-                        }
-                        UsernamePasswordAuthenticationToken token =
-                                new UsernamePasswordAuthenticationToken(escapeHatchUsername, "", grantedAuthorities);
-                        SecurityContextHolder.getContext().setAuthentication(token);
-                        OicUserDetails userDetails = new OicUserDetails(escapeHatchUsername, grantedAuthorities);
-                        SecurityListener.fireAuthenticated2(userDetails);
-                        return token;
-                    } else {
-                        throw new BadCredentialsException("Wrong username and password: " + authentication);
+                for (var property : properties) {
+                    var authenticate = property.authenticate(authentication);
+                    if (authenticate.isPresent()) {
+                        return authenticate.get();
                     }
                 }
                 throw new BadCredentialsException("Unexpected authentication type: " + authentication);
@@ -1062,14 +962,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // store the redirect url for after the login.
         sessionStore.set(webContext, SESSION_POST_LOGIN_REDIRECT_URL_KEY, redirectOnFinish);
         JEEHttpActionAdapter.INSTANCE.adapt(redirectionAction, webContext);
-    }
-
-    private void randomWait() {
-        try {
-            Thread.sleep(1000 + RANDOM.nextInt(1000));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     private boolean failedCheckOfTokenField(JWT idToken) throws ParseException {
@@ -1320,43 +1212,25 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
     String maybeOpenIdLogoutEndpoint(String idToken, String state, String postLogoutRedirectUrl) {
         final URI url = serverConfiguration.toProviderMetadata().getEndSessionEndpointURI();
         if (this.logoutFromOpenidProvider && url != null) {
-            Map<String, String> segmentsMap = new LinkedHashMap<>();
-            Set<String> segmentsSet = new LinkedHashSet<>();
+            var uriComponentsBuilder = UriComponentsBuilder.fromUri(url);
             if (!Strings.isNullOrEmpty(idToken)) {
-                segmentsMap.put("id_token_hint", idToken);
+                uriComponentsBuilder.queryParam("id_token_hint", idToken);
             }
             if (!Strings.isNullOrEmpty(state) && !"null".equals(state)) {
-                segmentsMap.put("state", state);
+                uriComponentsBuilder.queryParam("state", state);
             }
             if (postLogoutRedirectUrl != null) {
-                segmentsMap.put(
+                uriComponentsBuilder.queryParam(
                         "post_logout_redirect_uri", URLEncoder.encode(postLogoutRedirectUrl, StandardCharsets.UTF_8));
             }
-            if (logoutQueryParameters != null && !logoutQueryParameters.isEmpty()) {
-                logoutQueryParameters.forEach(lqp -> {
-                    String key = lqp.getURLEncodedKey();
-                    String value = lqp.getURLEncodedValue();
-                    if (value.isEmpty()) {
-                        segmentsSet.add(key);
-                    } else {
-                        segmentsMap.put(key, value);
-                    }
-                });
-            }
-
-            StringBuilder openidLogoutEndpoint = new StringBuilder(url.toString());
-            String concatChar = openidLogoutEndpoint.toString().contains("?") ? "&" : "?";
-            if (!segmentsMap.isEmpty()) {
-                String joinedString = segmentsMap.entrySet().stream()
-                        .map(entry -> entry.getKey() + "=" + entry.getValue())
-                        .collect(Collectors.joining("&"));
-                openidLogoutEndpoint.append(concatChar).append(joinedString);
-                concatChar = "&";
-            }
-            if (!segmentsSet.isEmpty()) {
-                openidLogoutEndpoint.append(concatChar).append(String.join("&", segmentsSet));
-            }
-            return openidLogoutEndpoint.toString();
+            properties.stream()
+                    .flatMap(p -> p.contributeLogoutQueryParameters().stream())
+                    .forEach(lqp -> {
+                        var urlEncodedValue = lqp.getURLEncodedValue();
+                        uriComponentsBuilder.queryParam(
+                                lqp.getURLEncodedKey(), urlEncodedValue.isEmpty() ? null : urlEncodedValue);
+                    });
+            return uriComponentsBuilder.build().toUriString();
         }
         return null;
     }
@@ -1678,7 +1552,8 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         // however, if it is present, its value MUST be the same as in the ID Token issued at the time of the original
         // authentication
         // by default we will strip out the nonce unless the user has opted into it.
-        client.getConfiguration().setUseNonce(!nonceDisabled && checkNonceInRefreshFlow);
+        var configuration = client.getConfiguration();
+        configuration.setUseNonce(configuration.isUseNonce() && checkNonceInRefreshFlow);
         try {
             OidcProfile profile = new OidcProfile();
             profile.setAccessToken(new BearerAccessToken(credentials.getAccessToken()));
@@ -1721,7 +1596,7 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             username = expectedUsername;
 
             if (failedCheckOfTokenField(idToken)) {
-                throw new FailedCheckOfTokenException(client.getConfiguration().findLogoutUrl());
+                throw new FailedCheckOfTokenException(configuration.findLogoutUrl());
             }
 
             OicCredentials refreshedCredentials = new OicCredentials(
@@ -1843,14 +1718,6 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
             return FormValidation.ok();
         }
 
-        @RequirePOST
-        public FormValidation doCheckDisableTokenVerification(@QueryParameter Boolean disableTokenVerification) {
-            if (FIPS140.useCompliantAlgorithms() && disableTokenVerification) {
-                return FormValidation.error(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
-            }
-            return FormValidation.ok();
-        }
-
         // method to check fieldName matches JMESPath format
         private FormValidation doCheckFieldName(String fieldName, FormValidation validIfNull) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
@@ -1892,6 +1759,13 @@ public class OicSecurityRealm extends SecurityRealm implements Serializable {
         @Restricted(NoExternalUse.class)
         public IdStrategy defaultGroupIdStrategy() {
             return new IdStrategy.CaseSensitive();
+        }
+
+        @SuppressWarnings("unused") // stapler
+        public List<OidcPropertyDescriptor> getPropertiesDescriptors() {
+            return ExtensionList.lookup(OidcPropertyDescriptor.class).stream()
+                    .filter(OidcPropertyDescriptor::isApplicable)
+                    .toList();
         }
     }
 }
