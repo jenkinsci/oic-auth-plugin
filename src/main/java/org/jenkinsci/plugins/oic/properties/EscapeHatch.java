@@ -124,11 +124,14 @@ public class EscapeHatch extends OidcProperty {
         return Optional.empty();
     }
 
-    @Extension
     public static class DescriptorImpl extends OidcPropertyDescriptor {
-        @Override
-        public boolean isApplicable() {
-            return !FIPS140.useCompliantAlgorithms();
+        @Extension
+        @CheckForNull
+        public static DescriptorImpl createIfApplicable() {
+            if (FIPS140.useCompliantAlgorithms()) {
+                return null;
+            }
+            return new DescriptorImpl();
         }
 
         @NonNull

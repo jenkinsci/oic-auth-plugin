@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.oic.properties;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import jenkins.security.FIPS140;
@@ -52,11 +53,14 @@ public class DisableTokenVerification extends OidcProperty {
         }
     }
 
-    @Extension
     public static class DescriptorImpl extends OidcPropertyDescriptor {
-        @Override
-        public boolean isApplicable() {
-            return !FIPS140.useCompliantAlgorithms();
+        @Extension
+        @CheckForNull
+        public static DescriptorImpl createIfApplicable() {
+            if (FIPS140.useCompliantAlgorithms()) {
+                return null;
+            }
+            return new DescriptorImpl();
         }
 
         @Override

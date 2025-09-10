@@ -12,13 +12,6 @@ public abstract class OidcPropertyDescriptor extends Descriptor<OidcProperty> im
     }
 
     /**
-     * Allows the property to restrict its applicability depending on the context (for example, FIPS)
-     */
-    public boolean isApplicable() {
-        return true;
-    }
-
-    /**
      * This method gets called if the property is not configured explicitly. For example, providing a default value.
      */
     public void getFallbackConfiguration(

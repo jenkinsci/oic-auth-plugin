@@ -1614,9 +1614,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
         @SuppressWarnings("unused") // stapler
         public List<OidcPropertyDescriptor> getPropertiesDescriptors() {
-            return ExtensionList.lookup(OidcPropertyDescriptor.class).stream()
-                    .filter(OidcPropertyDescriptor::isApplicable)
-                    .toList();
+            return ExtensionList.lookup(OidcPropertyDescriptor.class);
         }
     }
 }
