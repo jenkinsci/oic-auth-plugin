@@ -1434,10 +1434,10 @@ public class OicSecurityRealm extends SecurityRealm {
                 return Optional.of(true);
             } catch (ExpiredJWTException e) {
                 LOGGER.log(Level.WARNING, "Received expired JWT");
-                return Optional.of(false);
+                return Optional.empty();
             } catch (ParseException | BadJOSEException | JOSEException | MalformedURLException e) {
                 LOGGER.log(Level.WARNING, "Received invalid JWT");
-                return Optional.of(false);
+                return Optional.empty();
             }
         }
 
