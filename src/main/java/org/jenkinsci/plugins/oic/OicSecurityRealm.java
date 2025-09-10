@@ -1431,6 +1431,7 @@ public class OicSecurityRealm extends SecurityRealm {
                 UsernamePasswordAuthenticationToken token =
                         new UsernamePasswordAuthenticationToken(username, "", grantedAuthorities);
                 SecurityContextHolder.getContext().setAuthentication(token);
+                httpRequest.setAttribute(BearerTokenCrumbExclusion.class.getName(), true);
 
                 return Optional.of(true);
             } catch (ExpiredJWTException e) {
