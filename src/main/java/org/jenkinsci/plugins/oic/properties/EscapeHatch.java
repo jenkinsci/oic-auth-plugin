@@ -41,7 +41,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 public class EscapeHatch extends OidcProperty {
     public static final Pattern B_CRYPT_PATTERN = Pattern.compile("\\A\\$[^$]+\\$\\d+\\$[./0-9A-Za-z]{53}");
 
-    @CheckForNull
+    @NonNull
     private final String username;
 
     @CheckForNull
