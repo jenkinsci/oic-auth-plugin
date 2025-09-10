@@ -276,7 +276,8 @@ public class OicSecurityRealmBearerTokenTest {
                     realm.validateAuthentication(
                             new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null),
                     Matchers.is(true)); // filter should continue
-            MatcherAssert.assertThat(SecurityContextHolder.getContext().getAuthentication(),
+            MatcherAssert.assertThat(
+                    SecurityContextHolder.getContext().getAuthentication(),
                     Matchers.is(Matchers.notNullValue())); // authentication should be set
 
             SecurityContextHolder.getContext().setAuthentication(null); // reset
@@ -292,7 +293,8 @@ public class OicSecurityRealmBearerTokenTest {
                     realm.validateAuthentication(
                             new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null),
                     Matchers.is(true)); // filter should still continue
-            MatcherAssert.assertThat(SecurityContextHolder.getContext().getAuthentication(),
+            MatcherAssert.assertThat(
+                    SecurityContextHolder.getContext().getAuthentication(),
                     Matchers.is(Matchers.nullValue())); // authentication should not be set though
         }
     }

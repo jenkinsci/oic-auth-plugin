@@ -20,5 +20,4 @@ public class BearerTokenCrumbExclusion extends CrumbExclusion {
         }
         return false;
     }
-
 }

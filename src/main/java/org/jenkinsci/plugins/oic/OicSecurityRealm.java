@@ -1393,7 +1393,8 @@ public class OicSecurityRealm extends SecurityRealm {
                 OIDCProviderMetadata metadata = serverConfiguration.toProviderMetadata();
 
                 ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
-                var jwk = JWKSourceBuilder.create(metadata.getJWKSetURI().toURL()).build();
+                var jwk =
+                        JWKSourceBuilder.create(metadata.getJWKSetURI().toURL()).build();
                 var keySelector = new JWSVerificationKeySelector<>(Set.copyOf(metadata.getIDTokenJWSAlgs()), jwk);
                 jwtProcessor.setJWSKeySelector(keySelector);
                 jwtProcessor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));
@@ -1413,7 +1414,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     }
                 };
                 AllowedTokenExpirationClockSkew clockSkew = properties.get(AllowedTokenExpirationClockSkew.class);
-                if(clockSkew != null) {
+                if (clockSkew != null) {
                     verifier.setMaxClockSkew(clockSkew.getValueSeconds());
                 } else {
                     verifier.setMaxClockSkew(OidcPropertyDescriptor.all()
