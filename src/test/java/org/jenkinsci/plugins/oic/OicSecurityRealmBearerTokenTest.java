@@ -38,6 +38,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.MockedStatic;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 public class OicSecurityRealmBearerTokenTest {
 
@@ -76,7 +77,7 @@ public class OicSecurityRealmBearerTokenTest {
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(
                         new MockHttpServletRequest(Map.of("Authorization", "Bearer " + "not-a-jwt-token"))),
-                Matchers.is(Optional.of(false)));
+                Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -91,7 +92,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
-                Matchers.is(Optional.of(false)));
+                Matchers.is(Optional.empty()));
 
         jwt = createSignedJWT(
                 TestRealm.ISSUER,
@@ -101,7 +102,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
-                Matchers.is(Optional.of(false)));
+                Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -116,7 +117,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
-                Matchers.is(Optional.of(false)));
+                Matchers.is(Optional.empty()));
 
         jwt = createSignedJWT(
                 "not-the-issuer",
@@ -126,7 +127,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
-                Matchers.is(Optional.of(false)));
+                Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -141,7 +142,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
-                Matchers.is(Optional.of(false)));
+                Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -171,7 +172,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().minusSeconds(120));
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
-                Matchers.is(Optional.of(false)));
+                Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -211,7 +212,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
-                Matchers.is(Optional.of(false)));
+                Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -226,11 +227,12 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
-                Matchers.is(Optional.of(false)));
+                Matchers.is(Optional.empty()));
     }
 
     @Test
-    void unsignedJWTToken_SHOULD_BeAccepted_WHEN_TokenVerificationIsDisabled() throws Exception {
+    void unsignedJWTToken_SHOULD_NOT_BeAccepted_WHEN_TokenVerificationIsDisabled() throws Exception {
+        // never accept unsigned JWT for Bearer token access for security reasons
         final TestRealm realm =
                 defaultTestRealm().WithDisableTokenValidation(true).build();
 
@@ -242,7 +244,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
         MatcherAssert.assertThat(
                 realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
-                Matchers.is(Optional.of(true)));
+                Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -267,13 +269,18 @@ public class OicSecurityRealmBearerTokenTest {
 
         try (MockedStatic<User> userMocked = mockStatic(User.class)) {
             userMocked.when(() -> User.get2(any())).thenReturn(null);
+            SecurityContextHolder.getContext().setAuthentication(null); // reset
 
             // valid token should still be accepted
             MatcherAssert.assertThat(
                     realm.validateAuthentication(
                             new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null),
-                    Matchers.is(true));
+                    Matchers.is(true)); // filter should continue
+            MatcherAssert.assertThat(SecurityContextHolder.getContext().getAuthentication(), 
+                    Matchers.is(Matchers.notNullValue())); // authentication should be set
 
+            SecurityContextHolder.getContext().setAuthentication(null); // reset
+            
             // invalid token should still be rejected, no matter whether User.get2(...) was null
             jwt = createSignedJWT(
                     TestRealm.ISSUER,
@@ -284,7 +291,9 @@ public class OicSecurityRealmBearerTokenTest {
             MatcherAssert.assertThat(
                     realm.validateAuthentication(
                             new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null),
-                    Matchers.is(false));
+                    Matchers.is(true)); // filter should still continue
+            MatcherAssert.assertThat(SecurityContextHolder.getContext().getAuthentication(), 
+                    Matchers.is(Matchers.nullValue())); // authentication should not be set though
         }
     }
 

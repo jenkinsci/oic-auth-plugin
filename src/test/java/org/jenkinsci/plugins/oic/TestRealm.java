@@ -194,7 +194,7 @@ public class TestRealm extends OicSecurityRealm {
             this.allowJWTBearerTokenAccess = allowJWTBearerTokenAccess;
             return this;
         }
-      
+
         public Builder AddToProperties(List<OidcProperty> properties) {
             this.properties.addAll(properties);
             return this;
@@ -252,8 +252,6 @@ public class TestRealm extends OicSecurityRealm {
         this.setEscapeHatchGroup(builder.escapeHatchGroup);
         this.setDisableTokenVerification(builder.disableTokenValidation);
         this.setTokenExpirationCheckDisabled(builder.disableTokenExpiration);
-        this.setLoginQueryParameters(builder.loginQueryParameters);
-        this.setLogoutQueryParameters(builder.logoutQueryParameters);
         this.setAllowJWTBearerTokenAccess(builder.allowJWTBearerTokenAccess);
         this.setProperties(builder.properties);
         // need to call the following method annotated with @PostConstruct and called
