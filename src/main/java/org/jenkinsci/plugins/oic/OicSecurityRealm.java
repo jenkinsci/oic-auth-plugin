@@ -100,6 +100,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -1396,31 +1397,11 @@ public class OicSecurityRealm extends SecurityRealm {
             try {
                 JWT jwt = JWTParser.parse(authHeader.substring(7));
                 OIDCProviderMetadata metadata = serverConfiguration.toProviderMetadata();
-                filterNonFIPS140CompliantAlgorithms(metadata);
 
                 ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
-                if (isDisableTokenVerification()) {
-                    // nimbus (probably for good reason) by default rejects all unsigned jwt and forces us to
-                    // override this method if we want to allow it regardless of recommendations
-                    jwtProcessor = new DefaultJWTProcessor<>() {
-                        @Override
-                        public JWTClaimsSet process(PlainJWT plainJWT, SecurityContext context)
-                                throws BadJOSEException, JOSEException {
-                            if (getJWSTypeVerifier() == null) {
-                                throw new BadJOSEException(
-                                        "Plain JWT rejected: No JWS header typ (type) verifier is configured");
-                            }
-                            getJWSTypeVerifier().verify(plainJWT.getHeader().getType(), context);
-                            JWTClaimsSet claimsSet = extractJWTClaimsSet(plainJWT);
-                            return verifyJWTClaimsSet(claimsSet, context);
-                        }
-                    };
-                } else {
-                    var jwk = JWKSourceBuilder.create(metadata.getJWKSetURI().toURL())
-                            .build();
-                    var keySelector = new JWSVerificationKeySelector<>(Set.copyOf(metadata.getIDTokenJWSAlgs()), jwk);
-                    jwtProcessor.setJWSKeySelector(keySelector);
-                }
+                var jwk = JWKSourceBuilder.create(metadata.getJWKSetURI().toURL()).build();
+                var keySelector = new JWSVerificationKeySelector<>(Set.copyOf(metadata.getIDTokenJWSAlgs()), jwk);
+                jwtProcessor.setJWSKeySelector(keySelector);
                 jwtProcessor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));
 
                 var exactMatchClaims = new JWTClaimsSet.Builder()
@@ -1470,10 +1451,6 @@ public class OicSecurityRealm extends SecurityRealm {
             return true;
         }
 
-        if (isValidApiTokenRequest(httpRequest, user)) {
-            return true;
-        }
-
         if (isExpired(credentials)) {
             if (canRefreshToken(credentials)) {
                 LOGGER.log(Level.FINEST, "Attempting to refresh credential for user: {0}", user.getId());
@@ -1491,24 +1468,6 @@ public class OicSecurityRealm extends SecurityRealm {
 
     boolean isLogoutRequest(HttpServletRequest request) {
         return request.getRequestURI().endsWith("/logout");
-    }
-
-    boolean isValidApiTokenRequest(HttpServletRequest httpRequest, User user) {
-        if (isAllowTokenAccessWithoutOicSession()) {
-            // check if this is a valid api token based request
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Basic ")) {
-                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
-                        .split(":")[1];
-
-                // this was a valid jenkins token being used, exit this filter and let
-                // the rest of chain be processed
-                // else do nothing and continue evaluating this request
-                ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
-                return apiTokenProperty != null && apiTokenProperty.matchesPassword(token);
-            }
-        }
-        return false;
     }
 
     boolean canRefreshToken(OicCredentials credentials) {
