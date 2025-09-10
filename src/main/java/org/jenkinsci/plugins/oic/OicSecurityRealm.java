@@ -372,7 +372,7 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     @SuppressWarnings("deprecated")
-    protected Object readResolve() throws IOException, FormException {
+    protected Object readResolve() throws ObjectStreamException {
         if (properties == null) {
             properties = new DescribableList<>(Saveable.NOOP);
         }
@@ -388,30 +388,42 @@ public class OicSecurityRealm extends SecurityRealm {
                 throw new IllegalStateException(Messages.OicSecurityRealm_EscapeHatchFipsMode());
             }
         }
-        if (nonceDisabled) {
-            properties.replace(new DisableNonce());
+        try {
+            if (nonceDisabled) {
+                properties.replace(new DisableNonce());
+            }
+            if (pkceEnabled) {
+                properties.replace(new Pkce());
+            }
+            if (disableTokenVerification) {
+                properties.replace(new DisableTokenVerification());
+            }
+            if (allowedTokenExpirationClockSkewSeconds != null && allowedTokenExpirationClockSkewSeconds != 60L) {
+                properties.replace(new AllowedTokenExpirationClockSkew(allowedTokenExpirationClockSkewSeconds.intValue()));
+            }
+            if (loginQueryParameters != null) {
+                properties.replace(new LoginQueryParameters(loginQueryParameters));
+            }
+            if (logoutQueryParameters != null) {
+                properties.replace(new LogoutQueryParameters(logoutQueryParameters));
+            }
+            if (escapeHatchEnabled) {
+                properties.replace(new EscapeHatch(escapeHatchUsername, escapeHatchGroup, escapeHatchSecret));
+            }
+        } catch (IOException e) {
+            var ose = new InvalidObjectException("Error while migrating properties");
+            ose.initCause(e);
+            throw ose;
+        } catch (FormException e) {
+            var ose = new InvalidObjectException(e.getFormField() + ": " + e.getMessage());
+            ose.initCause(e);
+            throw ose;
         }
-        if (pkceEnabled) {
-            properties.replace(new Pkce());
-        }
-        if (disableTokenVerification) {
-            properties.replace(new DisableTokenVerification());
-        }
-        if (allowedTokenExpirationClockSkewSeconds != null && allowedTokenExpirationClockSkewSeconds != 60L) {
-            properties.replace(new AllowedTokenExpirationClockSkew(allowedTokenExpirationClockSkewSeconds.intValue()));
-        }
-        if (loginQueryParameters != null) {
-            properties.replace(new LoginQueryParameters(loginQueryParameters));
-        }
-        if (logoutQueryParameters != null) {
-            properties.replace(new LogoutQueryParameters(logoutQueryParameters));
-        }
-        if (escapeHatchEnabled) {
-            properties.replace(new EscapeHatch(escapeHatchUsername, escapeHatchGroup, escapeHatchSecret));
-        }
+
         if (!Strings.isNullOrEmpty(endSessionUrl)) {
             this.endSessionEndpoint = endSessionUrl + "/";
         }
+
 
         // backward compatibility with wrong groupsFieldName split
         if (Strings.isNullOrEmpty(this.groupsFieldName) && !Strings.isNullOrEmpty(this.simpleGroupsFieldName)) {
