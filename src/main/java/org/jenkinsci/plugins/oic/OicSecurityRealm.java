@@ -377,16 +377,8 @@ public class OicSecurityRealm extends SecurityRealm {
             properties = new DescribableList<>(Saveable.NOOP);
         }
         // Fail if migrating to a FIPS non-compliant config
-        if (FIPS140.useCompliantAlgorithms()) {
-            if (isDisableSslVerification()) {
-                throw new IllegalStateException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
-            }
-            if (disableTokenVerification) {
-                throw new IllegalStateException(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
-            }
-            if (escapeHatchEnabled) {
-                throw new IllegalStateException(Messages.OicSecurityRealm_EscapeHatchFipsMode());
-            }
+        if (FIPS140.useCompliantAlgorithms() && isDisableSslVerification()) {
+            throw new IllegalStateException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
         }
         try {
             if (nonceDisabled) {
