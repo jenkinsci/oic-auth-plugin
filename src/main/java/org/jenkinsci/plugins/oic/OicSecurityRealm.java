@@ -419,7 +419,6 @@ public class OicSecurityRealm extends SecurityRealm {
             this.endSessionEndpoint = endSessionUrl + "/";
         }
 
-
         // backward compatibility with wrong groupsFieldName split
         if (Strings.isNullOrEmpty(this.groupsFieldName) && !Strings.isNullOrEmpty(this.simpleGroupsFieldName)) {
             String originalGroupFieldName = this.simpleGroupsFieldName;
@@ -1165,7 +1164,6 @@ public class OicSecurityRealm extends SecurityRealm {
             if (failedCheckOfTokenField(idToken)) {
                 throw new FailedCheckOfTokenException(client.getConfiguration().findLogoutUrl());
             }
-
 
             OicCredentials oicCredentials = new OicCredentials(
                     accessToken == null ? null : accessToken.getValue(), // XXX (how) can the access token be null?
