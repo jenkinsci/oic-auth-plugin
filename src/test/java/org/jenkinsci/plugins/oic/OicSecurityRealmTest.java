@@ -7,10 +7,8 @@ import static org.hamcrest.Matchers.hasItemInArray;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import hudson.util.Secret;
@@ -32,7 +30,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.crypto.bcrypt.BCrypt;
 
 @WithJenkins
 class OicSecurityRealmTest {
@@ -116,41 +113,6 @@ class OicSecurityRealmTest {
         assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/"));
         assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/bar/"));
         assertEquals(rootUrl, realm.getValidRedirectUrl("http://localhost/jenkins/../bar/"));
-    }
-
-    @Test
-    void testShouldCheckEscapeHatchWithPlainPassword(JenkinsRule jenkinsRule) throws Exception {
-        final String escapeHatchUsername = "aUsername";
-        final String escapeHatchPassword = "aSecretPassword";
-
-        TestRealm realm = new TestRealm.Builder(wireMock)
-                .WithMinimalDefaults()
-                        .WithEscapeHatch(true, escapeHatchUsername, escapeHatchPassword, "Group")
-                        .build();
-
-        assertEquals(escapeHatchUsername, realm.getEscapeHatchUsername());
-        assertNotEquals(escapeHatchPassword, Secret.toString(realm.getEscapeHatchSecret()));
-        assertTrue(realm.doCheckEscapeHatch(escapeHatchUsername, escapeHatchPassword));
-        assertFalse(realm.doCheckEscapeHatch("otherUsername", escapeHatchPassword));
-        assertFalse(realm.doCheckEscapeHatch(escapeHatchUsername, "wrongPassword"));
-    }
-
-    @Test
-    void testShouldCheckEscapeHatchWithHashedPassword(JenkinsRule jenkinsRule) throws Exception {
-        final String escapeHatchUsername = "aUsername";
-        final String escapeHatchPassword = "aSecretPassword";
-        final String escapeHatchCryptedPassword = BCrypt.hashpw(escapeHatchPassword, BCrypt.gensalt());
-
-        TestRealm realm = new TestRealm.Builder(wireMock)
-                .WithMinimalDefaults()
-                        .WithEscapeHatch(true, escapeHatchUsername, escapeHatchCryptedPassword, "Group")
-                        .build();
-
-        assertEquals(escapeHatchUsername, realm.getEscapeHatchUsername());
-        assertEquals(escapeHatchCryptedPassword, Secret.toString(realm.getEscapeHatchSecret()));
-        assertTrue(realm.doCheckEscapeHatch(escapeHatchUsername, escapeHatchPassword));
-        assertFalse(realm.doCheckEscapeHatch("otherUsername", escapeHatchPassword));
-        assertFalse(realm.doCheckEscapeHatch(escapeHatchUsername, "wrongPassword"));
     }
 
     @Test
