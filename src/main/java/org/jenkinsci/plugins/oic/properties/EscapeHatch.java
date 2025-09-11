@@ -15,6 +15,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,7 @@ import java.util.Random;
 import java.util.regex.Pattern;
 import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
+import org.jenkinsci.plugins.oic.Messages;
 import org.jenkinsci.plugins.oic.OicUserDetails;
 import org.jenkinsci.plugins.oic.OidcProperty;
 import org.jenkinsci.plugins.oic.OidcPropertyDescriptor;
@@ -41,7 +43,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 public class EscapeHatch extends OidcProperty {
     public static final Pattern B_CRYPT_PATTERN = Pattern.compile("\\A\\$[^$]+\\$\\d+\\$[./0-9A-Za-z]{53}");
 
-    @CheckForNull
+    @NonNull
     private final String username;
 
     @CheckForNull
@@ -54,7 +56,7 @@ public class EscapeHatch extends OidcProperty {
     public EscapeHatch(@NonNull String username, @CheckForNull String group, @NonNull Secret secret)
             throws Descriptor.FormException {
         if (FIPS140.useCompliantAlgorithms()) {
-            throw new IllegalStateException("Cannot use Escape Hatch in FIPS-140 mode");
+            throw new Descriptor.FormException("Cannot use Escape Hatch in FIPS-140 mode", "escapeHatch");
         }
         var sanitizedUsername = Util.fixEmptyAndTrim(username);
         if (sanitizedUsername == null) {
@@ -104,8 +106,9 @@ public class EscapeHatch extends OidcProperty {
     public Optional<Authentication> authenticate(@NonNull Authentication authentication) {
         if (authentication instanceof UsernamePasswordAuthenticationToken) {
             randomWait(); // to slowdown brute forcing
-            if (authentication.getPrincipal().toString().equals(this.username)
-                    && BCrypt.checkpw(authentication.getCredentials().toString(), Secret.toString(this.secret))) {
+            if (check(
+                    authentication.getPrincipal().toString(),
+                    authentication.getCredentials().toString())) {
                 List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
                 grantedAuthorities.add(SecurityRealm.AUTHENTICATED_AUTHORITY2);
                 if (isNotBlank(group)) {
@@ -124,11 +127,21 @@ public class EscapeHatch extends OidcProperty {
         return Optional.empty();
     }
 
-    @Extension
+    /**
+     * Check a given username and password against the configured ones.
+     */
+    public boolean check(@NonNull String username, @CheckForNull String password) {
+        return username.equals(this.username) && BCrypt.checkpw(password, Secret.toString(this.secret));
+    }
+
     public static class DescriptorImpl extends OidcPropertyDescriptor {
-        @Override
-        public boolean isApplicable() {
-            return !FIPS140.useCompliantAlgorithms();
+        @Extension
+        @CheckForNull
+        public static DescriptorImpl createIfApplicable() {
+            if (FIPS140.useCompliantAlgorithms()) {
+                return null;
+            }
+            return new DescriptorImpl();
         }
 
         @NonNull
@@ -136,6 +149,14 @@ public class EscapeHatch extends OidcProperty {
         public String getDisplayName() {
             return "Escape Hatch";
         }
+    }
+
+    @Serial
+    protected Object readResolve() {
+        if (FIPS140.useCompliantAlgorithms()) {
+            throw new IllegalStateException(Messages.OicSecurityRealm_EscapeHatchFipsMode());
+        }
+        return this;
     }
 
     /**

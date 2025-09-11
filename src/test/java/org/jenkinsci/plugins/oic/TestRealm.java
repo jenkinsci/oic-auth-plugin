@@ -6,12 +6,15 @@ import hudson.security.SecurityRealm;
 import hudson.util.Secret;
 import io.burt.jmespath.Expression;
 import java.io.IOException;
+import java.io.ObjectStreamException;
 import java.io.Serial;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import jenkins.model.IdStrategy;
+import org.jenkinsci.plugins.oic.properties.DisableNonce;
 import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
+import org.jenkinsci.plugins.oic.properties.EscapeHatch;
 import org.jenkinsci.plugins.oic.properties.LoginQueryParameters;
 import org.jenkinsci.plugins.oic.properties.LogoutQueryParameters;
 import org.kohsuke.stapler.StaplerRequest2;
@@ -53,10 +56,6 @@ public class TestRealm extends OicSecurityRealm {
         public Boolean logoutFromOpenidProvider = false;
         public String endSessionEndpoint = null;
         public String postLogoutRedirectUrl = null;
-        public boolean escapeHatchEnabled = false;
-        public String escapeHatchUsername = null;
-        public Secret escapeHatchSecret = null;
-        public String escapeHatchGroup = null;
         public boolean automanualconfigure = false;
         public IdStrategy userIdStrategy;
         public IdStrategy groupIdStrategy;
@@ -150,11 +149,14 @@ public class TestRealm extends OicSecurityRealm {
                 boolean escapeHatchEnabled,
                 String escapeHatchUsername,
                 String escapeHatchSecret,
-                String escapeHatchGroup) {
-            this.escapeHatchEnabled = escapeHatchEnabled;
-            this.escapeHatchUsername = escapeHatchUsername;
-            this.escapeHatchSecret = escapeHatchSecret == null ? null : Secret.fromString(escapeHatchSecret);
-            this.escapeHatchGroup = escapeHatchGroup;
+                String escapeHatchGroup)
+                throws Descriptor.FormException {
+            if (escapeHatchEnabled) {
+                this.properties.add(
+                        new EscapeHatch(escapeHatchUsername, escapeHatchGroup, Secret.fromString(escapeHatchSecret)));
+            } else {
+                this.properties.removeIf(EscapeHatch.class::isInstance);
+            }
             return this;
         }
 
@@ -233,10 +235,6 @@ public class TestRealm extends OicSecurityRealm {
         this.setGroupsFieldName(builder.groupsFieldName);
         this.setLogoutFromOpenidProvider(builder.logoutFromOpenidProvider);
         this.setPostLogoutRedirectUrl(builder.postLogoutRedirectUrl);
-        this.setEscapeHatchEnabled(builder.escapeHatchEnabled);
-        this.setEscapeHatchUsername(builder.escapeHatchUsername);
-        this.setEscapeHatchSecret(builder.escapeHatchSecret);
-        this.setEscapeHatchGroup(builder.escapeHatchGroup);
         this.setProperties(builder.properties);
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
@@ -306,7 +304,8 @@ public class TestRealm extends OicSecurityRealm {
         /*
          * PluginTest uses a hardCoded nonce "nonce"
          */
-        if (!isNonceDisabled()) {
+
+        if (getProperties().get(DisableNonce.class) == null) {
             // only hack the nonce if the nonce is enabled
             FrameworkParameters parameters = new JEEFrameworkParameters(request, response);
             WebContext webContext = JEEContextFactory.INSTANCE.newContext(parameters);
@@ -327,11 +326,7 @@ public class TestRealm extends OicSecurityRealm {
 
     @Serial
     @Override
-    public Object readResolve() throws IOException, Descriptor.FormException {
+    public Object readResolve() throws ObjectStreamException {
         return super.readResolve();
-    }
-
-    public boolean doCheckEscapeHatch(String username, String password) {
-        return super.checkEscapeHatch(username, password);
     }
 }

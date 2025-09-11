@@ -372,43 +372,49 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     @SuppressWarnings("deprecated")
-    protected Object readResolve() throws IOException, FormException {
+    protected Object readResolve() throws ObjectStreamException {
         if (properties == null) {
             properties = new DescribableList<>(Saveable.NOOP);
         }
         // Fail if migrating to a FIPS non-compliant config
-        if (FIPS140.useCompliantAlgorithms()) {
-            if (isDisableSslVerification()) {
-                throw new IllegalStateException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
+        if (FIPS140.useCompliantAlgorithms() && isDisableSslVerification()) {
+            throw new IllegalStateException(Messages.OicSecurityRealm_DisableSslVerificationFipsMode());
+        }
+        try {
+            if (nonceDisabled) {
+                properties.replace(new DisableNonce());
             }
-            if (isDisableTokenVerification() || properties.get(DisableTokenVerification.class) != null) {
-                throw new IllegalStateException(Messages.OicSecurityRealm_DisableTokenVerificationFipsMode());
+            if (pkceEnabled) {
+                properties.replace(new Pkce());
             }
-            if (isEscapeHatchEnabled() || properties.get(EscapeHatch.class) != null) {
-                throw new IllegalStateException(Messages.OicSecurityRealm_EscapeHatchFipsMode());
+            if (disableTokenVerification) {
+                properties.replace(new DisableTokenVerification());
             }
+            if (allowedTokenExpirationClockSkewSeconds != null) {
+                var value = allowedTokenExpirationClockSkewSeconds.intValue();
+                if (value != 60) {
+                    properties.replace(new AllowedTokenExpirationClockSkew(value));
+                }
+            }
+            if (loginQueryParameters != null) {
+                properties.replace(new LoginQueryParameters(loginQueryParameters));
+            }
+            if (logoutQueryParameters != null) {
+                properties.replace(new LogoutQueryParameters(logoutQueryParameters));
+            }
+            if (escapeHatchEnabled) {
+                properties.replace(new EscapeHatch(escapeHatchUsername, escapeHatchGroup, escapeHatchSecret));
+            }
+        } catch (IOException e) {
+            var ose = new InvalidObjectException("Error while migrating properties");
+            ose.initCause(e);
+            throw ose;
+        } catch (FormException e) {
+            var ose = new InvalidObjectException(e.getFormField() + ": " + e.getMessage());
+            ose.initCause(e);
+            throw ose;
         }
-        if (nonceDisabled) {
-            properties.replace(new DisableNonce());
-        }
-        if (pkceEnabled) {
-            properties.replace(new Pkce());
-        }
-        if (disableTokenVerification) {
-            properties.replace(new DisableTokenVerification());
-        }
-        if (allowedTokenExpirationClockSkewSeconds != null && allowedTokenExpirationClockSkewSeconds != 60L) {
-            properties.replace(new AllowedTokenExpirationClockSkew(allowedTokenExpirationClockSkewSeconds.intValue()));
-        }
-        if (loginQueryParameters != null) {
-            properties.replace(new LoginQueryParameters(loginQueryParameters));
-        }
-        if (logoutQueryParameters != null) {
-            properties.replace(new LogoutQueryParameters(logoutQueryParameters));
-        }
-        if (escapeHatchEnabled) {
-            properties.replace(new EscapeHatch(escapeHatchUsername, escapeHatchGroup, escapeHatchSecret));
-        }
+
         if (!Strings.isNullOrEmpty(endSessionUrl)) {
             this.endSessionEndpoint = endSessionUrl + "/";
         }
@@ -461,26 +467,6 @@ public class OicSecurityRealm extends SecurityRealm {
         }
         createProxyAwareResourceRetriver();
         return this;
-    }
-
-    @Deprecated
-    public void setLoginQueryParameters(List<LoginQueryParameter> values) {
-        this.loginQueryParameters = values;
-    }
-
-    @Deprecated
-    public List<LoginQueryParameter> getLoginQueryParameters() {
-        return loginQueryParameters;
-    }
-
-    @Deprecated
-    public void setLogoutQueryParameters(List<LogoutQueryParameter> values) {
-        this.logoutQueryParameters = values;
-    }
-
-    @Deprecated
-    public List<LogoutQueryParameter> getLogoutQueryParameters() {
-        return logoutQueryParameters;
     }
 
     public String getClientId() {
@@ -555,26 +541,6 @@ public class OicSecurityRealm extends SecurityRealm {
         return postLogoutRedirectUrl;
     }
 
-    @Deprecated
-    public boolean isEscapeHatchEnabled() {
-        return escapeHatchEnabled;
-    }
-
-    @Deprecated
-    public String getEscapeHatchUsername() {
-        return escapeHatchUsername;
-    }
-
-    @Deprecated
-    public Secret getEscapeHatchSecret() {
-        return escapeHatchSecret;
-    }
-
-    @Deprecated
-    public String getEscapeHatchGroup() {
-        return escapeHatchGroup;
-    }
-
     public boolean isRootURLFromRequest() {
         return rootURLFromRequest;
     }
@@ -583,33 +549,12 @@ public class OicSecurityRealm extends SecurityRealm {
         return sendScopesInTokenRequest;
     }
 
-    public boolean isPkceEnabled() {
-        return pkceEnabled;
-    }
-
-    public boolean isDisableTokenVerification() {
-        return disableTokenVerification;
-    }
-
-    public boolean isNonceDisabled() {
-        return nonceDisabled;
-    }
-
     public boolean isTokenExpirationCheckDisabled() {
         return tokenExpirationCheckDisabled;
     }
 
     public boolean isAllowTokenAccessWithoutOicSession() {
         return allowTokenAccessWithoutOicSession;
-    }
-
-    /**
-     * @deprecated use {@link AllowedTokenExpirationClockSkew} instead.
-     * @return
-     */
-    @Deprecated
-    public Long getAllowedTokenExpirationClockSkewSeconds() {
-        return allowedTokenExpirationClockSkewSeconds;
     }
 
     public DescribableList<OidcProperty, OidcPropertyDescriptor> getProperties() {
@@ -737,19 +682,6 @@ public class OicSecurityRealm extends SecurityRealm {
         this.postLogoutRedirectUrl = Util.fixEmptyAndTrim(postLogoutRedirectUrl);
     }
 
-    @Deprecated
-    public void setEscapeHatchEnabled(boolean escapeHatchEnabled) throws FormException {
-        if (FIPS140.useCompliantAlgorithms() && escapeHatchEnabled) {
-            throw new FormException("Escape Hatch cannot be enabled in FIPS environment", "escapeHatchEnabled");
-        }
-        this.escapeHatchEnabled = escapeHatchEnabled;
-    }
-
-    @Deprecated
-    public void setEscapeHatchUsername(String escapeHatchUsername) {
-        this.escapeHatchUsername = Util.fixEmptyAndTrim(escapeHatchUsername);
-    }
-
     @DataBoundSetter
     public void setEscapeHatchSecret(Secret escapeHatchSecret) {
         if (escapeHatchSecret != null) {
@@ -765,18 +697,6 @@ public class OicSecurityRealm extends SecurityRealm {
         this.escapeHatchSecret = escapeHatchSecret;
     }
 
-    @Deprecated
-    protected boolean checkEscapeHatch(String username, String password) {
-        final boolean isUsernameMatch = username.equals(this.escapeHatchUsername);
-        final boolean isPasswordMatch = BCrypt.checkpw(password, Secret.toString(this.escapeHatchSecret));
-        return isUsernameMatch & isPasswordMatch;
-    }
-
-    @Deprecated
-    public void setEscapeHatchGroup(String escapeHatchGroup) {
-        this.escapeHatchGroup = Util.fixEmptyAndTrim(escapeHatchGroup);
-    }
-
     @DataBoundSetter
     public void setRootURLFromRequest(boolean rootURLFromRequest) {
         this.rootURLFromRequest = rootURLFromRequest;
@@ -787,26 +707,6 @@ public class OicSecurityRealm extends SecurityRealm {
         this.sendScopesInTokenRequest = sendScopesInTokenRequest;
     }
 
-    @Deprecated
-    public void setPkceEnabled(boolean pkceEnabled) {
-        this.pkceEnabled = pkceEnabled;
-    }
-
-    @DataBoundSetter
-    @Deprecated
-    public void setDisableTokenVerification(boolean disableTokenVerification) throws FormException {
-        if (FIPS140.useCompliantAlgorithms() && disableTokenVerification) {
-            throw new FormException(
-                    Messages.OicSecurityRealm_DisableTokenVerificationFipsMode(), "disableTokenVerification");
-        }
-        this.disableTokenVerification = disableTokenVerification;
-    }
-
-    @Deprecated
-    public void setNonceDisabled(boolean nonceDisabled) {
-        this.nonceDisabled = nonceDisabled;
-    }
-
     @DataBoundSetter
     public void setTokenExpirationCheckDisabled(boolean tokenExpirationCheckDisabled) {
         this.tokenExpirationCheckDisabled = tokenExpirationCheckDisabled;
@@ -815,14 +715,6 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundSetter
     public void setAllowTokenAccessWithoutOicSession(boolean allowTokenAccessWithoutOicSession) {
         this.allowTokenAccessWithoutOicSession = allowTokenAccessWithoutOicSession;
-    }
-
-    /**
-     * @deprecated use {@link AllowedTokenExpirationClockSkew} instead.
-     */
-    @Deprecated
-    public void setAllowedTokenExpirationClockSkewSeconds(Long allowedTokenExpirationClockSkewSeconds) {
-        this.allowedTokenExpirationClockSkewSeconds = allowedTokenExpirationClockSkewSeconds;
     }
 
     @Override
@@ -1279,7 +1171,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     refreshToken != null ? refreshToken.getValue() : null,
                     accessToken == null ? 0 : accessToken.getLifetime(),
                     CLOCK.millis(),
-                    getAllowedTokenExpirationClockSkewSeconds());
+                    (long) client.getConfiguration().getMaxClockSkew());
 
             loginAndSetUserData(username, idToken, profile.getAttributes(), oicCredentials);
 
@@ -1456,7 +1348,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     refreshToken.getValue(),
                     accessToken.getLifetime(),
                     CLOCK.millis(),
-                    getAllowedTokenExpirationClockSkewSeconds());
+                    (long) client.getConfiguration().getMaxClockSkew());
 
             loginAndSetUserData(username, idToken, profile.getAttributes(), refreshedCredentials);
             return true;
