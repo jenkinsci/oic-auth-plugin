@@ -1414,7 +1414,15 @@ public class OicSecurityRealm extends SecurityRealm {
                     }
                 };
 
-                verifier.setMaxClockSkew(buildOidcClient().getConfiguration().getMaxClockSkew());
+                AllowedTokenExpirationClockSkew clockSkew = properties.get(AllowedTokenExpirationClockSkew.class);
+                if (clockSkew != null) {
+                    verifier.setMaxClockSkew(clockSkew.getValueSeconds());
+                } else {
+                    verifier.setMaxClockSkew(Optional.ofNullable(OidcPropertyDescriptor.all()
+                                    .get(AllowedTokenExpirationClockSkew.DescriptorImpl.class))
+                            .map(AllowedTokenExpirationClockSkew.DescriptorImpl::getDefaultValueSeconds) //
+                            .orElse(60));
+                }
                 jwtProcessor.setJWTClaimsSetVerifier(verifier);
 
                 SecurityContext ctx = null; // optional context parameter, not required here
