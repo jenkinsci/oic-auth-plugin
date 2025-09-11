@@ -58,7 +58,6 @@ public class TestRealm extends OicSecurityRealm {
         public String endSessionEndpoint = null;
         public String postLogoutRedirectUrl = null;
         public boolean automanualconfigure = false;
-        public boolean disableTokenValidation = true; // opt in for some specific tests
         public boolean disableTokenExpiration = false;
         public IdStrategy userIdStrategy;
         public IdStrategy groupIdStrategy;
@@ -255,6 +254,7 @@ public class TestRealm extends OicSecurityRealm {
         this.setLogoutFromOpenidProvider(builder.logoutFromOpenidProvider);
         this.setPostLogoutRedirectUrl(builder.postLogoutRedirectUrl);
         this.setAllowJWTBearerTokenAccess(builder.allowJWTBearerTokenAccess);
+        this.setTokenExpirationCheckDisabled(builder.disableTokenExpiration);
         this.setProperties(builder.properties);
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
