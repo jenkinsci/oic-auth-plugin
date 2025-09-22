@@ -51,7 +51,7 @@
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.525</hpi.compatibleSinceVersion>
-    <pac4jVersion>6.2.1</pac4jVersion>
+    <pac4jVersion>6.2.2</pac4jVersion>
   </properties>
 
   <dependencyManagement>
