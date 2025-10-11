@@ -52,6 +52,7 @@
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.525</hpi.compatibleSinceVersion>
     <pac4jVersion>6.2.1</pac4jVersion>
+    <hpi.bundledArtifacts>content-type,jmespath-core,lang-tag,nimbus-jose-jwt,oauth2-oidc-sdk,pac4j-core,pac4j-jakartaee,pac4j-oidc</hpi.bundledArtifacts>
   </properties>
 
   <dependencyManagement>
