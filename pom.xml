@@ -324,7 +324,7 @@
       <plugin>
         <groupId>org.openrewrite.maven</groupId>
         <artifactId>rewrite-maven-plugin</artifactId>
-        <version>6.19.0</version>
+        <version>6.22.1</version>
         <configuration>
           <activeRecipes>
             <recipe>org.openrewrite.jenkins.github.AddTeamToCodeowners</recipe>
