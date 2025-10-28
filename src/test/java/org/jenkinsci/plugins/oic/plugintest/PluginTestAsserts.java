@@ -50,13 +50,18 @@ public class PluginTestAsserts {
     }
 
     public static void assertTestAvatar(User user, WireMockExtension wireMock) {
-        String expectedAvatarUrl = wireMock.url("/my-avatar.png");
-        OicAvatarProperty avatarProperty = user.getProperty(OicAvatarProperty.class);
-        assertEquals(expectedAvatarUrl, avatarProperty.getAvatarUrl(), "Avatar url should be " + expectedAvatarUrl);
-        assertEquals("OpenID Connect Avatar", avatarProperty.getDisplayName());
-        assertNull(avatarProperty.getIconFileName(), "Icon filename must be null");
-        String urlViaAvatarResolver = UserAvatarResolver.resolve(user, "48x48");
-        assertEquals(expectedAvatarUrl, urlViaAvatarResolver, "Avatar url should be " + expectedAvatarUrl);
+        if (user != null) {
+            String expectedAvatarUrl = wireMock.url("/my-avatar.png");
+            OicAvatarProperty avatarProperty = user.getProperty(OicAvatarProperty.class);
+            assertEquals(expectedAvatarUrl, avatarProperty.getAvatarUrl(), "Avatar url should be " + expectedAvatarUrl);
+            assertEquals("OpenID Connect Avatar", avatarProperty.getDisplayName());
+            assertNull(avatarProperty.getIconFileName(), "Icon filename must be null");
+            String urlViaAvatarResolver = UserAvatarResolver.resolve(user, "48x48");
+            assertEquals(expectedAvatarUrl, urlViaAvatarResolver, "Avatar url should be " + expectedAvatarUrl);
+        } else {
+            String urlViaAvatarResolver = UserAvatarResolver.resolve(null, "48x48");
+            assertEquals("symbol-person-circle", urlViaAvatarResolver, "Avatar url should be symbol-person-circle");
+        }
     }
 
     public static void assertTestUserIsMemberOfGroups(User user, String... testUserGroups) {

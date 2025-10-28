@@ -321,6 +321,7 @@ class PluginTest {
 
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
         assertAnonymous(webClient);
+        assertTestAvatar(null, wireMock);
         browseLoginPage(webClient, jenkins);
         var user = assertTestUser(webClient);
         assertTestUserEmail(user);
