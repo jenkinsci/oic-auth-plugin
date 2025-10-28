@@ -60,6 +60,7 @@ public class TestRealm extends OicSecurityRealm {
         public IdStrategy userIdStrategy;
         public IdStrategy groupIdStrategy;
         public List<OidcProperty> properties = new ArrayList<>();
+        public boolean allowTokenAccessWithoutOicSession = false;
 
         public Builder(WireMockExtension wireMock, boolean useTLS) throws IOException {
             this(
@@ -117,6 +118,11 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithAutomanualconfigure(boolean automanualconfigure) {
             this.automanualconfigure = automanualconfigure;
+            return this;
+        }
+
+        public Builder WithAllowTokenAccessWithoutOicSession(boolean allowTokenAccessWithoutOicSession) {
+            this.allowTokenAccessWithoutOicSession = allowTokenAccessWithoutOicSession;
             return this;
         }
 
@@ -236,6 +242,7 @@ public class TestRealm extends OicSecurityRealm {
         this.setLogoutFromOpenidProvider(builder.logoutFromOpenidProvider);
         this.setPostLogoutRedirectUrl(builder.postLogoutRedirectUrl);
         this.setProperties(builder.properties);
+        this.setAllowTokenAccessWithoutOicSession(builder.allowTokenAccessWithoutOicSession);
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
         // is only called in regular use not code use.

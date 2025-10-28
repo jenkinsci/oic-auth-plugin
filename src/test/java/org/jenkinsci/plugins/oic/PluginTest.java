@@ -12,9 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
@@ -36,9 +34,7 @@ import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.configureTes
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.configureWellKnown;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.createKeyPair;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.encodePublicKey;
-import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.expire;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.getAuthentication;
-import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.getPageWithGet;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.setUpKeyValuesNested;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.setUpKeyValuesNoGroup;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.setUpKeyValuesWithGroup;
@@ -68,7 +64,6 @@ import com.nimbusds.oauth2.sdk.Scope;
 import hudson.model.User;
 import hudson.tasks.Mailer;
 import hudson.util.VersionNumber;
-import java.net.http.HttpResponse;
 import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.util.Base64;
@@ -79,7 +74,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLException;
 import jenkins.model.Jenkins;
-import jenkins.security.ApiTokenProperty;
 import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.htmlunit.CookieManager;
 import org.htmlunit.html.HtmlPage;
@@ -855,54 +849,5 @@ class PluginTest {
         webClient.setThrowExceptionOnFailingStatusCode(false);
         browseLoginPage(webClient, jenkins);
         assertAnonymous(webClient);
-    }
-
-    @Test
-    void testAccessUsingJenkinsApiTokens() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
-        configureWellKnown(wireMock, null, null, "authorization_code");
-        jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
-        // explicitly ensure allowTokenAccessWithoutOicSession is disabled
-        TestRealm testRealm = (TestRealm) jenkins.getSecurityRealm();
-        testRealm.setAllowTokenAccessWithoutOicSession(false);
-
-        // login and assert normal auth is working
-        mockTokenReturnsIdTokenWithGroup(wireMock, PluginTestHelper::withoutRefreshToken);
-        mockUserInfoWithTestGroups(wireMock);
-        browseLoginPage(webClient, jenkins);
-        assertTestUser(webClient);
-
-        // create a jenkins api token for the test user
-        User userById = User.getById(TEST_USER_USERNAME, false);
-        assertNotNull(userById);
-        String token = userById.getProperty(ApiTokenProperty.class).generateNewToken("foo").plainValue;
-
-        // validate that the token can be used
-        HttpResponse<String> rsp = getPageWithGet(jenkinsRule, TEST_USER_USERNAME, token, "/whoAmI/api/xml");
-        assertThat("response should have been 200\n" + rsp.body(), rsp.statusCode(), is(200));
-
-        assertThat(
-                "response should have been 200\n" + rsp.body(),
-                rsp.body(),
-                containsString("<authenticated>true</authenticated>"));
-
-        // expired oic session tokens, do not refreshed
-        expire(webClient);
-
-        // the default behavior expects there to be a valid oic session, so token based
-        // access should now fail (unauthorized)
-        rsp = getPageWithGet(jenkinsRule, TEST_USER_USERNAME, token, "/whoAmI/api/xml");
-        assertThat("response should have been 302\n" + rsp.body(), rsp.statusCode(), is(302));
-
-        // enable "traditional api token access"
-        testRealm.setAllowTokenAccessWithoutOicSession(true);
-
-        // verify that jenkins api token is now working again
-        rsp = getPageWithGet(jenkinsRule, TEST_USER_USERNAME, token, "/whoAmI/api/xml");
-        assertThat("response should have been 200\n" + rsp.body(), rsp.statusCode(), is(200));
-        assertThat(
-                "response should have been 200\n" + rsp.body(),
-                rsp.body(),
-                containsString("<authenticated>true</authenticated>"));
     }
 }
