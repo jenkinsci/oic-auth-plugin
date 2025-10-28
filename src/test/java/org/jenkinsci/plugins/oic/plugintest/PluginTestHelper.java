@@ -11,6 +11,7 @@ import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_FULL_NAME;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_GROUPS;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_USERNAME;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.google.api.client.json.gson.GsonFactory;
@@ -105,6 +106,7 @@ public class PluginTestHelper {
         webClient.executeOnServer(() -> {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             User user = User.get2(authentication);
+            assertNotNull(user);
             OicCredentials credentials = user.getProperty(OicCredentials.class);
 
             // setting currentTimestamp == 1 guarantees this will be an expired cred
@@ -147,6 +149,7 @@ public class PluginTestHelper {
         if (endSessionUrl != null) {
             values.put("end_session_endpoint", endSessionUrl);
         }
+        assertNotNull(grantTypesSupported);
         if (grantTypesSupported.length != 0) {
             values.put("grant_types_supported", grantTypesSupported);
         }
@@ -222,13 +225,15 @@ public class PluginTestHelper {
      *
      * @return the authentication object
      */
-    public static Authentication getAuthentication(@NonNull JenkinsRule.WebClient webClient) {
+    public static @NonNull Authentication getAuthentication(@NonNull JenkinsRule.WebClient webClient) {
+        Authentication authentication = null;
         try {
-            return webClient.executeOnServer(Jenkins::getAuthentication2);
+            authentication = webClient.executeOnServer(Jenkins::getAuthentication2);
         } catch (Exception e) {
-            // safely ignore all exceptions, the method never throws anything
-            return null;
+            throw new RuntimeException(e);
         }
+        assertNotNull(authentication);
+        return authentication;
     }
 
     public static @NonNull Map<String, Object> setUpKeyValuesWithGroupAndSub() {
@@ -263,8 +268,6 @@ public class PluginTestHelper {
      * @param token - the password api token to user
      * @param url   - the url to request
      * @return HttpResponse
-     * @throws IOException
-     * @throws InterruptedException
      */
     public static HttpResponse<String> getPageWithGet(JenkinsRule jenkinsRule, String user, String token, String url)
             throws IOException, InterruptedException {

@@ -72,7 +72,6 @@ import com.nimbusds.oauth2.sdk.Scope;
 import hudson.model.User;
 import hudson.tasks.Mailer;
 import hudson.util.VersionNumber;
-import jakarta.servlet.http.HttpSession;
 import java.net.http.HttpResponse;
 import java.security.KeyPair;
 import java.security.MessageDigest;
@@ -147,7 +146,7 @@ class PluginTest {
                 .withQueryParam("nonce", matching(".+")));
         wireMock.verify(postRequestedFor(urlPathEqualTo("/token")).withRequestBody(notMatching(".*&scope=.*")));
         webClient.executeOnServer(() -> {
-            HttpSession session = Stapler.getCurrentRequest2().getSession();
+            Stapler.getCurrentRequest2().getSession();
             assertNotNull(((OicSecurityRealm) Jenkins.get().getSecurityRealm()).getStateAttribute());
             return null;
         });
@@ -690,6 +689,7 @@ class PluginTest {
         browseLoginPage(webClient, jenkins);
 
         User user = toUser(getAuthentication(webClient));
+        assertNotNull(user);
         assertTrue(user.getAuthorities().isEmpty(), "User shouldn't be part of any group");
     }
 
@@ -707,6 +707,7 @@ class PluginTest {
 
         Authentication authentication = getAuthentication(webClient);
         User user = toUser(authentication);
+        assertNotNull(user);
         assertTrue(user.getAuthorities().isEmpty(), "User shouldn't be part of any group");
     }
 
@@ -723,6 +724,7 @@ class PluginTest {
         browseLoginPage(webClient, jenkins);
 
         User user = toUser(getAuthentication(webClient));
+        assertNotNull(user);
         assertTrue(user.getAuthorities().isEmpty(), "User shouldn't be part of any group");
     }
 
@@ -783,6 +785,7 @@ class PluginTest {
                 authentication.getPrincipal(),
                 "Should read field (ex:username) from IdToken when empty in userInfo");
         User user = toUser(authentication);
+        assertNotNull(user);
         assertEquals(
                 TEST_USER_FULL_NAME,
                 user.getFullName(),
@@ -841,11 +844,14 @@ class PluginTest {
         assertEquals(
                 3, userProperty.getAuthorities2().size(), "Property should specify 3 groups (2 + 'authenticated')");
 
-        HtmlPage configure = Jenkins.getVersion().isNewerThan(new VersionNumber("2.467"))
+        VersionNumber version = Jenkins.getVersion();
+        assertNotNull(version);
+        HtmlPage configure = version.isNewerThan(new VersionNumber("2.467"))
                 ? webClient.goTo("me/account/")
                 : webClient.goTo("me/configure");
         jenkinsRule.submit(configure.getFormByName("config"));
         user = User.getById(TEST_USER_USERNAME, false);
+        assertNotNull(user);
         assertEquals(2, user.getAuthorities().size(), "User should still be in 2 groups");
         userProperty = user.getProperty(LastGrantedAuthoritiesProperty.class);
         assertEquals(
@@ -1001,10 +1007,9 @@ class PluginTest {
         assertTestUser(webClient);
 
         // create a jenkins api token for the test user
-        String token = User.getById(TEST_USER_USERNAME, false)
-                .getProperty(ApiTokenProperty.class)
-                .generateNewToken("foo")
-                .plainValue;
+        User userById = User.getById(TEST_USER_USERNAME, false);
+        assertNotNull(userById);
+        String token = userById.getProperty(ApiTokenProperty.class).generateNewToken("foo").plainValue;
 
         // validate that the token can be used
         HttpResponse<String> rsp = getPageWithGet(jenkinsRule, TEST_USER_USERNAME, token, "/whoAmI/api/xml");

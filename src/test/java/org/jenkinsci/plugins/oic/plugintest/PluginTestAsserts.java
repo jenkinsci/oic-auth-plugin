@@ -5,6 +5,7 @@ import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_GROUPS;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_USERNAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,6 +37,7 @@ public class PluginTestAsserts {
         Authentication authentication = PluginTestHelper.getAuthentication(webClient);
         assertEquals(TEST_USER_USERNAME, authentication.getPrincipal(), "Should be logged-in as " + TEST_USER_USERNAME);
         User user = PluginTestHelper.toUser(authentication);
+        assertNotNull(user);
         assertEquals(TEST_USER_FULL_NAME, user.getFullName(), "Full name should be " + TEST_USER_FULL_NAME);
         return user;
     }

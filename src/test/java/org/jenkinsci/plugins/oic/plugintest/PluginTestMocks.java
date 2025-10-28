@@ -100,6 +100,7 @@ public class PluginTestMocks {
     }
 
     public static void mockTokenReturnsIdToken(@NonNull WireMockExtension wireMock, @CheckForNull String idToken) {
+        //noinspection unchecked
         mockTokenReturnsIdToken(wireMock, idToken, new Consumer[0]);
     }
 
