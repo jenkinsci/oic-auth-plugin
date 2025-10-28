@@ -12,7 +12,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static com.google.gson.JsonParser.parseString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -20,6 +19,44 @@ import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertAnonymous;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestAvatar;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUser;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUserEmail;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUserIsMemberOfGroups;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUserIsMemberOfTestGroups;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_ENCODED_AVATAR;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_EMAIL_ADDRESS;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_FULL_NAME;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_GROUPS;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_GROUPS_MAP;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_GROUPS_REFRESHED;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_USERNAME;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.belongsToGroup;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.browseLoginPage;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.configureTestRealm;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.configureWellKnown;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.createKeyPair;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.encodePublicKey;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.expire;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.getAuthentication;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.getPageWithGet;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.setUpKeyValuesNested;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.setUpKeyValuesNoGroup;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.setUpKeyValuesWithGroup;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.setUpKeyValuesWithGroupAndSub;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.toJson;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.toUser;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockAuthorizationRedirectsToFinishLogin;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockTokenReturnsIdToken;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockTokenReturnsIdTokenWithGroup;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockTokenReturnsIdTokenWithValues;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockTokenReturnsIdTokenWithoutValues;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockUserInfo;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockUserInfoJwtWithTestGroups;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockUserInfoWithAvatar;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockUserInfoWithGroups;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockUserInfoWithTestGroups;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -29,44 +66,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import com.google.api.client.auth.openidconnect.IdToken;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.client.json.webtoken.JsonWebSignature;
-import com.google.api.client.json.webtoken.JsonWebToken;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.nimbusds.oauth2.sdk.GrantType;
 import com.nimbusds.oauth2.sdk.Scope;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.User;
 import hudson.tasks.Mailer;
-import hudson.tasks.UserAvatarResolver;
 import hudson.util.VersionNumber;
 import jakarta.servlet.http.HttpSession;
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.interfaces.RSAPublicKey;
-import java.time.Clock;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLException;
@@ -76,6 +89,7 @@ import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.htmlunit.CookieManager;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.util.Cookie;
+import org.jenkinsci.plugins.oic.plugintest.PluginTestHelper;
 import org.jenkinsci.plugins.oic.properties.DisableNonce;
 import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
 import org.jenkinsci.plugins.oic.properties.Pkce;
@@ -89,8 +103,6 @@ import org.jvnet.hudson.test.Url;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.Stapler;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.xml.sax.SAXException;
 
 /**
  * goes through a login scenario, the openid provider is mocked and always
@@ -101,15 +113,6 @@ import org.xml.sax.SAXException;
 @Url("https://jenkins.io/blog/2018/01/13/jep-200/")
 @WithJenkins
 class PluginTest {
-    private static final String TEST_USER_USERNAME = "testUser";
-    private static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
-    private static final String TEST_USER_FULL_NAME = "Oic Test User";
-    private static final String[] TEST_USER_GROUPS = new String[] {"group1", "group2"};
-    private static final String[] TEST_USER_GROUPS_REFRESHED = new String[] {"group1", "group2", "group3"};
-    private static final List<Map<String, String>> TEST_USER_GROUPS_MAP =
-            List.of(Map.of("id", "id1", "name", "group1"), Map.of("id", "id2", "name", "group2"));
-    private static final String TEST_ENCODED_AVATAR =
-            "iVBORw0KGgoAAAANSUhEUgAAABsAAAAaCAYAAABGiCfwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAH8SURBVEhL7ZbPK0RRFMe/z/w05Mc0Mo0mZeFXGM1IFDFEfjWKks1sSIkipDSrt1M2FpY2FpSllK2yV/4DWYlSLGzw7rvufe/Rm5n3a4rJwmdz77nz3vnee865Z56QSCQoikSJNhaFvy823Ulwsf6BWFTWVpxRsFionGJ7TEZtBSCmCEoE5ykvWGxtmMDvUefRIDDf/UtibXUUEx3ZzpcHCSpKNcOGgsQyk0QZbx/ecHDxhOdXCQEvsJpU1+1wLDYVk9FYq54qc/yAtcN7HF0+K/ZMnKChxj6cjsT8Hop1lqsvPojq+F1SR0EQsDMuKXMrHIkt9smoLtMME+L1wFCL9VWwFQtXUqR7nd2nzRECt0szDLAV2xq1dqAnXAmke8yLxVIsXk+RbLZPvJ7Ffh5y43dMxVjOHSU9F37h9cWkx1RsNi6zctaMHLxuthPdmMtUjLJrkp9nVyQSEbX5NwEvxf68BJ/H2Flr1I9wtRtLI0GU+oz32xQGzm6yfzN8ciUpsxZkLMTxs01UlbmUUJvBW9t4e/bp8sSiQYq5LutSF08flQ5ycvWirRjDc8cbwhd5YdydIUo3t6KpzgeJdZGNVMg0jJyAD5CZ1vWd+kzWNwg/+tFC4RVoxTtzN7DnYS0uR4z/VYgpCeVsRz/FPYu0eO5W5v9fVz9CEcWAT+xkgmHqzLIIAAAAAElFTkSuQmCC";
 
     @RegisterExtension
     static WireMockExtension wireMock = WireMockExtension.newInstance()
@@ -130,12 +133,12 @@ class PluginTest {
 
     @Test
     void testLoginWithDefaults() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
-        configureTestRealm(sc -> {});
-        assertAnonymous();
-        browseLoginPage();
-        var user = assertTestUser();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        configureTestRealm(wireMock, jenkins, sc -> {});
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestUserIsMemberOfTestGroups(user);
 
@@ -152,24 +155,24 @@ class PluginTest {
 
     @Test
     void testLoginWithDefaultsUntrustedTLSFails() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
         TestRealm.Builder builder = new TestRealm.Builder(wireMock, true).WithMinimalDefaults();
         jenkins.setSecurityRealm(builder.build());
-        assertThrows(SSLException.class, this::browseLoginPage);
+        assertThrows(SSLException.class, () -> browseLoginPage(webClient, jenkins));
     }
 
     @Test
     void testLoginWithDefaultsUntrustedTLSPassesWhenTLSChecksDisabled() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
         TestRealm.Builder builder =
                 new TestRealm.Builder(wireMock, true).WithMinimalDefaults().WithDisableSslVerification(true);
         jenkins.setSecurityRealm(builder.build());
         // webclient talks to the OP via SSL so we need to disable Webclients TLS validation also
         webClient.getOptions().setUseInsecureSSL(true);
-        browseLoginPage();
-        var user = assertTestUser();
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestUserIsMemberOfTestGroups(user);
     }
@@ -185,12 +188,12 @@ class PluginTest {
         CookieManager cookieManager = webClient.getCookieManager();
         Cookie jSessionIDCookie = new Cookie(cookieHost, cookieName, previousSession, cookiePath, null, false, true);
 
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
-        configureTestRealm(sc -> {});
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        configureTestRealm(wireMock, jenkins, sc -> {});
 
         // Not yet logged in
-        assertAnonymous();
+        assertAnonymous(webClient);
         assertEquals(
                 0,
                 cookieManager.getCookies().stream()
@@ -201,7 +204,7 @@ class PluginTest {
         // Set a JSESSIONID cookie value before the first login is attempted.
         cookieManager.addCookie(jSessionIDCookie);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
         // Multiple JSESSIONID can exist if, for example, the path is different
         assertEquals(
@@ -214,56 +217,19 @@ class PluginTest {
         String firstLoginSession = cookieManager.getCookie(cookieName).getValue();
         assertNotEquals(previousSession, firstLoginSession, "The previous session should be replaced with a new one");
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
         String secondLoginSession = cookieManager.getCookie(cookieName).getValue();
         assertNotEquals(firstLoginSession, secondLoginSession, "The session should be renewed when the user log in");
     }
 
-    private void browseLoginPage() throws IOException, SAXException {
-        webClient.goTo(jenkins.getSecurityRealm().getLoginUrl());
-    }
-
-    private void configureTestRealm(@NonNull Consumer<OicSecurityRealm> consumer) throws Exception {
-        var securityRealm = new TestRealm(wireMock);
-        consumer.accept(securityRealm);
-        jenkins.setSecurityRealm(securityRealm);
-    }
-
-    private static void assertTestUserIsMemberOfTestGroups(User user) {
-        assertTestUserIsMemberOfGroups(user, TEST_USER_GROUPS);
-    }
-
-    private static void assertTestUserIsMemberOfGroups(User user, String... testUserGroups) {
-        for (String group : testUserGroups) {
-            assertTrue(user.getAuthorities().contains(group), "User should be part of group " + group);
-        }
-    }
-
-    private void assertAnonymous() {
-        assertEquals(
-                Jenkins.ANONYMOUS2.getPrincipal(), getAuthentication().getPrincipal(), "Shouldn't be authenticated");
-    }
-
-    private void mockAuthorizationRedirectsToFinishLogin() {
-        wireMock.stubFor(get(urlPathEqualTo("/authorization"))
-                .willReturn(aResponse()
-                        .withTransformers("response-template")
-                        .withStatus(302)
-                        .withHeader("Content-Type", "text/html; charset=utf-8")
-                        .withHeader(
-                                "Location",
-                                jenkins.getRootUrl()
-                                        + "securityRealm/finishLogin?state={{request.query.state}}&code=code")));
-    }
-
     @Test
     @Disabled("there is no configuration option for this and the spec does not have scopes in a token endpoint")
     void testLoginWithScopesInTokenRequest() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
-        configureTestRealm(sc -> sc.setSendScopesInTokenRequest(true));
-        browseLoginPage();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        configureTestRealm(wireMock, jenkins, sc -> sc.setSendScopesInTokenRequest(true));
+        browseLoginPage(webClient, jenkins);
 
         wireMock.verify(
                 getRequestedFor(urlPathEqualTo("/authorization")).withQueryParam("scope", equalTo("openid email")));
@@ -272,11 +238,11 @@ class PluginTest {
 
     @Test
     void testLoginWithPkceEnabled() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
 
-        configureTestRealm(sc -> sc.getProperties().add(new Pkce()));
-        browseLoginPage();
+        configureTestRealm(wireMock, jenkins, sc -> sc.getProperties().add(new Pkce()));
+        browseLoginPage(webClient, jenkins);
 
         wireMock.verify(getRequestedFor(urlPathEqualTo("/authorization"))
                 .withQueryParam("code_challenge_method", equalTo("S256"))
@@ -311,28 +277,28 @@ class PluginTest {
 
     @Test
     void testLoginWithNonceDisabled() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
-        configureTestRealm(sc -> sc.getProperties().add(new DisableNonce()));
-        browseLoginPage();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        configureTestRealm(wireMock, jenkins, sc -> sc.getProperties().add(new DisableNonce()));
+        browseLoginPage(webClient, jenkins);
 
         wireMock.verify(getRequestedFor(urlPathEqualTo("/authorization")).withQueryParam("nonce", absent()));
     }
 
     @Test
     void testLoginUsingUserInfoEndpointWithGroupsMap() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoWithGroups(TEST_USER_GROUPS_MAP);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithGroups(wireMock, TEST_USER_GROUPS_MAP);
 
         System.out.println("jsonarray : " + toJson(TEST_USER_GROUPS_MAP));
         jenkins.setSecurityRealm(new TestRealm(
                 wireMock, "http://localhost:" + wireMock.getPort() + "/userinfo", "email", "groups[].name"));
-        assertAnonymous();
+        assertAnonymous(webClient);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        var user = assertTestUser();
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         for (Map<String, String> group : TEST_USER_GROUPS_MAP) {
             var groupName = group.get("name");
@@ -342,10 +308,10 @@ class PluginTest {
 
     @Test
     void testLoginUsingUserInfoEndpointWithAvatar() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoWithAvatar();
-        configureWellKnown(null, null);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithAvatar(wireMock);
+        configureWellKnown(wireMock, null, null);
 
         // Return avatar image when requested
         wireMock.stubFor(get(urlPathEqualTo("/my-avatar.png"))
@@ -355,78 +321,78 @@ class PluginTest {
                         .withBody(Base64.getDecoder().decode(TEST_ENCODED_AVATAR))));
 
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
-        assertAnonymous();
-        browseLoginPage();
-        var user = assertTestUser();
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestAvatar(user, wireMock);
     }
 
     @Test
     void testLoginWithMinimalConfiguration() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, null, null));
-        assertAnonymous();
-        browseLoginPage();
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
 
-        var user = assertTestUser();
+        var user = assertTestUser(webClient);
         assertTrue(user.getAuthorities().isEmpty(), "User should be not be part of any group");
     }
 
     @Test
     void testLoginWithAutoConfiguration() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
-        mockUserInfoWithTestGroups();
-        configureWellKnown(null, null);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        mockUserInfoWithTestGroups(wireMock);
+        configureWellKnown(wireMock, null, null);
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
-        assertAnonymous();
-        browseLoginPage();
-        var user = assertTestUser();
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestUserIsMemberOfTestGroups(user);
     }
 
     @Test
     public void testLoginWithCustomLoginParameters() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
-        mockUserInfoWithTestGroups();
-        configureWellKnown(null, null);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        mockUserInfoWithTestGroups(wireMock);
+        configureWellKnown(wireMock, null, null);
         jenkins.setSecurityRealm(new TestRealm.Builder(wireMock)
                 .WithMinimalDefaults()
                         .WithAutomanualconfigure(true)
                         .WithLoginQueryParameters(
                                 List.of(new LoginQueryParameter("queryLoginParamName", "queryLoginParamValue")))
                         .build());
-        assertAnonymous();
-        browseLoginPage();
-        var user = assertTestUser();
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestUserIsMemberOfTestGroups(user);
     }
 
     @Test
     void testLoginWithAutoConfiguration_WithNoScope() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithValues(setUpKeyValuesNoGroup());
-        mockUserInfoWithGroups(null);
-        configureWellKnown(null, null);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithValues(wireMock, setUpKeyValuesNoGroup());
+        mockUserInfoWithGroups(wireMock, null);
+        configureWellKnown(wireMock, null, null);
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
-        assertAnonymous();
-        configureWellKnown(null, null);
+        assertAnonymous(webClient);
+        configureWellKnown(wireMock, null, null);
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
-        assertAnonymous();
-        browseLoginPage();
-        var user = assertTestUser();
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertThat("User should be not be part of any group", user.getAuthorities(), empty());
     }
 
     @Test
     void testConfigurationWithAutoConfiguration_withScopeOverride() throws Exception {
-        configureWellKnown(null, List.of("openid", "profile", "scope1", "scope2", "scope3"));
+        configureWellKnown(wireMock, null, List.of("openid", "profile", "scope1", "scope2", "scope3"));
         TestRealm oicsr = new TestRealm.Builder(wireMock)
                 .WithMinimalDefaults().WithAutomanualconfigure(true).build();
         jenkins.setSecurityRealm(oicsr);
@@ -455,7 +421,7 @@ class PluginTest {
 
     @Test
     void testConfigurationWithAutoConfiguration_withRefreshToken() throws Exception {
-        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        configureWellKnown(wireMock, null, null, "authorization_code", "refresh_token");
         TestRealm oicsr = new TestRealm.Builder(wireMock)
                 .WithMinimalDefaults().WithAutomanualconfigure(true).build();
         jenkins.setSecurityRealm(oicsr);
@@ -469,25 +435,25 @@ class PluginTest {
 
     @Test
     void testRefreshToken_validAndExtendedToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        configureWellKnown(wireMock, null, null, "authorization_code", "refresh_token");
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
         // user groups on first login
-        mockTokenReturnsIdTokenWithGroup();
-        mockUserInfoWithTestGroups();
-        browseLoginPage();
-        var user = assertTestUser();
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        mockUserInfoWithTestGroups(wireMock);
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         assertFalse(
                 user.getAuthorities().contains(TEST_USER_GROUPS_REFRESHED[2]),
                 "User should not be part of group " + TEST_USER_GROUPS_REFRESHED[2]);
 
         // refresh user with different groups
-        mockTokenReturnsIdTokenWithValues(setUpKeyValuesWithGroup(TEST_USER_GROUPS_REFRESHED));
-        mockUserInfoWithGroups(TEST_USER_GROUPS_REFRESHED);
-        expire();
+        mockTokenReturnsIdTokenWithValues(wireMock, setUpKeyValuesWithGroup(TEST_USER_GROUPS_REFRESHED));
+        mockUserInfoWithGroups(wireMock, TEST_USER_GROUPS_REFRESHED);
+        expire(webClient);
         webClient.goTo(jenkins.getSearchUrl());
 
-        user = assertTestUser();
+        user = assertTestUser(webClient);
         assertTrue(
                 user.getAuthorities().contains(TEST_USER_GROUPS_REFRESHED[2]),
                 "User should be part of group " + TEST_USER_GROUPS_REFRESHED[2]);
@@ -496,67 +462,20 @@ class PluginTest {
                 postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("grant_type=refresh_token")));
     }
 
-    private HttpResponse<String> getPageWithGet(String url) throws IOException, InterruptedException {
-        // fix up the url, if needed
-        if (url.startsWith("/")) {
-            url = url.substring(1);
-        }
-
-        HttpClient c = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.NEVER)
-                .build();
-        return c.send(
-                HttpRequest.newBuilder(URI.create(jenkinsRule.getURL() + url))
-                        .GET()
-                        .build(),
-                HttpResponse.BodyHandlers.ofString());
-    }
-
-    /**
-     * performs a GET request using a basic authorization header
-     * @param user - The user id
-     * @param token - the password api token to user
-     * @param url - the url to request
-     * @return HttpResponse
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    private HttpResponse<String> getPageWithGet(String user, String token, String url)
-            throws IOException, InterruptedException {
-        // fix up the url, if needed
-        if (url.startsWith("/")) {
-            url = url.substring(1);
-        }
-
-        HttpClient c = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.ALWAYS)
-                .build();
-        return c.send(
-                HttpRequest.newBuilder(URI.create(jenkinsRule.getURL() + url))
-                        .header(
-                                "Authorization",
-                                "Basic "
-                                        + Base64.getEncoder()
-                                                .encodeToString((user + ":" + token).getBytes(StandardCharsets.UTF_8)))
-                        .GET()
-                        .build(),
-                HttpResponse.BodyHandlers.ofString());
-    }
-
     @Test
     void testRefreshTokenAndTokenExpiration_withoutRefreshToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        configureWellKnown(null, null, "authorization_code");
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        configureWellKnown(wireMock, null, null, "authorization_code");
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
         // login
-        mockTokenReturnsIdTokenWithGroup(PluginTest::withoutRefreshToken);
-        mockUserInfoWithTestGroups();
-        browseLoginPage();
-        assertTestUser();
+        mockTokenReturnsIdTokenWithGroup(wireMock, PluginTestHelper::withoutRefreshToken);
+        mockUserInfoWithTestGroups(wireMock);
+        browseLoginPage(webClient, jenkins);
+        assertTestUser(webClient);
         // expired token not refreshed
-        expire();
+        expire(webClient);
         // use an actual HttpClient to make checking redirects easier
-        HttpResponse<String> rsp = getPageWithGet("/manage");
+        HttpResponse<String> rsp = getPageWithGet(jenkinsRule, "/manage");
         assertThat("response should have been 302\n" + rsp.body(), rsp.statusCode(), is(302));
         wireMock.verify(postRequestedFor(urlPathEqualTo("/token"))
                 .withRequestBody(notMatching(".*grant_type=refresh_token.*")));
@@ -564,18 +483,18 @@ class PluginTest {
 
     @Test
     void testRefreshTokenWithTokenExpirationCheckDisabled_withoutRefreshToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        configureWellKnown(null, null, "authorization_code");
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        configureWellKnown(wireMock, null, null, "authorization_code");
         var realm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
         realm.setTokenExpirationCheckDisabled(true);
         jenkins.setSecurityRealm(realm);
         // login
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoWithTestGroups();
-        browseLoginPage();
-        assertTestUser();
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithTestGroups(wireMock);
+        browseLoginPage(webClient, jenkins);
+        assertTestUser(webClient);
 
-        expire();
+        expire(webClient);
         webClient.goTo(jenkins.getSearchUrl());
 
         wireMock.verify(postRequestedFor(urlPathEqualTo("/token"))
@@ -584,23 +503,23 @@ class PluginTest {
 
     @Test
     void testRefreshTokenWithTokenExpirationCheckDisabled_expiredRefreshToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        configureWellKnown(wireMock, null, null, "authorization_code", "refresh_token");
         TestRealm testRealm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
         testRealm.setTokenExpirationCheckDisabled(true);
         jenkins.setSecurityRealm(testRealm);
         // login
-        mockTokenReturnsIdTokenWithGroup();
-        mockUserInfoWithTestGroups();
-        browseLoginPage();
-        assertTestUser();
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        mockUserInfoWithTestGroups(wireMock);
+        browseLoginPage(webClient, jenkins);
+        assertTestUser(webClient);
 
         wireMock.stubFor(post(urlPathEqualTo("/token"))
                 .willReturn(aResponse()
                         .withStatus(400)
                         .withHeader("Content-Type", "application/json")
                         .withBody("{ \"error\": \"invalid_grant\" }")));
-        expire();
+        expire(webClient);
         webClient.goTo(jenkins.getSearchUrl(), "");
 
         wireMock.verify(
@@ -609,22 +528,22 @@ class PluginTest {
 
     @Test
     void testRefreshTokenAndTokenExpiration_expiredRefreshToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        configureWellKnown(wireMock, null, null, "authorization_code", "refresh_token");
         TestRealm testRealm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
         jenkins.setSecurityRealm(testRealm);
         // login
-        mockTokenReturnsIdTokenWithGroup();
-        mockUserInfoWithTestGroups();
-        browseLoginPage();
-        assertTestUser();
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        mockUserInfoWithTestGroups(wireMock);
+        browseLoginPage(webClient, jenkins);
+        assertTestUser(webClient);
 
         wireMock.stubFor(post(urlPathEqualTo("/token"))
                 .willReturn(aResponse()
                         .withStatus(400)
                         .withHeader("Content-Type", "application/json")
                         .withBody("{ \"error\": \"invalid_grant\" }")));
-        expire();
+        expire(webClient);
         webClient.assertFails(jenkins.getSearchUrl(), 500);
 
         wireMock.verify(
@@ -633,46 +552,28 @@ class PluginTest {
 
     @Test
     void testTokenExpiration_withoutExpiresInValue() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        configureWellKnown(null, null, "authorization_code", "refresh_token");
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        configureWellKnown(wireMock, null, null, "authorization_code", "refresh_token");
         TestRealm testRealm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
         jenkins.setSecurityRealm(testRealm);
         // login
-        mockTokenReturnsIdTokenWithGroup(PluginTest::withoutExpiresIn);
-        mockUserInfoWithTestGroups();
-        browseLoginPage();
-        var user = assertTestUser();
+        mockTokenReturnsIdTokenWithGroup(wireMock, PluginTestHelper::withoutExpiresIn);
+        mockUserInfoWithTestGroups(wireMock);
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         OicCredentials credentials = user.getProperty(OicCredentials.class);
 
         assertNotNull(credentials);
         assertNull(credentials.getExpiresAtMillis());
     }
 
-    private void expire() throws Exception {
-        webClient.executeOnServer(() -> {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            User user = User.get2(authentication);
-            OicCredentials credentials = user.getProperty(OicCredentials.class);
-
-            // setting currentTimestamp == 1 guarantees this will be an expired cred
-            user.addProperty(new OicCredentials(
-                    credentials.getAccessToken(),
-                    credentials.getIdToken(),
-                    credentials.getRefreshToken(),
-                    60L,
-                    1L,
-                    60L));
-            return null;
-        });
-    }
-
     @Test
     void testreadResolve_withNulls() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithValues(setUpKeyValuesWithGroup());
-        mockUserInfoWithTestGroups();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithValues(wireMock, setUpKeyValuesWithGroup());
+        mockUserInfoWithTestGroups(wireMock);
 
-        configureWellKnown(null, null);
+        configureWellKnown(wireMock, null, null);
 
         TestRealm realm = new TestRealm(wireMock, null, null, null, true);
         jenkins.setSecurityRealm(realm);
@@ -682,10 +583,10 @@ class PluginTest {
 
     @Test
     void testreadResolve_withNonNulls() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
-        mockUserInfoWithTestGroups();
-        configureWellKnown("http://localhost/endSession", null);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        mockUserInfoWithTestGroups(wireMock);
+        configureWellKnown(wireMock, "http://localhost/endSession", null);
         TestRealm realm = new TestRealm(wireMock, null, null, null, true);
         jenkins.setSecurityRealm(realm);
         assertEquals(realm, realm.readResolve());
@@ -693,13 +594,13 @@ class PluginTest {
 
     @Test
     void testLoginUsingUserInfoEndpoint() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoWithTestGroups();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithTestGroups(wireMock);
         jenkins.setSecurityRealm(new TestRealm(wireMock, "http://localhost:" + wireMock.getPort() + "/userinfo"));
-        assertAnonymous();
-        browseLoginPage();
-        var user = assertTestUser();
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestUserIsMemberOfTestGroups(user);
     }
@@ -707,17 +608,17 @@ class PluginTest {
     @Test
     void testLoginUsingUserInfoWithJWT() throws Exception {
         KeyPair keyPair = createKeyPair();
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoJwtWithTestGroups(keyPair, "group1");
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoJwtWithTestGroups(wireMock, keyPair, "group1");
 
         jenkins.setSecurityRealm(new TestRealm(wireMock, "http://localhost:" + wireMock.getPort() + "/userinfo"));
 
-        assertAnonymous();
+        assertAnonymous(webClient);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        var user = assertTestUser();
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestUserIsMemberOfGroups(user, "group1");
     }
@@ -731,9 +632,9 @@ class PluginTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"keys\":[{" + encodePublicKey(keyPair) + ",\"use\":\"sig\",\"kid\":\"jwks_key_id\""
                                 + "}]}")));
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues(keyPair);
-        mockUserInfoJwtWithTestGroups(keyPair, TEST_USER_GROUPS);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock, keyPair);
+        mockUserInfoJwtWithTestGroups(wireMock, keyPair, TEST_USER_GROUPS);
 
         jenkins.setSecurityRealm(new TestRealm.Builder(wireMock)
                 .WithUserInfoServerUrl("http://localhost:" + wireMock.getPort() + "/userinfo")
@@ -741,11 +642,11 @@ class PluginTest {
                         .WithDisableTokenValidation(false)
                         .build());
 
-        assertAnonymous();
+        assertAnonymous(webClient);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        Authentication authentication = getAuthentication();
+        Authentication authentication = getAuthentication(webClient);
         assertEquals(TEST_USER_USERNAME, authentication.getPrincipal(), "Should be logged-in as " + TEST_USER_USERNAME);
     }
 
@@ -759,146 +660,124 @@ class PluginTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"keys\":[{" + encodePublicKey(keyPair)
                                 + ",\"use\":\"sig\",\"kid\":\"wrong_key_id\"" + "}]}")));
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues(keyPair);
-        mockUserInfoJwtWithTestGroups(keyPair, TEST_USER_GROUPS);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock, keyPair);
+        mockUserInfoJwtWithTestGroups(wireMock, keyPair, TEST_USER_GROUPS);
         TestRealm testRealm = new TestRealm.Builder(wireMock)
                 .WithUserInfoServerUrl("http://localhost:" + wireMock.getPort() + "/userinfo")
                         .WithJwksServerUrl("http://localhost:" + wireMock.getPort() + "/jwks")
                         .build();
         jenkins.setSecurityRealm(testRealm);
-        assertAnonymous();
-        browseLoginPage();
-        assertAnonymous();
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+        assertAnonymous(webClient);
         testRealm.getProperties().add(new DisableTokenVerification());
-        browseLoginPage();
-        Authentication authentication = getAuthentication();
+        browseLoginPage(webClient, jenkins);
+        Authentication authentication = getAuthentication(webClient);
         assertEquals(TEST_USER_USERNAME, authentication.getPrincipal(), "Should be logged-in as " + TEST_USER_USERNAME);
     }
 
     @Test
     void testShouldLogUserWithoutGroupsWhenUserGroupIsMissing() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoWithGroups(null);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithGroups(wireMock, null);
 
         jenkins.setSecurityRealm(new TestRealm(wireMock, "http://localhost:" + wireMock.getPort() + "/userinfo"));
 
-        assertAnonymous();
+        assertAnonymous(webClient);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        User user = toUser(getAuthentication());
+        User user = toUser(getAuthentication(webClient));
         assertTrue(user.getAuthorities().isEmpty(), "User shouldn't be part of any group");
     }
 
     @Test
     void testShouldLogUserWithoutGroupsWhenUserGroupIsNull() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoWithGroups(JsonNull.INSTANCE);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithGroups(wireMock, JsonNull.INSTANCE);
 
         jenkins.setSecurityRealm(new TestRealm(wireMock, "http://localhost:" + wireMock.getPort() + "/userinfo"));
 
-        assertAnonymous();
+        assertAnonymous(webClient);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        User user = toUser(getAuthentication());
+        Authentication authentication = getAuthentication(webClient);
+        User user = toUser(authentication);
         assertTrue(user.getAuthorities().isEmpty(), "User shouldn't be part of any group");
     }
 
     @Test
     void testShouldLogUserWithoutGroupsWhenUserGroupIsNotAStringList() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfoWithGroups(Map.of("not", "a group"));
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithGroups(wireMock, Map.of("not", "a group"));
 
         jenkins.setSecurityRealm(new TestRealm(wireMock, "http://localhost:" + wireMock.getPort() + "/userinfo"));
 
-        assertAnonymous();
+        assertAnonymous(webClient);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        User user = toUser(getAuthentication());
+        User user = toUser(getAuthentication(webClient));
         assertTrue(user.getAuthorities().isEmpty(), "User shouldn't be part of any group");
     }
 
     @Test
     void testNestedFieldLookup() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithValues(setUpKeyValuesNested());
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithValues(wireMock, setUpKeyValuesNested());
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, "nested.email", "nested.groups"));
-        assertAnonymous();
-        browseLoginPage();
-        var user = assertTestUser();
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestUserIsMemberOfTestGroups(user);
     }
 
     @Test
     void testNestedFieldLookupFromUserInfoEndpoint() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfo(Map.of(
-                "sub",
-                TEST_USER_USERNAME,
-                FULL_NAME_FIELD,
-                TEST_USER_FULL_NAME,
-                "nested",
-                Map.of("email", TEST_USER_EMAIL_ADDRESS, "groups", TEST_USER_GROUPS),
-                EMAIL_FIELD,
-                ""));
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfo(
+                wireMock,
+                Map.of(
+                        "sub",
+                        TEST_USER_USERNAME,
+                        FULL_NAME_FIELD,
+                        TEST_USER_FULL_NAME,
+                        "nested",
+                        Map.of("email", TEST_USER_EMAIL_ADDRESS, "groups", TEST_USER_GROUPS),
+                        EMAIL_FIELD,
+                        ""));
 
         jenkins.setSecurityRealm(new TestRealm(
                 wireMock, "http://localhost:" + wireMock.getPort() + "/userinfo", "nested.email", "nested.groups"));
 
-        assertAnonymous();
+        assertAnonymous(webClient);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        var user = assertTestUser();
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestUserIsMemberOfTestGroups(user);
     }
 
-    private static void assertTestUserEmail(User user) {
-        assertEquals(
-                TEST_USER_EMAIL_ADDRESS,
-                user.getProperty(Mailer.UserProperty.class).getAddress(),
-                "Email should be " + TEST_USER_EMAIL_ADDRESS);
-    }
-
-    private static void assertTestAvatar(User user, WireMockExtension wireMock) {
-        String expectedAvatarUrl = wireMock.url("/my-avatar.png");
-        OicAvatarProperty avatarProperty = user.getProperty(OicAvatarProperty.class);
-        assertEquals(expectedAvatarUrl, avatarProperty.getAvatarUrl(), "Avatar url should be " + expectedAvatarUrl);
-        assertEquals("OpenID Connect Avatar", avatarProperty.getDisplayName());
-        assertNull(avatarProperty.getIconFileName(), "Icon filename must be null");
-        String urlViaAvatarResolver = UserAvatarResolver.resolve(user, "48x48");
-        assertEquals(expectedAvatarUrl, urlViaAvatarResolver, "Avatar url should be " + expectedAvatarUrl);
-    }
-
-    private @NonNull User assertTestUser() {
-        Authentication authentication = getAuthentication();
-        assertEquals(TEST_USER_USERNAME, authentication.getPrincipal(), "Should be logged-in as " + TEST_USER_USERNAME);
-        User user = toUser(authentication);
-        assertEquals(TEST_USER_FULL_NAME, user.getFullName(), "Full name should be " + TEST_USER_FULL_NAME);
-        return user;
-    }
-
     @Test
     void testFieldLookupFromIdTokenWhenNotInUserInfoEndpoint() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
 
-        mockTokenReturnsIdTokenWithValues(setUpKeyValuesWithGroupAndSub());
-        mockUserInfo(Map.of("sub", "", FULL_NAME_FIELD, JsonNull.INSTANCE, GROUPS_FIELD, TEST_USER_GROUPS));
+        mockTokenReturnsIdTokenWithValues(wireMock, setUpKeyValuesWithGroupAndSub());
+        mockUserInfo(wireMock, Map.of("sub", "", FULL_NAME_FIELD, JsonNull.INSTANCE, GROUPS_FIELD, TEST_USER_GROUPS));
 
         jenkins.setSecurityRealm(
                 new TestRealm(wireMock, "http://localhost:" + wireMock.getPort() + "/userinfo", "email", "groups"));
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        Authentication authentication = getAuthentication();
+        Authentication authentication = getAuthentication(webClient);
         assertEquals(
                 TEST_USER_USERNAME,
                 authentication.getPrincipal(),
@@ -916,24 +795,26 @@ class PluginTest {
 
     @Test
     void testGroupListFromStringInfoEndpoint() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithoutValues();
-        mockUserInfo(Map.of(
-                "sub",
-                TEST_USER_USERNAME,
-                FULL_NAME_FIELD,
-                TEST_USER_FULL_NAME,
-                "nested",
-                Map.of(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS, GROUPS_FIELD, TEST_USER_GROUPS)));
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfo(
+                wireMock,
+                Map.of(
+                        "sub",
+                        TEST_USER_USERNAME,
+                        FULL_NAME_FIELD,
+                        TEST_USER_FULL_NAME,
+                        "nested",
+                        Map.of(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS, GROUPS_FIELD, TEST_USER_GROUPS)));
 
         jenkins.setSecurityRealm(new TestRealm(
                 wireMock, "http://localhost:" + wireMock.getPort() + "/userinfo", "nested.email", "nested.groups"));
 
-        assertAnonymous();
+        assertAnonymous(webClient);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        var user = assertTestUser();
+        var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestUserIsMemberOfTestGroups(user);
         assertEquals(2, user.getAuthorities().size(), "User should be in 2 groups");
@@ -941,17 +822,17 @@ class PluginTest {
 
     @Test
     void testLastGrantedAuthoritiesProperty() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
 
-        mockTokenReturnsIdTokenWithValues(setUpKeyValuesWithGroup());
+        mockTokenReturnsIdTokenWithValues(wireMock, setUpKeyValuesWithGroup());
 
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, false));
 
-        assertAnonymous();
+        assertAnonymous(webClient);
 
-        browseLoginPage();
+        browseLoginPage(webClient, jenkins);
 
-        var user = assertTestUser();
+        var user = assertTestUser(webClient);
 
         assertTestUserEmail(user);
         assertEquals(2, user.getAuthorities().size(), "User should be in 2 groups");
@@ -971,47 +852,6 @@ class PluginTest {
                 3,
                 userProperty.getAuthorities2().size(),
                 "Property should still specify 3 groups (2 + 'authenticated')");
-    }
-
-    private void configureWellKnown(@CheckForNull String endSessionUrl, @CheckForNull List<String> scopesSupported) {
-        configureWellKnown(endSessionUrl, scopesSupported, "authorization_code");
-    }
-
-    private void configureWellKnown(
-            @CheckForNull String endSessionUrl,
-            @CheckForNull List<String> scopesSupported,
-            @CheckForNull String... grantTypesSupported) {
-        // scopes_supported may not be null, but is not required to be present.
-        // if present it must minimally be "openid"
-        // Claims with zero elements MUST be omitted from the response.
-
-        Map<String, Object> values = new HashMap<>(Map.of(
-                "authorization_endpoint",
-                "http://localhost:" + wireMock.getPort() + "/authorization",
-                "token_endpoint",
-                "http://localhost:" + wireMock.getPort() + "/token",
-                "userinfo_endpoint",
-                "http://localhost:" + wireMock.getPort() + "/userinfo",
-                "jwks_uri",
-                "http://localhost:" + wireMock.getPort() + "/jwks",
-                "issuer",
-                TestRealm.ISSUER,
-                "subject_types_supported",
-                List.of("public")));
-        if (scopesSupported != null && !scopesSupported.isEmpty()) {
-            values.put("scopes_supported", scopesSupported);
-        }
-        if (endSessionUrl != null) {
-            values.put("end_session_endpoint", endSessionUrl);
-        }
-        if (grantTypesSupported.length != 0) {
-            values.put("grant_types_supported", grantTypesSupported);
-        }
-
-        wireMock.stubFor(get(urlPathEqualTo("/well.known"))
-                .willReturn(aResponse()
-                        .withHeader("Content-Type", "text/html; charset=utf-8")
-                        .withBody(toJson(values))));
     }
 
     @Test
@@ -1078,130 +918,87 @@ class PluginTest {
                 logoutURL[0]);
     }
 
-    private KeyPair createKeyPair() throws NoSuchAlgorithmException {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-        keyGen.initialize(2048);
-        return keyGen.generateKeyPair();
-    }
-
-    private String createIdToken(PrivateKey privateKey, Map<String, Object> keyValues) throws Exception {
-        JsonWebSignature.Header header =
-                new JsonWebSignature.Header().setAlgorithm("RS256").setKeyId("jwks_key_id");
-        long now = Clock.systemUTC().millis() / 1000;
-        IdToken.Payload payload = new IdToken.Payload()
-                .setExpirationTimeSeconds(now + 60L)
-                .setIssuedAtTimeSeconds(now)
-                .setIssuer(TestRealm.ISSUER)
-                .setSubject(TEST_USER_USERNAME)
-                .setAudience(Collections.singletonList(TestRealm.CLIENT_ID))
-                .setNonce("nonce");
-        for (Map.Entry<String, Object> keyValue : keyValues.entrySet()) {
-            payload.set(keyValue.getKey(), keyValue.getValue());
-        }
-
-        return JsonWebSignature.signUsingRsaSha256(privateKey, GsonFactory.getDefaultInstance(), header, payload);
-    }
-
-    private String createUserInfoJWT(PrivateKey privateKey, String userInfo) throws Exception {
-
-        JsonWebSignature.Header header =
-                new JsonWebSignature.Header().setAlgorithm("RS256").setKeyId("jwks_key_id");
-
-        JsonWebToken.Payload payload = new JsonWebToken.Payload();
-        for (Map.Entry<String, JsonElement> keyValue :
-                parseString(userInfo).getAsJsonObject().entrySet()) {
-            var value = keyValue.getValue();
-            if (value.isJsonArray()) {
-                payload.set(keyValue.getKey(), new Gson().fromJson(value, String[].class));
-            } else {
-                payload.set(keyValue.getKey(), value.getAsString());
-            }
-        }
-
-        return JsonWebSignature.signUsingRsaSha256(privateKey, GsonFactory.getDefaultInstance(), header, payload);
-    }
-
     @Test
     void testLoginWithMissingIdTokenShouldBeRefused() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdToken(null);
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdToken(wireMock, null);
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, null, null));
-        assertAnonymous();
+        assertAnonymous(webClient);
         webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 500);
     }
 
     @Test
     void testLoginWithUnreadableIdTokenShouldBeRefused() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdToken("This is not an IdToken");
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdToken(wireMock, "This is not an IdToken");
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, null, null));
-        assertAnonymous();
+        assertAnonymous(webClient);
         webClient.assertFails(jenkins.getSecurityRealm().getLoginUrl(), 500);
     }
 
     @Test
     void loginWithCheckTokenSuccess() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
-        configureTestRealm(belongsToGroup("group1"));
-        assertAnonymous();
-        browseLoginPage();
-        assertTestUser();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        configureTestRealm(wireMock, jenkins, belongsToGroup("group1"));
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+        assertTestUser(webClient);
     }
 
     @Test
     void loginWithCheckTokenFailure() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
-        configureTestRealm(belongsToGroup("missing-group"));
-        assertAnonymous();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
+        configureTestRealm(wireMock, jenkins, belongsToGroup("missing-group"));
+        assertAnonymous(webClient);
         webClient.setThrowExceptionOnFailingStatusCode(false);
-        browseLoginPage();
-        assertAnonymous();
+        browseLoginPage(webClient, jenkins);
+        assertAnonymous(webClient);
     }
 
     @Test
     @Issue("SECURITY-3441")
     void loginWithIncorrectIssuerFails() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
         jenkins.setSecurityRealm(new TestRealm.Builder(wireMock)
                 .WithIssuer("another_issuer").WithDisableTokenValidation(false).build());
-        assertAnonymous();
+        assertAnonymous(webClient);
         webClient.setThrowExceptionOnFailingStatusCode(false);
-        browseLoginPage();
-        assertAnonymous();
+        browseLoginPage(webClient, jenkins);
+        assertAnonymous(webClient);
     }
 
     @Test
     @Issue("SECURITY-3441")
     void loginWithIncorrectAudienceFails() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        mockTokenReturnsIdTokenWithGroup();
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithGroup(wireMock);
         jenkins.setSecurityRealm(new TestRealm.Builder(wireMock)
                 .WithClient("another_client_id", "client_secret")
                         .WithDisableTokenValidation(false)
                         .build());
-        assertAnonymous();
+        assertAnonymous(webClient);
         webClient.setThrowExceptionOnFailingStatusCode(false);
-        browseLoginPage();
-        assertAnonymous();
+        browseLoginPage(webClient, jenkins);
+        assertAnonymous(webClient);
     }
 
     @Test
     void testAccessUsingJenkinsApiTokens() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin();
-        configureWellKnown(null, null, "authorization_code");
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        configureWellKnown(wireMock, null, null, "authorization_code");
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
         // explicitly ensure allowTokenAccessWithoutOicSession is disabled
         TestRealm testRealm = (TestRealm) jenkins.getSecurityRealm();
         testRealm.setAllowTokenAccessWithoutOicSession(false);
 
         // login and assert normal auth is working
-        mockTokenReturnsIdTokenWithGroup(PluginTest::withoutRefreshToken);
-        mockUserInfoWithTestGroups();
-        browseLoginPage();
-        assertTestUser();
+        mockTokenReturnsIdTokenWithGroup(wireMock, PluginTestHelper::withoutRefreshToken);
+        mockUserInfoWithTestGroups(wireMock);
+        browseLoginPage(webClient, jenkins);
+        assertTestUser(webClient);
 
         // create a jenkins api token for the test user
         String token = User.getById(TEST_USER_USERNAME, false)
@@ -1210,7 +1007,7 @@ class PluginTest {
                 .plainValue;
 
         // validate that the token can be used
-        HttpResponse<String> rsp = getPageWithGet(TEST_USER_USERNAME, token, "/whoAmI/api/xml");
+        HttpResponse<String> rsp = getPageWithGet(jenkinsRule, TEST_USER_USERNAME, token, "/whoAmI/api/xml");
         assertThat("response should have been 200\n" + rsp.body(), rsp.statusCode(), is(200));
 
         assertThat(
@@ -1219,197 +1016,22 @@ class PluginTest {
                 containsString("<authenticated>true</authenticated>"));
 
         // expired oic session tokens, do not refreshed
-        expire();
+        expire(webClient);
 
         // the default behavior expects there to be a valid oic session, so token based
         // access should now fail (unauthorized)
-        rsp = getPageWithGet(TEST_USER_USERNAME, token, "/whoAmI/api/xml");
+        rsp = getPageWithGet(jenkinsRule, TEST_USER_USERNAME, token, "/whoAmI/api/xml");
         assertThat("response should have been 302\n" + rsp.body(), rsp.statusCode(), is(302));
 
         // enable "traditional api token access"
         testRealm.setAllowTokenAccessWithoutOicSession(true);
 
         // verify that jenkins api token is now working again
-        rsp = getPageWithGet(TEST_USER_USERNAME, token, "/whoAmI/api/xml");
+        rsp = getPageWithGet(jenkinsRule, TEST_USER_USERNAME, token, "/whoAmI/api/xml");
         assertThat("response should have been 200\n" + rsp.body(), rsp.statusCode(), is(200));
         assertThat(
                 "response should have been 200\n" + rsp.body(),
                 rsp.body(),
                 containsString("<authenticated>true</authenticated>"));
-    }
-
-    private static @NonNull Consumer<OicSecurityRealm> belongsToGroup(String groupName) {
-        return sc -> {
-            sc.setTokenFieldToCheckKey("contains(groups, '" + groupName + "')");
-            sc.setTokenFieldToCheckValue("true");
-        };
-    }
-
-    /** Generate JWKS entry with public key of keyPair */
-    String encodePublicKey(KeyPair keyPair) {
-        final RSAPublicKey rsaPKey = (RSAPublicKey) (keyPair.getPublic());
-        return "\"n\":\""
-                + Base64.getUrlEncoder()
-                        .withoutPadding()
-                        .encodeToString(rsaPKey.getModulus().toByteArray())
-                + "\",\"e\":\""
-                + Base64.getUrlEncoder()
-                        .withoutPadding()
-                        .encodeToString(rsaPKey.getPublicExponent().toByteArray())
-                + "\",\"alg\":\"RS256\",\"kty\":\"RSA\"";
-    }
-
-    /**
-     * Gets the authentication object from the web client.
-     *
-     * @return the authentication object
-     */
-    private Authentication getAuthentication() {
-        try {
-            return webClient.executeOnServer(Jenkins::getAuthentication2);
-        } catch (Exception e) {
-            // safely ignore all exceptions, the method never throws anything
-            return null;
-        }
-    }
-
-    private static @NonNull Map<String, Object> setUpKeyValuesNoGroup() {
-        Map<String, Object> keyValues = new HashMap<>();
-        keyValues.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
-        keyValues.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
-        return keyValues;
-    }
-
-    private static @NonNull Map<String, Object> setUpKeyValuesWithGroup(String[] groups) {
-        var keyValues = setUpKeyValuesNoGroup();
-        keyValues.put(GROUPS_FIELD, groups);
-        return keyValues;
-    }
-
-    private static @NonNull Map<String, Object> setUpKeyValuesWithGroup() {
-        return setUpKeyValuesWithGroup(TEST_USER_GROUPS);
-    }
-
-    private static @NonNull Map<String, Object> setUpKeyValuesWithGroupAndSub() {
-        var keyValues = setUpKeyValuesWithGroup();
-        keyValues.put("sub", TEST_USER_USERNAME);
-        return keyValues;
-    }
-
-    private static @NonNull Map<String, Object> setUpKeyValuesNested() {
-        return Map.of(
-                "nested",
-                Map.of(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS, GROUPS_FIELD, TEST_USER_GROUPS),
-                FULL_NAME_FIELD,
-                TEST_USER_FULL_NAME);
-    }
-
-    private void mockUserInfoWithTestGroups() {
-        mockUserInfoWithGroups(TEST_USER_GROUPS);
-    }
-
-    private void mockUserInfoWithGroups(@Nullable Object groups) {
-        mockUserInfo(getUserInfo(groups, false));
-    }
-
-    private void mockUserInfoWithAvatar() {
-        mockUserInfo(getUserInfo(null, true));
-    }
-
-    private void mockUserInfoJwtWithTestGroups(KeyPair keyPair, Object testUserGroups) throws Exception {
-        wireMock.stubFor(get(urlPathEqualTo("/userinfo"))
-                .willReturn(aResponse()
-                        .withHeader("Content-Type", "application/jwt")
-                        .withBody(
-                                createUserInfoJWT(keyPair.getPrivate(), toJson(getUserInfo(testUserGroups, false))))));
-    }
-
-    private void mockUserInfo(Map<String, Object> userInfo) {
-        wireMock.stubFor(get(urlPathEqualTo("/userinfo"))
-                .willReturn(aResponse()
-                        .withHeader("Content-Type", "application/json")
-                        .withBody(toJson(userInfo))));
-    }
-
-    private static Map<String, Object> getUserInfo(@Nullable Object groups, boolean withAvatar) {
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("sub", TEST_USER_USERNAME);
-        userInfo.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
-        userInfo.put(EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS);
-        if (groups != null) {
-            userInfo.put(GROUPS_FIELD, groups);
-        }
-        if (withAvatar) {
-            userInfo.put("picture", wireMock.url("/my-avatar.png"));
-        }
-        return userInfo;
-    }
-
-    private static String toJson(Object o) {
-        return new Gson().newBuilder().serializeNulls().create().toJson(o);
-    }
-
-    private void mockTokenReturnsIdTokenWithGroup() throws Exception {
-        mockTokenReturnsIdTokenWithValues(setUpKeyValuesWithGroup());
-    }
-
-    private void mockTokenReturnsIdTokenWithoutValues() throws Exception {
-        mockTokenReturnsIdTokenWithValues(Map.of());
-    }
-
-    private void mockTokenReturnsIdTokenWithoutValues(KeyPair keyPair) throws Exception {
-        mockTokenReturnsIdTokenWithValues(Map.of(), keyPair);
-    }
-
-    private void mockTokenReturnsIdTokenWithValues(Map<String, Object> keyValues) throws Exception {
-        mockTokenReturnsIdTokenWithValues(keyValues, createKeyPair());
-    }
-
-    private void mockTokenReturnsIdTokenWithValues(Map<String, Object> keyValues, KeyPair keyPair) throws Exception {
-        mockTokenReturnsIdToken(createIdToken(keyPair.getPrivate(), keyValues));
-    }
-
-    @SafeVarargs
-    private void mockTokenReturnsIdTokenWithGroup(@CheckForNull Consumer<Map<String, String>>... tokenAcceptors)
-            throws Exception {
-        var keyPair = createKeyPair();
-        mockTokenReturnsIdToken(createIdToken(keyPair.getPrivate(), setUpKeyValuesWithGroup()), tokenAcceptors);
-    }
-
-    private void mockTokenReturnsIdToken(@CheckForNull String idToken) {
-        mockTokenReturnsIdToken(idToken, new Consumer[0]);
-    }
-
-    @SafeVarargs
-    private void mockTokenReturnsIdToken(
-            @CheckForNull String idToken, @CheckForNull Consumer<Map<String, String>>... tokenAcceptors) {
-        var token = new HashMap<String, String>();
-        token.put("access_token", "AcCeSs_ToKeN");
-        token.put("token_type", "Bearer");
-        token.put("expires_in", "3600");
-        token.put("refresh_token", "ReFrEsH_ToKeN");
-        token.put("example_parameter", "example_value");
-        if (idToken != null) {
-            token.put("id_token", idToken);
-        }
-        if (tokenAcceptors != null) {
-            Arrays.stream(tokenAcceptors).forEach(a -> a.accept(token));
-        }
-        wireMock.stubFor(post(urlPathEqualTo("/token"))
-                .willReturn(aResponse()
-                        .withHeader("Content-Type", "application/json")
-                        .withBody(toJson(token))));
-    }
-
-    private static @Nullable User toUser(Authentication authentication) {
-        return User.get(String.valueOf(authentication.getPrincipal()), false, Map.of());
-    }
-
-    private static void withoutRefreshToken(Map<String, String> token) {
-        token.compute("refresh_token", (o, n) -> null);
-    }
-
-    private static void withoutExpiresIn(Map<String, String> token) {
-        token.compute("expires_in", (o, n) -> null);
     }
 }
