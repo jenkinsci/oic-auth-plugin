@@ -1327,6 +1327,7 @@ public class OicSecurityRealm extends SecurityRealm {
             // we need to keep using exactly the same principal otherwise there is a potential for crumbs not to match.
             // whilst we could do some normalization of the username, just use the original (expected) username
             // see https://github.com/jenkinsci/oic-auth-plugin/issues/411
+            // codecov:ignore:start -- ignore for test coverage
             if (LOGGER.isLoggable(Level.FINE)) {
                 Authentication a = SecurityContextHolder.getContext().getAuthentication();
                 User u = User.get2(a);
@@ -1336,6 +1337,7 @@ public class OicSecurityRealm extends SecurityRealm {
                                 + (u == null ? "null user" : u.getId()) + " newly retrieved username would have been: "
                                 + username);
             }
+            // codecov:ignore:end
             username = expectedUsername;
 
             if (failedCheckOfTokenField(idToken)) {
