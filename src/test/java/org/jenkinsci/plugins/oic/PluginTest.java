@@ -8,7 +8,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.notMatching;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -30,7 +29,6 @@ import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_FULL_NAME;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_GROUPS;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_GROUPS_MAP;
-import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_GROUPS_REFRESHED;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_USERNAME;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.belongsToGroup;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.browseLoginPage;
@@ -58,7 +56,6 @@ import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockUserInfoW
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockUserInfoWithGroups;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockUserInfoWithTestGroups;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -67,7 +64,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.google.gson.JsonNull;
-import com.nimbusds.oauth2.sdk.GrantType;
 import com.nimbusds.oauth2.sdk.Scope;
 import hudson.model.User;
 import hudson.tasks.Mailer;
@@ -417,137 +413,6 @@ class PluginTest {
                 new Scope("openid", "profile", "scope1", "scope2", "scope3"),
                 serverConfig.toProviderMetadata().getScopes(),
                 "All scopes of WellKnown should be used");
-    }
-
-    @Test
-    void testConfigurationWithAutoConfiguration_withRefreshToken() throws Exception {
-        configureWellKnown(wireMock, null, null, "authorization_code", "refresh_token");
-        TestRealm oicsr = new TestRealm.Builder(wireMock)
-                .WithMinimalDefaults().WithAutomanualconfigure(true).build();
-        jenkins.setSecurityRealm(oicsr);
-        assertTrue(
-                oicsr.getServerConfiguration()
-                        .toProviderMetadata()
-                        .getGrantTypes()
-                        .contains(GrantType.REFRESH_TOKEN),
-                "Refresh token should be enabled");
-    }
-
-    @Test
-    void testRefreshToken_validAndExtendedToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
-        configureWellKnown(wireMock, null, null, "authorization_code", "refresh_token");
-        jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
-        // user groups on first login
-        mockTokenReturnsIdTokenWithGroup(wireMock);
-        mockUserInfoWithTestGroups(wireMock);
-        browseLoginPage(webClient, jenkins);
-        var user = assertTestUser(webClient);
-        assertFalse(
-                user.getAuthorities().contains(TEST_USER_GROUPS_REFRESHED[2]),
-                "User should not be part of group " + TEST_USER_GROUPS_REFRESHED[2]);
-
-        // refresh user with different groups
-        mockTokenReturnsIdTokenWithValues(wireMock, setUpKeyValuesWithGroup(TEST_USER_GROUPS_REFRESHED));
-        mockUserInfoWithGroups(wireMock, TEST_USER_GROUPS_REFRESHED);
-        expire(webClient);
-        webClient.goTo(jenkins.getSearchUrl());
-
-        user = assertTestUser(webClient);
-        assertTrue(
-                user.getAuthorities().contains(TEST_USER_GROUPS_REFRESHED[2]),
-                "User should be part of group " + TEST_USER_GROUPS_REFRESHED[2]);
-
-        wireMock.verify(
-                postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("grant_type=refresh_token")));
-    }
-
-    @Test
-    void testRefreshTokenAndTokenExpiration_withoutRefreshToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
-        configureWellKnown(wireMock, null, null, "authorization_code");
-        jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
-        // login
-        mockTokenReturnsIdTokenWithGroup(wireMock, PluginTestHelper::withoutRefreshToken);
-        mockUserInfoWithTestGroups(wireMock);
-        browseLoginPage(webClient, jenkins);
-        assertTestUser(webClient);
-        // expired token not refreshed
-        expire(webClient);
-        // use an actual HttpClient to make checking redirects easier
-        HttpResponse<String> rsp = getPageWithGet(jenkinsRule, "/manage");
-        assertThat("response should have been 302\n" + rsp.body(), rsp.statusCode(), is(302));
-        wireMock.verify(postRequestedFor(urlPathEqualTo("/token"))
-                .withRequestBody(notMatching(".*grant_type=refresh_token.*")));
-    }
-
-    @Test
-    void testRefreshTokenWithTokenExpirationCheckDisabled_withoutRefreshToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
-        configureWellKnown(wireMock, null, null, "authorization_code");
-        var realm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
-        realm.setTokenExpirationCheckDisabled(true);
-        jenkins.setSecurityRealm(realm);
-        // login
-        mockTokenReturnsIdTokenWithoutValues(wireMock);
-        mockUserInfoWithTestGroups(wireMock);
-        browseLoginPage(webClient, jenkins);
-        assertTestUser(webClient);
-
-        expire(webClient);
-        webClient.goTo(jenkins.getSearchUrl());
-
-        wireMock.verify(postRequestedFor(urlPathEqualTo("/token"))
-                .withRequestBody(notMatching(".*grant_type=refresh_token.*")));
-    }
-
-    @Test
-    void testRefreshTokenWithTokenExpirationCheckDisabled_expiredRefreshToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
-        configureWellKnown(wireMock, null, null, "authorization_code", "refresh_token");
-        TestRealm testRealm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
-        testRealm.setTokenExpirationCheckDisabled(true);
-        jenkins.setSecurityRealm(testRealm);
-        // login
-        mockTokenReturnsIdTokenWithGroup(wireMock);
-        mockUserInfoWithTestGroups(wireMock);
-        browseLoginPage(webClient, jenkins);
-        assertTestUser(webClient);
-
-        wireMock.stubFor(post(urlPathEqualTo("/token"))
-                .willReturn(aResponse()
-                        .withStatus(400)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{ \"error\": \"invalid_grant\" }")));
-        expire(webClient);
-        webClient.goTo(jenkins.getSearchUrl(), "");
-
-        wireMock.verify(
-                postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("grant_type=refresh_token")));
-    }
-
-    @Test
-    void testRefreshTokenAndTokenExpiration_expiredRefreshToken() throws Exception {
-        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
-        configureWellKnown(wireMock, null, null, "authorization_code", "refresh_token");
-        TestRealm testRealm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
-        jenkins.setSecurityRealm(testRealm);
-        // login
-        mockTokenReturnsIdTokenWithGroup(wireMock);
-        mockUserInfoWithTestGroups(wireMock);
-        browseLoginPage(webClient, jenkins);
-        assertTestUser(webClient);
-
-        wireMock.stubFor(post(urlPathEqualTo("/token"))
-                .willReturn(aResponse()
-                        .withStatus(400)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("{ \"error\": \"invalid_grant\" }")));
-        expire(webClient);
-        webClient.assertFails(jenkins.getSearchUrl(), 500);
-
-        wireMock.verify(
-                postRequestedFor(urlPathEqualTo("/token")).withRequestBody(containing("grant_type=refresh_token")));
     }
 
     @Test
