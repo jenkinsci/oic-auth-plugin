@@ -48,5 +48,8 @@ public class OicSecurityRealmPlainTest {
         when(mockUser.getProperty(ApiTokenProperty.class)).thenReturn(mockApiTokenProperty);
         when(mockApiTokenProperty.matchesPassword(any())).thenReturn(true);
         assertTrue(realm.isValidApiTokenRequest(request, mockUser));
+
+        when(request.getHeader("Authorization")).thenReturn("basic aGVsbG86d29ybGQ=");
+        assertTrue(realm.isValidApiTokenRequest(request, mockUser));
     }
 }

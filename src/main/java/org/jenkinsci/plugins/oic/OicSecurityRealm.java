@@ -1240,7 +1240,7 @@ public class OicSecurityRealm extends SecurityRealm {
         if (isAllowTokenAccessWithoutOicSession()) {
             // check if this is a valid api token based request
             String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Basic ")) {
+            if (authHeader != null && authHeader.trim().toLowerCase().startsWith("basic ")) {
                 // this was a valid jenkins token being used, exit this filter and let
                 // the rest of chain be processed
                 // else do nothing and continue evaluating this request
