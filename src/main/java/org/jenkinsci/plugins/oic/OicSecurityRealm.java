@@ -1258,9 +1258,11 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     boolean canRefreshToken(OicCredentials credentials) {
-        return serverConfiguration.toProviderMetadata().getGrantTypes() != null
-                && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
-                && !Strings.isNullOrEmpty(credentials.getRefreshToken());
+        boolean hasGrantTypes = getServerConfiguration().toProviderMetadata().getGrantTypes() != null;
+        boolean containsGrantFreshToken = hasGrantTypes
+                && getServerConfiguration().toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN);
+        boolean refreshTokenSet = credentials != null && !Strings.isNullOrEmpty(credentials.getRefreshToken());
+        return containsGrantFreshToken && refreshTokenSet;
     }
 
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
