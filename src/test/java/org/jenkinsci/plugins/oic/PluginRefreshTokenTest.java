@@ -16,6 +16,7 @@ import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.browseLoginP
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.configureWellKnown;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.expire;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.getPageWithGet;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.isDebuggingEnabled;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.setUpKeyValuesWithGroup;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockAuthorizationRedirectsToFinishLogin;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockTokenReturnsIdTokenWithGroup;
@@ -34,7 +35,6 @@ import org.jenkinsci.plugins.oic.plugintest.PluginTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.junit.rules.DisableOnDebug;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Url;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
@@ -66,7 +66,7 @@ public class PluginRefreshTokenTest {
         this.jenkinsRule = jenkinsRule;
         jenkins = jenkinsRule.getInstance();
         webClient = jenkinsRule.createWebClient();
-        if (new DisableOnDebug(null).isDebugging()) {
+        if (isDebuggingEnabled()) {
             webClient.getOptions().setTimeout(0);
         }
     }

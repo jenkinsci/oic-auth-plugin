@@ -300,4 +300,11 @@ public class PluginTestHelper {
         keyGen.initialize(2048);
         return keyGen.generateKeyPair();
     }
+
+    public static boolean isDebuggingEnabled() {
+        return java.lang.management.ManagementFactory.getRuntimeMXBean()
+                .getInputArguments()
+                .toString()
+                .contains("jdwp");
+    }
 }
