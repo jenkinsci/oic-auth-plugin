@@ -85,7 +85,7 @@ public class OicSecurityRealmTokenExpirationTest {
     }
 
     @Test
-    void handleTokenExpiration_isValidApiTokenRequest_AllowTokenAccessWithoutOicSession() throws Exception {
+    void handleTokenExpiration_isValidApiTokenRequest_AllowTokenAccessWithoutOicSession() {
         HttpServletRequest request = mock(HttpServletRequest.class);
         ApiTokenProperty mockApiTokenProperty = mock(ApiTokenProperty.class);
         User mockUser = mock(User.class);
@@ -122,7 +122,7 @@ public class OicSecurityRealmTokenExpirationTest {
     }
 
     @Test
-    void handleTokenExpiration_isExpired_and_canRefresh() throws Exception {
+    void handleTokenExpiration_isExpired_and_canRefresh() {
         User mockUser = mock(User.class);
         OicCredentials mockOicCredentials = mock(OicCredentials.class);
         OicServerConfiguration mockOicServerConfiguration = mock(OicServerConfiguration.class);

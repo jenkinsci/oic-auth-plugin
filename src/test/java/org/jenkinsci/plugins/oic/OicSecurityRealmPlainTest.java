@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import hudson.model.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jenkins.security.ApiTokenProperty;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -27,7 +28,7 @@ public class OicSecurityRealmPlainTest {
         TestRealm realm = new TestRealm.Builder(wireMock).WithMinimalDefaults().build();
         assertFalse(realm.isAllowTokenAccessWithoutOicSession());
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
+        HttpServletRequest request = mock(HttpServletRequest.class);
         User mockUser = mock(User.class);
         assertFalse(realm.isValidApiTokenRequest(request, mockUser));
     }
@@ -37,13 +38,9 @@ public class OicSecurityRealmPlainTest {
         final TestRealm realm = new TestRealm.Builder(wireMock).build();
         realm.setAllowTokenAccessWithoutOicSession(true);
 
-        MockHttpServletRequest request = new MockHttpServletRequest() {
-            @Override
-            public String getHeader(String name) {
-                // hello:world
-                return "Basic aGVsbG86d29ybGQ=";
-            }
-        };
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        // aGVsbG86d29ybGQ= => hello:world
+        when(request.getHeader("Authorization")).thenReturn("Basic aGVsbG86d29ybGQ=");
 
         User mockUser = mock(User.class);
         ApiTokenProperty mockApiTokenProperty = mock(ApiTokenProperty.class);
