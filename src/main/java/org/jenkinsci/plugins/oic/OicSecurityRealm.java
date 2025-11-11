@@ -1241,14 +1241,17 @@ public class OicSecurityRealm extends SecurityRealm {
             // check if this is a valid api token based request
             String authHeader = httpRequest.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Basic ")) {
-                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
-                        .split(":")[1];
-
                 // this was a valid jenkins token being used, exit this filter and let
                 // the rest of chain be processed
                 // else do nothing and continue evaluating this request
                 ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
-                return apiTokenProperty != null && apiTokenProperty.matchesPassword(token);
+                if (apiTokenProperty == null) {
+                    return false;
+                }
+
+                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
+                        .split(":")[1];
+                return apiTokenProperty.matchesPassword(token);
             }
         }
         return false;
