@@ -53,8 +53,6 @@
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.525</hpi.compatibleSinceVersion>
     <pac4jVersion>6.2.1</pac4jVersion>
-    <!-- AvatarContributor in OicAvatarProperty; SuppressRestrictedWarnings doesn't work -->
-    <useBeta>true</useBeta>
   </properties>
 
   <dependencyManagement>
@@ -199,6 +197,12 @@
           <artifactId>spring-core</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.kohsuke</groupId>
+      <artifactId>access-modifier-suppressions</artifactId>
+      <version>1.35</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.google.code.gson</groupId>
