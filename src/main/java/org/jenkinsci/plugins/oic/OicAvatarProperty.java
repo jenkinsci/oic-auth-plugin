@@ -5,6 +5,7 @@ import hudson.Extension;
 import hudson.model.User;
 import hudson.model.UserProperty;
 import hudson.model.UserPropertyDescriptor;
+import jenkins.security.csp.AvatarContributor;
 
 public class OicAvatarProperty extends UserProperty {
 
@@ -12,6 +13,9 @@ public class OicAvatarProperty extends UserProperty {
 
     public OicAvatarProperty(AvatarImage avatarImage) {
         this.avatarImage = avatarImage;
+        if (avatarImage != null) {
+            AvatarContributor.allow(avatarImage.url);
+        }
     }
 
     public String getAvatarUrl() {
@@ -39,6 +43,13 @@ public class OicAvatarProperty extends UserProperty {
 
     public String getUrlName() {
         return "oic-avatar";
+    }
+
+    private Object readResolve() {
+        if (avatarImage != null) {
+            AvatarContributor.allow(avatarImage.url);
+        }
+        return this;
     }
 
     @Extension

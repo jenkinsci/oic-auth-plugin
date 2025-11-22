@@ -46,12 +46,15 @@
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <jenkins.baseline>2.479</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
+    <!-- TODO https://github.com/jenkinsci/jenkins/pull/11269 -->
+    <jenkins.version>2.537-rc37714.d5718019b_8ff</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.525</hpi.compatibleSinceVersion>
     <pac4jVersion>6.2.1</pac4jVersion>
+    <!-- AvatarContributor in OicAvatarProperty; SuppressRestrictedWarnings doesn't work -->
+    <useBeta>true</useBeta>
   </properties>
 
   <dependencyManagement>
