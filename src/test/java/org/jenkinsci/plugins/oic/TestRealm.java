@@ -12,6 +12,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import jenkins.model.IdStrategy;
+import org.jenkinsci.plugins.oic.properties.AllowedTokenExpirationClockSkew;
 import org.jenkinsci.plugins.oic.properties.DisableNonce;
 import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
 import org.jenkinsci.plugins.oic.properties.EscapeHatch;
@@ -57,8 +58,10 @@ public class TestRealm extends OicSecurityRealm {
         public String endSessionEndpoint = null;
         public String postLogoutRedirectUrl = null;
         public boolean automanualconfigure = false;
+        public boolean disableTokenExpiration = false;
         public IdStrategy userIdStrategy;
         public IdStrategy groupIdStrategy;
+        public boolean allowJWTBearerTokenAccess = false;
         public List<OidcProperty> properties = new ArrayList<>();
 
         public Builder(WireMockExtension wireMock, boolean useTLS) throws IOException {
@@ -169,6 +172,11 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
+        public Builder WithDisableTokenExpiration(boolean disableTokenExpiration) {
+            this.disableTokenExpiration = disableTokenExpiration;
+            return this;
+        }
+
         public Builder WithDisableSslVerification(boolean disableSslVerification) {
             this.disableSslVerification = disableSslVerification;
             return this;
@@ -181,6 +189,16 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithGroupIdStrategy(IdStrategy groupIdStrategy) {
             this.groupIdStrategy = groupIdStrategy;
+            return this;
+        }
+
+        public Builder WithAllowJWTBearerTokenAccess(boolean allowJWTBearerTokenAccess) {
+            this.allowJWTBearerTokenAccess = allowJWTBearerTokenAccess;
+            return this;
+        }
+
+        public Builder WithAllowedClockSkew(int clockSkew) {
+            this.properties.add(new AllowedTokenExpirationClockSkew(clockSkew));
             return this;
         }
 
@@ -235,6 +253,8 @@ public class TestRealm extends OicSecurityRealm {
         this.setGroupsFieldName(builder.groupsFieldName);
         this.setLogoutFromOpenidProvider(builder.logoutFromOpenidProvider);
         this.setPostLogoutRedirectUrl(builder.postLogoutRedirectUrl);
+        this.setAllowJWTBearerTokenAccess(builder.allowJWTBearerTokenAccess);
+        this.setTokenExpirationCheckDisabled(builder.disableTokenExpiration);
         this.setProperties(builder.properties);
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
