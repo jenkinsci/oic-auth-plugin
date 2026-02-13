@@ -145,8 +145,7 @@ class OicSecurityRealmFIPSAlgoTest {
     }
 
     private OIDCProviderMetadata generateProviderMetadata() throws Exception {
-        File json = Paths.get(
-                        "src/test/resources/org/jenkinsci/plugins/oic/OicSecurityRealmFIPSAlgoTest/metadata" + ".json")
+        File json = Paths.get("src/test/resources/org/jenkinsci/plugins/oic/OicSecurityRealmFIPSAlgoTest/metadata.json")
                 .toFile();
         String metadata = FileUtils.readFileToString(json, StandardCharsets.UTF_8);
 
