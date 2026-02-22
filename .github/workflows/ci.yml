@@ -16,11 +16,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           check-latest: true
           cache: 'maven'
       # https://github.com/jenkins-infra/github-reusable-workflows/issues/36
@@ -39,7 +39,7 @@ jobs:
           # https://downloads.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.12-bin.tar.gz.sha512
           CHECKSUM: 0a1be79f02466533fc1a80abbef8796e4f737c46c6574ede5658b110899942a94db634477dfd3745501c80aef9aac0d4f841d38574373f7e2d24cce89d694f70
       - name: Generate coverage with JaCoCo
-        run: mvn --batch-mode clean verify jacoco:prepare-agent test integration-test jacoco:report
+        run: mvn --batch-mode clean verify jacoco:prepare-agent test jacoco:report
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
