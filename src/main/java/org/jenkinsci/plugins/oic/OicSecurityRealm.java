@@ -1369,19 +1369,17 @@ public class OicSecurityRealm extends SecurityRealm {
                 return false;
             }
             LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);
-            httpResponse.sendError(
-                    HttpServletResponse.SC_UNAUTHORIZED, Messages.OicSecurityRealm_TokenRefreshFailure());
+            redirectToLoginUrl(httpRequest, httpResponse);
             return false;
         } catch (ParseException e) {
             LOGGER.log(Level.WARNING, "Failed to refresh expired token", e);
             // could not renew
-            httpResponse.sendError(
-                    HttpServletResponse.SC_UNAUTHORIZED, Messages.OicSecurityRealm_TokenRefreshFailure());
+            redirectToLoginUrl(httpRequest, httpResponse);
             return false;
         } catch (IllegalStateException e) {
             LOGGER.log(Level.WARNING, "Failed to refresh expired token, profile was null", e);
             // could not renew
-            httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            redirectToLoginUrl(httpRequest, httpResponse);
             return false;
         }
     }
