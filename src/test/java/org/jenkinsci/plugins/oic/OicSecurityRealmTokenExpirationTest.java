@@ -51,7 +51,7 @@ public class OicSecurityRealmTokenExpirationTest {
 
         try (MockedStatic<User> userMocked = mockStatic(User.class)) {
             userMocked.when(() -> User.get2(any())).thenReturn(null);
-            assertTrue(realm.handleTokenExpiration(
+            assertTrue(realm.validateAuthentication(
                     new MockHttpServletRequest() {
                         @Override
                         public String getRequestURI() {
@@ -87,7 +87,7 @@ public class OicSecurityRealmTokenExpirationTest {
         try (MockedStatic<User> mockedUser = mockStatic(User.class)) {
             mockedUser.when(() -> User.get2(any())).thenReturn(mockUser);
 
-            assertTrue(realm.handleTokenExpiration(mockHttpServletRequest, null));
+            assertTrue(realm.validateAuthentication(mockHttpServletRequest, null));
         }
 
         // ------------- With ApiTokenProperty
@@ -99,7 +99,7 @@ public class OicSecurityRealmTokenExpirationTest {
             mockedUser.when(() -> User.get2(any())).thenReturn(mockUser);
 
             when(mockApiTokenProperty.matchesPassword(any())).thenReturn(true);
-            assertTrue(realm.handleTokenExpiration(mockHttpServletRequest, null));
+            assertTrue(realm.validateAuthentication(mockHttpServletRequest, null));
 
             OicCredentials mockOicCredentials = mock(OicCredentials.class);
             when(mockUser.getProperty(OicCredentials.class)).thenReturn(mockOicCredentials);
@@ -107,7 +107,7 @@ public class OicSecurityRealmTokenExpirationTest {
             when(mockOicCredentials.getExpiresAtMillis())
                     .thenReturn(Clock.systemUTC().millis() + 10);
             assertFalse(realm.isExpired(mockOicCredentials));
-            assertTrue(realm.handleTokenExpiration(mockHttpServletRequest, null));
+            assertTrue(realm.validateAuthentication(mockHttpServletRequest, null));
         }
     }
 }
