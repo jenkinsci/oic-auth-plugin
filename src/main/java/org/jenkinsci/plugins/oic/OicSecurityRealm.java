@@ -1240,24 +1240,29 @@ public class OicSecurityRealm extends SecurityRealm {
         if (isAllowTokenAccessWithoutOicSession()) {
             // check if this is a valid api token based request
             String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Basic ")) {
-                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
-                        .split(":")[1];
-
+            if (authHeader != null && authHeader.trim().toLowerCase().startsWith("basic ")) {
                 // this was a valid jenkins token being used, exit this filter and let
                 // the rest of chain be processed
                 // else do nothing and continue evaluating this request
                 ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
-                return apiTokenProperty != null && apiTokenProperty.matchesPassword(token);
+                if (apiTokenProperty == null) {
+                    return false;
+                }
+
+                String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
+                        .split(":")[1];
+                return apiTokenProperty.matchesPassword(token);
             }
         }
         return false;
     }
 
     boolean canRefreshToken(OicCredentials credentials) {
-        return serverConfiguration.toProviderMetadata().getGrantTypes() != null
-                && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
-                && !Strings.isNullOrEmpty(credentials.getRefreshToken());
+        boolean hasGrantTypes = getServerConfiguration().toProviderMetadata().getGrantTypes() != null;
+        boolean containsGrantFreshToken = hasGrantTypes
+                && getServerConfiguration().toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN);
+        boolean refreshTokenSet = credentials != null && !Strings.isNullOrEmpty(credentials.getRefreshToken());
+        return containsGrantFreshToken && refreshTokenSet;
     }
 
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
@@ -1327,6 +1332,7 @@ public class OicSecurityRealm extends SecurityRealm {
             // we need to keep using exactly the same principal otherwise there is a potential for crumbs not to match.
             // whilst we could do some normalization of the username, just use the original (expected) username
             // see https://github.com/jenkinsci/oic-auth-plugin/issues/411
+            // codecov:ignore:start -- ignore for test coverage
             if (LOGGER.isLoggable(Level.FINE)) {
                 Authentication a = SecurityContextHolder.getContext().getAuthentication();
                 User u = User.get2(a);
@@ -1336,6 +1342,7 @@ public class OicSecurityRealm extends SecurityRealm {
                                 + (u == null ? "null user" : u.getId()) + " newly retrieved username would have been: "
                                 + username);
             }
+            // codecov:ignore:end
             username = expectedUsername;
 
             if (failedCheckOfTokenField(idToken)) {
