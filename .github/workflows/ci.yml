@@ -37,7 +37,7 @@ jobs:
         env:
           MAVEN_VERSION: 3.9.13
           # https://downloads.apache.org/maven/maven-3/3.9.13/binaries/apache-maven-3.9.13-bin.tar.gz.sha512
-          CHECKSUM: 9c9933db7552869c1c4d45d9eaff34291599273929c010086e07dc78b090d7b393467a94fd1d9cc96201856b71723f2501a6ac94907248021f83eb277651cf26
+          CHECKSUM: d9ccd44ba2991586e359c29eb86780ae8ff4ec1b88b0b8af3af074803472690cf2017782a9c4401343c62cbcd056231db9612e1e551cbd9747c21746d732c015
       - name: Generate coverage with JaCoCo
         run: mvn --batch-mode clean verify jacoco:prepare-agent test jacoco:report
 
