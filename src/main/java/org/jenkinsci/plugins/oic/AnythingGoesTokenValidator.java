@@ -34,7 +34,7 @@ public class AnythingGoesTokenValidator extends TokenValidator {
     }
 
     @Override
-    public IDTokenClaimsSet validate(final JWT idToken, final Nonce expectedNonce) {
+    public IDTokenClaimsSet validateIdToken(final JWT idToken, final Nonce expectedNonce) {
         // validation is disabled, so everything is valid.
         try {
             return new IDTokenClaimsSet(idToken.getJWTClaimsSet());
