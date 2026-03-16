@@ -23,21 +23,11 @@ jobs:
           java-version: '21'
           check-latest: true
           cache: 'maven'
-      # https://github.com/jenkins-infra/github-reusable-workflows/issues/36
       - name: Set up Maven
-        run: |
-          wget --no-verbose https://downloads.apache.org/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz
-          echo $CHECKSUM apache-maven-$MAVEN_VERSION-bin.tar.gz | sha512sum --check
-          tar xzf apache-maven-$MAVEN_VERSION-bin.tar.gz
-          rm apache-maven-$MAVEN_VERSION-bin.tar.gz
-          sudo mv apache-maven-$MAVEN_VERSION /opt/maven
-          sudo rm -f /usr/bin/mvn
-          sudo ln -s /opt/maven/bin/mvn /usr/bin/mvn
-          mvn --version
-        env:
-          MAVEN_VERSION: 3.9.13
-          # https://downloads.apache.org/maven/maven-3/3.9.13/binaries/apache-maven-3.9.13-bin.tar.gz.sha512
-          CHECKSUM: d9ccd44ba2991586e359c29eb86780ae8ff4ec1b88b0b8af3af074803472690cf2017782a9c4401343c62cbcd056231db9612e1e551cbd9747c21746d732c015
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.13
+
       - name: Generate coverage with JaCoCo
         run: mvn --batch-mode clean verify jacoco:prepare-agent test jacoco:report
 
