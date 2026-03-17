@@ -65,6 +65,7 @@ import io.burt.jmespath.Expression;
 import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.RuntimeConfiguration;
 import io.burt.jmespath.jcf.JcfRuntime;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -98,7 +99,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import javax.annotation.PostConstruct;
 import jenkins.model.IdStrategy;
 import jenkins.model.IdStrategyDescriptor;
 import jenkins.model.Jenkins;
@@ -1250,14 +1250,15 @@ public class OicSecurityRealm extends SecurityRealm {
         return validateOicSession(user, httpRequest, httpResponse);
     }
 
-    private Optional<Boolean> attemptBasicAuth(User user, HttpServletRequest httpRequest) {
+    @VisibleForTesting
+    Optional<Boolean> attemptBasicAuth(User user, HttpServletRequest httpRequest) {
         if (!isAllowTokenAccessWithoutOicSession()) {
             return Optional.empty();
         }
 
         // check if this is a valid api token based request
         String authHeader = httpRequest.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Basic ")) {
+        if (authHeader != null && authHeader.trim().toLowerCase().startsWith("basic ")) {
             String token = new String(Base64.getDecoder().decode(authHeader.substring(6)), StandardCharsets.UTF_8)
                     .split(":")[1];
             ApiTokenProperty apiTokenProperty = user.getProperty(ApiTokenProperty.class);
@@ -1278,7 +1279,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
         // check if this is a valid Bearer token based request
         String authHeader = httpRequest.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        if (authHeader != null && authHeader.trim().toLowerCase().startsWith("bearer ")) {
             try {
                 JWT jwt = JWTParser.parse(authHeader.substring(7));
                 OIDCProviderMetadata metadata = serverConfiguration.toProviderMetadata();
@@ -1367,9 +1368,11 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     boolean canRefreshToken(OicCredentials credentials) {
-        return serverConfiguration.toProviderMetadata().getGrantTypes() != null
-                && serverConfiguration.toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN)
-                && !Strings.isNullOrEmpty(credentials.getRefreshToken());
+        boolean hasGrantTypes = getServerConfiguration().toProviderMetadata().getGrantTypes() != null;
+        boolean containsGrantFreshToken = hasGrantTypes
+                && getServerConfiguration().toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN);
+        boolean refreshTokenSet = credentials != null && !Strings.isNullOrEmpty(credentials.getRefreshToken());
+        return containsGrantFreshToken && refreshTokenSet;
     }
 
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
@@ -1439,6 +1442,7 @@ public class OicSecurityRealm extends SecurityRealm {
             // we need to keep using exactly the same principal otherwise there is a potential for crumbs not to match.
             // whilst we could do some normalization of the username, just use the original (expected) username
             // see https://github.com/jenkinsci/oic-auth-plugin/issues/411
+            // codecov:ignore:start -- ignore for test coverage
             if (LOGGER.isLoggable(Level.FINE)) {
                 Authentication a = SecurityContextHolder.getContext().getAuthentication();
                 User u = User.get2(a);
@@ -1448,6 +1452,7 @@ public class OicSecurityRealm extends SecurityRealm {
                                 + (u == null ? "null user" : u.getId()) + " newly retrieved username would have been: "
                                 + username);
             }
+            // codecov:ignore:end
             username = expectedUsername;
 
             if (failedCheckOfTokenField(idToken)) {

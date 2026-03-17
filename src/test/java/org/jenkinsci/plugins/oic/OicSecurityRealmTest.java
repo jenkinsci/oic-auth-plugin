@@ -52,9 +52,9 @@ class OicSecurityRealmTest {
         assertNotNull(manager);
 
         String key = "testKey";
-        Object principal = "testUser";
+        String principal = "testUser";
         Collection<GrantedAuthority> authorities = List.of(GRANTED_AUTH1);
-        AnonymousAuthenticationToken token = new AnonymousAuthenticationToken(key, principal, authorities);
+        AnonymousAuthenticationToken token = new AnonymousAuthenticationToken(principal, key, authorities);
 
         assertEquals(token, manager.authenticate(token));
     }
@@ -68,7 +68,7 @@ class OicSecurityRealmTest {
         Object principal = "testUser";
         Collection<GrantedAuthority> authorities = List.of(GRANTED_AUTH1);
         UsernamePasswordAuthenticationToken token =
-                new UsernamePasswordAuthenticationToken(key, principal, authorities);
+                new UsernamePasswordAuthenticationToken(principal, key, authorities);
         assertThrows(BadCredentialsException.class, () -> assertEquals(token, manager.authenticate(token)));
     }
 

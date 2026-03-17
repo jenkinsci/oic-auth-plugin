@@ -52,7 +52,6 @@ jenkins:
       automanualconfigure: auto
       clientId: identifier-client-id
       clientSecret: identifuer-client-secret
-      overrideScopes: openid profile name email
       userNameField: sub
       fullNameFieldName: name
       emailFieldName: email

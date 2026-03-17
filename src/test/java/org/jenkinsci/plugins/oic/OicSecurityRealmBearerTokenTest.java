@@ -5,7 +5,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.nimbusds.jose.JOSEObjectType;
@@ -21,6 +23,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
 import com.nimbusds.jwt.SignedJWT;
 import hudson.model.User;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -28,7 +31,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.hamcrest.MatcherAssert;
@@ -65,8 +67,10 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 List.of("group1"),
                 Instant.now().plusSeconds(120));
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.of(true)));
     }
 
@@ -74,9 +78,10 @@ public class OicSecurityRealmBearerTokenTest {
     void invalidJWTToken_SHOULD_BeRejected() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + "not-a-jwt-token");
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(
-                        new MockHttpServletRequest(Map.of("Authorization", "Bearer " + "not-a-jwt-token"))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
     }
 
@@ -90,8 +95,11 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 List.of("group1"),
                 Instant.now().plusSeconds(120));
+
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
 
         jwt = createSignedJWT(
@@ -100,8 +108,10 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 List.of("group1"),
                 Instant.now().plusSeconds(120));
+
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
     }
 
@@ -115,8 +125,11 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 List.of("group1"),
                 Instant.now().plusSeconds(120));
+
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
 
         jwt = createSignedJWT(
@@ -125,8 +138,10 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 List.of("group1"),
                 Instant.now().plusSeconds(120));
+
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
     }
 
@@ -140,8 +155,11 @@ public class OicSecurityRealmBearerTokenTest {
                 null,
                 List.of("group1"),
                 Instant.now().plusSeconds(120));
+
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
     }
 
@@ -155,8 +173,11 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 null,
                 Instant.now().plusSeconds(120));
+
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.of(true)));
     }
 
@@ -170,8 +191,11 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 List.of("group1"),
                 Instant.now().minusSeconds(120));
+
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
     }
 
@@ -186,8 +210,11 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 List.of("group1"),
                 Instant.now().minusSeconds(120));
+
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.of(true)));
     }
 
@@ -210,8 +237,10 @@ public class OicSecurityRealmBearerTokenTest {
                 Base64.getUrlEncoder().withoutPadding().encodeToString(jwtParts[1].getBytes(StandardCharsets.UTF_8));
         jwt = Arrays.stream(jwtParts).collect(Collectors.joining("."));
 
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
     }
 
@@ -225,8 +254,11 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 List.of("group1"),
                 Instant.now().plusSeconds(120));
+
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
     }
 
@@ -242,8 +274,11 @@ public class OicSecurityRealmBearerTokenTest {
                 "Alice",
                 List.of("group1"),
                 Instant.now().plusSeconds(120));
+
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
     }
 
@@ -251,8 +286,10 @@ public class OicSecurityRealmBearerTokenTest {
     void bearerTokenLogin_SHOULD_NotBeResponsible_WHEN_NoBearerAuthHeaderIsUsed() throws Exception {
         final TestRealm realm = defaultTestRealm().build();
 
+        var request = mock(HttpServletRequest.class);
+        when(request.getHeader("Authorization")).thenReturn("Basic abcdef");
         MatcherAssert.assertThat(
-                realm.attemptBearerToken(new MockHttpServletRequest(Map.of("Authorization", "Basic abcdef"))),
+                realm.attemptBearerToken(request),
                 Matchers.is(Optional.empty()));
     }
 
@@ -272,9 +309,11 @@ public class OicSecurityRealmBearerTokenTest {
             SecurityContextHolder.getContext().setAuthentication(null); // reset
 
             // valid token should still be accepted
+            var request = mock(HttpServletRequest.class);
+            when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
+            when(request.getRequestURI()).thenReturn("whatever");
             MatcherAssert.assertThat(
-                    realm.validateAuthentication(
-                            new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null),
+                    realm.validateAuthentication(request, null),
                     Matchers.is(true)); // filter should continue
             MatcherAssert.assertThat(
                     SecurityContextHolder.getContext().getAuthentication(),
@@ -289,9 +328,10 @@ public class OicSecurityRealmBearerTokenTest {
                     "Alice",
                     List.of("group1"),
                     Instant.now().minusSeconds(120));
+
+            when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
             MatcherAssert.assertThat(
-                    realm.validateAuthentication(
-                            new MockHttpServletRequest(Map.of("Authorization", "Bearer " + jwt)), null),
+                    realm.validateAuthentication(request, null),
                     Matchers.is(true)); // filter should still continue
             MatcherAssert.assertThat(
                     SecurityContextHolder.getContext().getAuthentication(),

@@ -3,6 +3,6 @@ buildPlugin(useContainerAgent: true,
     // See https://github.com/jenkins-infra/helpdesk/issues/2752 for more details and updates.
     artifactCachingProxyEnabled: true,
     configurations: [
-        [platform: 'linux', jdk: 21],
-    	[platform: 'windows', jdk: 17],
+        [platform: 'linux', jdk: 25],
+    	[platform: 'windows', jdk: 21],
     ])
