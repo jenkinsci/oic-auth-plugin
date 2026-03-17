@@ -69,9 +69,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.of(true)));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.of(true)));
     }
 
     @Test
@@ -80,9 +78,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + "not-a-jwt-token");
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -98,9 +94,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
 
         jwt = createSignedJWT(
                 TestRealm.ISSUER,
@@ -110,9 +104,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
 
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -128,9 +120,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
 
         jwt = createSignedJWT(
                 "not-the-issuer",
@@ -140,9 +130,7 @@ public class OicSecurityRealmBearerTokenTest {
                 Instant.now().plusSeconds(120));
 
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -158,9 +146,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -176,9 +162,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.of(true)));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.of(true)));
     }
 
     @Test
@@ -194,9 +178,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -213,9 +195,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.of(true)));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.of(true)));
     }
 
     @Test
@@ -239,9 +219,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -257,9 +235,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -277,9 +253,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -288,9 +262,7 @@ public class OicSecurityRealmBearerTokenTest {
 
         var request = mock(HttpServletRequest.class);
         when(request.getHeader("Authorization")).thenReturn("Basic abcdef");
-        MatcherAssert.assertThat(
-                realm.attemptBearerToken(request),
-                Matchers.is(Optional.empty()));
+        MatcherAssert.assertThat(realm.attemptBearerToken(request), Matchers.is(Optional.empty()));
     }
 
     @Test
@@ -313,8 +285,7 @@ public class OicSecurityRealmBearerTokenTest {
             when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
             when(request.getRequestURI()).thenReturn("whatever");
             MatcherAssert.assertThat(
-                    realm.validateAuthentication(request, null),
-                    Matchers.is(true)); // filter should continue
+                    realm.validateAuthentication(request, null), Matchers.is(true)); // filter should continue
             MatcherAssert.assertThat(
                     SecurityContextHolder.getContext().getAuthentication(),
                     Matchers.is(Matchers.notNullValue())); // authentication should be set
@@ -331,8 +302,7 @@ public class OicSecurityRealmBearerTokenTest {
 
             when(request.getHeader("Authorization")).thenReturn("Bearer " + jwt);
             MatcherAssert.assertThat(
-                    realm.validateAuthentication(request, null),
-                    Matchers.is(true)); // filter should still continue
+                    realm.validateAuthentication(request, null), Matchers.is(true)); // filter should still continue
             MatcherAssert.assertThat(
                     SecurityContextHolder.getContext().getAuthentication(),
                     Matchers.is(Matchers.nullValue())); // authentication should not be set though
@@ -345,15 +315,13 @@ public class OicSecurityRealmBearerTokenTest {
                 .keyID("123")
                 .generate();
 
-        var jwkBody =
-                """
+        var jwkBody = """
                 {
                   "keys": [
                     %s
                   ]
                 }
-                """
-                        .formatted(jwk.toPublicJWK().toJSONString());
+                """.formatted(jwk.toPublicJWK().toJSONString());
         wireMock.stubFor(get(urlPathEqualTo("/jwk"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
