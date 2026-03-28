@@ -30,7 +30,7 @@ class DescriptorImplTest {
 
         assertNotNull(descriptor);
 
-        assertEquals(""Login with OpenID Connect"", descriptor.getDisplayName());
+        assertEquals("Login with OpenID Connect", descriptor.getDisplayName());
         assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
         assertEquals("Client id is required.", descriptor.doCheckClientId("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
@@ -57,7 +57,7 @@ class DescriptorImplTest {
         OicSecurityRealm.DescriptorImpl descriptor =
                 (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
 
-        assertEquals(""Login with OpenID Connect"", descriptor.getDisplayName());
+        assertEquals("Login with OpenID Connect", descriptor.getDisplayName());
         assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
         assertEquals("Client id is required.", descriptor.doCheckClientId("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
