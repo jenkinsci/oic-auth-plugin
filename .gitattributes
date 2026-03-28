@@ -4,3 +4,4 @@
 # Images
 *.jpg binary
 *.png binary
+*.java text eol=lf 
