@@ -30,7 +30,7 @@ public class OicSecurityRealmPlainTest {
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         User mockUser = mock(User.class);
-        assertFalse(realm.isValidApiTokenRequest(request, mockUser));
+        assertFalse(realm.attemptBasicAuth(mockUser, request).isPresent());
     }
 
     @Test
@@ -47,9 +47,9 @@ public class OicSecurityRealmPlainTest {
         assertNotNull(mockUser);
         when(mockUser.getProperty(ApiTokenProperty.class)).thenReturn(mockApiTokenProperty);
         when(mockApiTokenProperty.matchesPassword(any())).thenReturn(true);
-        assertTrue(realm.isValidApiTokenRequest(request, mockUser));
+        assertTrue(realm.attemptBasicAuth(mockUser, request).orElseThrow());
 
         when(request.getHeader("Authorization")).thenReturn("basic aGVsbG86d29ybGQ=");
-        assertTrue(realm.isValidApiTokenRequest(request, mockUser));
+        assertTrue(realm.attemptBasicAuth(mockUser, request).orElseThrow());
     }
 }
