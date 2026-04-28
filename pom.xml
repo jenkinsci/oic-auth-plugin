@@ -51,8 +51,8 @@
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.525</hpi.compatibleSinceVersion>
-    <pac4jVersion>6.3.3</pac4jVersion>
-    <hpi.bundledArtifacts>content-type,jmespath-core,lang-tag,nimbus-jose-jwt,oauth2-oidc-sdk,pac4j-core,pac4j-jakartaee,pac4j-oidc</hpi.bundledArtifacts>
+    <pac4jVersion>6.4.2</pac4jVersion>
+    <hpi.bundledArtifacts>content-type,jmespath-core,lang-tag,nimbus-jose-jwt,oauth2-oidc-sdk,pac4j-core,pac4j-jakartaee,pac4j-oidc,protobuf-java,tink</hpi.bundledArtifacts>
   </properties>
 
   <dependencyManagement>
@@ -172,6 +172,11 @@
           <artifactId>findbugs-annotations</artifactId>
         </exclusion>
         <exclusion>
+          <!-- compile-time annotations only, not needed at runtime -->
+          <groupId>com.google.errorprone</groupId>
+          <artifactId>error_prone_annotations</artifactId>
+        </exclusion>
+        <exclusion>
           <!-- consume from Jenkins core -->
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
@@ -185,6 +190,11 @@
           <!-- consume from json-path-api plugin -->
           <groupId>net.minidev</groupId>
           <artifactId>json-smart</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- consume from bouncycastle-api plugin -->
+          <groupId>org.bouncycastle</groupId>
+          <artifactId>bcpkix-jdk18on</artifactId>
         </exclusion>
         <exclusion>
           <!-- consume from Jenkins core -->
