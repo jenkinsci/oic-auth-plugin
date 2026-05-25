@@ -25,6 +25,7 @@ package org.jenkinsci.plugins.oic;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.google.common.util.concurrent.Striped;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.oauth2.sdk.GrantType;
@@ -80,6 +81,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -150,6 +152,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class OicSecurityRealm extends SecurityRealm {
 
     private static final Logger LOGGER = Logger.getLogger(OicSecurityRealm.class.getName());
+    private static final Striped<Lock> USER_REFRESH_LOCKS = Striped.lazyWeakLock(64);
     private IdStrategy userIdStrategy;
     private IdStrategy groupIdStrategy;
 
@@ -1218,18 +1221,45 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         if (isExpired(credentials)) {
+            return handleExpiredToken(user, httpRequest, httpResponse);
+        }
+
+        return true;
+    }
+
+    @VisibleForTesting
+    boolean handleExpiredToken(User user, HttpServletRequest httpRequest, HttpServletResponse httpResponse)
+            throws IOException {
+        Lock lock = USER_REFRESH_LOCKS.get(user.getId());
+        lock.lock();
+        try {
+            OicCredentials credentials = user.getProperty(OicCredentials.class);
+            if (credentials == null || !isExpired(credentials)) {
+                return true;
+            }
+
             if (canRefreshToken(credentials)) {
                 LOGGER.log(Level.FINEST, "Attempting to refresh credential for user: {0}", user.getId());
                 boolean retVal = refreshExpiredToken(user.getId(), credentials, httpRequest, httpResponse);
                 LOGGER.log(Level.FINEST, "Refresh credential for user returned {0}", retVal);
                 return retVal;
             } else if (!isTokenExpirationCheckDisabled()) {
+                LOGGER.log(
+                        Level.FINE,
+                        "Cannot refresh expired OIDC token for user {0}: refreshTokenPresent={1}, providerGrantTypes={2}",
+                        new Object[] {
+                            user.getId(),
+                            !Strings.isNullOrEmpty(credentials.getRefreshToken()),
+                            providerGrantTypesForLog()
+                        });
                 redirectToLoginUrl(httpRequest, httpResponse);
                 return false;
             }
-        }
 
-        return true;
+            return true;
+        } finally {
+            lock.unlock();
+        }
     }
 
     boolean isLogoutRequest(HttpServletRequest request) {
@@ -1271,13 +1301,69 @@ public class OicSecurityRealm extends SecurityRealm {
         return grantTypes == null || grantTypes.contains(GrantType.REFRESH_TOKEN);
     }
 
+    private Object providerGrantTypesForLog() {
+        OicServerConfiguration serverConfiguration = getServerConfiguration();
+        if (serverConfiguration == null) {
+            return null;
+        }
+        try {
+            OIDCProviderMetadata providerMetadata = serverConfiguration.toProviderMetadata();
+            return providerMetadata == null ? null : providerMetadata.getGrantTypes();
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.FINER, "Could not read OIDC provider grant types for refresh diagnostic", e);
+            return "unavailable";
+        }
+    }
+
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        if (req != null && (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization")))) {
-            req.getSession().invalidate();
-        }
         if (res != null) {
-            res.sendRedirect(Jenkins.get().getSecurityRealm().getLoginUrl());
+            if (isNonInteractiveRequest(req)) {
+                res.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+            if (req != null
+                    && (req.getSession(false) != null || Strings.isNullOrEmpty(req.getHeader("Authorization")))) {
+                req.getSession().invalidate();
+            }
+            String loginUrl = getLoginUrl();
+            if (!loginUrl.startsWith("/")) {
+                loginUrl = "/" + loginUrl;
+            }
+            if (req != null) {
+                loginUrl = req.getContextPath() + loginUrl;
+            }
+            res.sendRedirect(loginUrl);
         }
+    }
+
+    boolean isNonInteractiveRequest(HttpServletRequest req) {
+        if (req == null) {
+            return false;
+        }
+
+        String requestedWith = req.getHeader("X-Requested-With");
+        if ("XMLHttpRequest".equalsIgnoreCase(requestedWith)) {
+            return true;
+        }
+
+        String secFetchDest = req.getHeader("Sec-Fetch-Dest");
+        if (secFetchDest != null
+                && !"document".equalsIgnoreCase(secFetchDest)
+                && !"iframe".equalsIgnoreCase(secFetchDest)) {
+            return true;
+        }
+
+        String accept = req.getHeader("Accept");
+        if (accept != null && !accept.contains("text/html") && !accept.contains("application/xhtml+xml")) {
+            return true;
+        }
+
+        String uri = req.getRequestURI();
+        if (uri != null && uri.contains("/ajax")) {
+            return true;
+        }
+
+        return req.getHeader("Jenkins-Crumb") != null;
     }
 
     public boolean isExpired(OicCredentials credentials) {
@@ -1288,7 +1374,7 @@ public class OicSecurityRealm extends SecurityRealm {
         return CLOCK.millis() >= credentials.getExpiresAtMillis();
     }
 
-    private boolean refreshExpiredToken(
+    boolean refreshExpiredToken(
             String expectedUsername,
             OicCredentials credentials,
             HttpServletRequest httpRequest,
@@ -1378,6 +1464,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     return false;
                 }
                 LOGGER.log(Level.FINE, "Failed to refresh expired token", e);
+                expireCredentials(expectedUsername);
                 redirectToLoginUrl(httpRequest, httpResponse);
                 return false;
             }
@@ -1396,6 +1483,14 @@ public class OicSecurityRealm extends SecurityRealm {
             // could not renew
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
+        }
+    }
+
+    @VisibleForTesting
+    void expireCredentials(String userId) throws IOException {
+        User user = User.getById(userId, false);
+        if (user != null) {
+            user.addProperty(new OicCredentials(null, null, null, CLOCK.millis()));
         }
     }
 
