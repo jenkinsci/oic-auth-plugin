@@ -1258,11 +1258,17 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     boolean canRefreshToken(OicCredentials credentials) {
-        boolean hasGrantTypes = getServerConfiguration().toProviderMetadata().getGrantTypes() != null;
-        boolean containsGrantFreshToken = hasGrantTypes
-                && getServerConfiguration().toProviderMetadata().getGrantTypes().contains(GrantType.REFRESH_TOKEN);
         boolean refreshTokenSet = credentials != null && !Strings.isNullOrEmpty(credentials.getRefreshToken());
-        return containsGrantFreshToken && refreshTokenSet;
+        if (!refreshTokenSet) {
+            return false;
+        }
+
+        // Some providers (notably Keycloak with default discovery output) do not advertise grant_types_supported,
+        // so toProviderMetadata().getGrantTypes() returns null even when refresh_token is in fact supported.
+        // Treat a null/absent grant_types_supported as "not advertised, do not refuse refresh"; only reject when
+        // the provider explicitly publishes a list that omits refresh_token.
+        List<GrantType> grantTypes = getServerConfiguration().toProviderMetadata().getGrantTypes();
+        return grantTypes == null || grantTypes.contains(GrantType.REFRESH_TOKEN);
     }
 
     private void redirectToLoginUrl(HttpServletRequest req, HttpServletResponse res) throws IOException {

@@ -158,5 +158,10 @@ public class OicSecurityRealmTokenExpirationTest {
 
         when(mockOicCredentials.getRefreshToken()).thenReturn("refreshToken");
         assertTrue(realm.canRefreshToken(mockOicCredentials));
+
+        // Provider that does not advertise grant_types_supported (e.g. Keycloak default discovery)
+        // must not block refresh when a refresh token is already stored.
+        when(mockOIDCProviderMetadata.getGrantTypes()).thenReturn(null);
+        assertTrue(realm.canRefreshToken(mockOicCredentials));
     }
 }
