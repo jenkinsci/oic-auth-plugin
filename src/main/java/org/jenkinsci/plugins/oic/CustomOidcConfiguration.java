@@ -10,6 +10,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import jenkins.model.Jenkins;
 import jenkins.security.FIPS140;
+import jenkins.util.SystemProperties;
 import org.jenkinsci.plugins.oic.ssl.IgnoringHostNameVerifier;
 import org.jenkinsci.plugins.oic.ssl.TLSUtils;
 import org.pac4j.oidc.config.OidcConfiguration;
@@ -18,6 +19,12 @@ import org.pac4j.oidc.config.OidcConfiguration;
  * An OidcConfiguration that will customize {@link HttpRequest} with the Jenkins proxy, and iff TLS is disabled a lenient {@link HostnameVerifier} and {@link SSLContext}.
  */
 class CustomOidcConfiguration extends OidcConfiguration {
+
+    @SuppressWarnings("boxing")
+    private static final int CONNECTION_TIMEOUT_MS = SystemProperties.getInteger("OIC_CONNECTION_TIMEOUT_MS", 2_000);
+
+    @SuppressWarnings("boxing")
+    private static final int READ_TIMEOUT_MS = SystemProperties.getInteger("OIC_CONNECTION_READ_TIMEOUT_MS", 5_000);
 
     private final boolean disableTLS;
 
@@ -31,6 +38,8 @@ class CustomOidcConfiguration extends OidcConfiguration {
     @Override
     public void configureHttpRequest(HTTPRequest request) {
         super.configureHttpRequest(request);
+        request.setConnectTimeout(CONNECTION_TIMEOUT_MS);
+        request.setReadTimeout(READ_TIMEOUT_MS);
         Proxy proxy = null;
         Jenkins jenkins = Jenkins.getInstanceOrNull();
         if (jenkins != null) { // unit tests
