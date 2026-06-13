@@ -52,7 +52,7 @@
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.525</hpi.compatibleSinceVersion>
     <pac4jVersion>6.5.2</pac4jVersion>
-    <hpi.bundledArtifacts>content-type,jmespath-core,lang-tag,nimbus-jose-jwt,oauth2-oidc-sdk,pac4j-core,pac4j-jakartaee,pac4j-oidc,protobuf-java,tink</hpi.bundledArtifacts>
+    <hpi.bundledArtifacts>content-type,jmespath-core,lang-tag,oauth2-oidc-sdk,pac4j-core,pac4j-jakartaee,pac4j-oidc,protobuf-java,tink</hpi.bundledArtifacts>
   </properties>
 
   <dependencyManagement>
@@ -63,6 +63,12 @@
         <version>5054.v620b_5d2b_d5e6</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <!-- Until on bom -->
+      <dependency>
+        <groupId>io.jenkins.plugins</groupId>
+        <artifactId>nimbus-jose-jwt-api</artifactId>
+        <version>10.9.1-4.v58e0353801ec</version>
       </dependency>
       <dependency>
         <!-- do not exlude the annotations so we can benifit from spotbugs checks but set the to provided so we do not bundle them -->
@@ -96,6 +102,10 @@
       <artifactId>json-path-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>nimbus-jose-jwt-api</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>jackson2-api</artifactId>
     </dependency>
@@ -103,7 +113,6 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>mailer</artifactId>
     </dependency>
-
     <dependency>
       <groupId>org.pac4j</groupId>
       <artifactId>pac4j-jakartaee</artifactId>
@@ -128,6 +137,11 @@
           <!-- not needed at runtime -->
           <groupId>com.google.code.findbugs</groupId>
           <artifactId>findbugs-annotations</artifactId>
+        </exclusion>
+        <!-- consume from nimbus-jose-jwt-api plugin -->
+        <exclusion>
+          <groupId>com.nimbusds</groupId>
+          <artifactId>nimbus-jose-jwt</artifactId>
         </exclusion>
         <exclusion>
           <!-- consume from commons-lang3-api plugin -->
