@@ -89,6 +89,43 @@ class DescriptorImplTest {
     }
 
     @Test
+    void doCheckClientAssertionFilePath() {
+        OicSecurityRealm.DescriptorImpl descriptor =
+                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
+
+        // Null or blank → ok (field is optional)
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientAssertionFilePath(null));
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientAssertionFilePath(""));
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientAssertionFilePath("   "));
+
+        // Relative path → error
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckClientAssertionFilePath("relative/path").kind);
+        assertTrue(descriptor
+                .doCheckClientAssertionFilePath("relative/path")
+                .getMessage()
+                .contains("must be absolute"));
+
+        // Absolute path that does not exist → warning (Kubernetes may mount it at runtime)
+        assertEquals(
+                FormValidation.Kind.WARNING,
+                descriptor.doCheckClientAssertionFilePath("/nonexistent/path/xyz/abc/token").kind);
+        assertTrue(descriptor
+                .doCheckClientAssertionFilePath("/nonexistent/path/xyz/abc/token")
+                .getMessage()
+                .contains("does not currently exist"));
+
+        // Absolute path that exists → ok
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientAssertionFilePath("/tmp"));
+
+        // Path containing a null byte — invalid on all OS → error
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckClientAssertionFilePath("/tmp/\0null").kind);
+        assertTrue(descriptor
+                .doCheckClientAssertionFilePath("/tmp/\0null")
+                .getMessage()
+                .contains("Invalid file path"));
+    }
+
+    @Test
     void doCheckUserNameField() {
         OicSecurityRealm.DescriptorImpl descriptor =
                 (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
