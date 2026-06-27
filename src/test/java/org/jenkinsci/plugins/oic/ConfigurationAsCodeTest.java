@@ -185,6 +185,19 @@ class ConfigurationAsCodeTest {
         assertThat(oicSecurityRealm.getProperties(), empty());
     }
 
+    @Test
+    @ConfiguredWithCode("ConfigurationAsCodeJwtBearer.yml")
+    void testJwtBearerConfig(JenkinsConfiguredWithCodeRule j) {
+        SecurityRealm realm = Jenkins.get().getSecurityRealm();
+        assertInstanceOf(OicSecurityRealm.class, realm);
+        OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
+
+        assertEquals("clientId", oicSecurityRealm.getClientId());
+        assertEquals("/var/run/secrets/tokens/id-token", oicSecurityRealm.getClientAssertionFilePath());
+        // No clientSecret in the YAML — getClientSecret() returns the "none" sentinel
+        assertEquals("none", Secret.toString(oicSecurityRealm.getClientSecret()));
+    }
+
     /** Class to setup WellKnownMockExtension for well known with stub and setting port in env variable
      */
     public static class WellKnownMockExtension extends WireMockExtension {
