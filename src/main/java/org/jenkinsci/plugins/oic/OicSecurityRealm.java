@@ -28,6 +28,7 @@ import com.google.common.base.Strings;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.oauth2.sdk.GrantType;
+import com.nimbusds.oauth2.sdk.auth.ClientAuthentication;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
 import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
@@ -71,6 +72,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -126,7 +129,10 @@ import org.pac4j.jee.http.adapter.JEEHttpActionAdapter;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.oidc.credentials.authenticator.OidcAuthenticator;
+import org.pac4j.oidc.credentials.clientauth.ClientAuthenticationBuilder;
+import org.pac4j.oidc.metadata.StaticOidcOpMetadataResolver;
 import org.pac4j.oidc.profile.OidcProfile;
+import org.pac4j.oidc.profile.creator.TokenValidator;
 import org.pac4j.oidc.redirect.OidcRedirectionActionBuilder;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -174,6 +180,7 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private final String clientId;
     private final Secret clientSecret;
+    private String clientAssertionFilePath;
 
     /** @deprecated see {@link OicServerWellKnownConfiguration#getWellKnownOpenIDConfigurationUrl()} */
     @Deprecated
@@ -477,6 +484,16 @@ public class OicSecurityRealm extends SecurityRealm {
         return clientSecret == null ? Secret.fromString(NO_SECRET) : clientSecret;
     }
 
+    @CheckForNull
+    public String getClientAssertionFilePath() {
+        return clientAssertionFilePath;
+    }
+
+    @DataBoundSetter
+    public void setClientAssertionFilePath(String clientAssertionFilePath) {
+        this.clientAssertionFilePath = Util.fixEmptyAndTrim(clientAssertionFilePath);
+    }
+
     @Restricted(NoExternalUse.class) // jelly access
     public OicServerConfiguration getServerConfiguration() {
         return serverConfiguration;
@@ -581,11 +598,14 @@ public class OicSecurityRealm extends SecurityRealm {
         // TODO cache this and use the well known if available.
         OidcConfiguration conf = new CustomOidcConfiguration(this.isDisableSslVerification());
         conf.setClientId(clientId);
-        conf.setSecret(clientSecret.getPlainText());
 
-        // TODO what do we prefer?
-        // conf.setPreferredJwsAlgorithm(JWSAlgorithm.HS256);
-        // set many more as needed...
+        if (clientAssertionFilePath != null) {
+            // JWT Bearer client authentication: set method to PRIVATE_KEY_JWT so pac4j does not
+            // require a client secret. The actual assertion is applied via the custom resolver.
+            conf.setClientAuthenticationMethod(ClientAuthenticationMethod.PRIVATE_KEY_JWT);
+        } else {
+            conf.setSecret(clientSecret.getPlainText());
+        }
 
         OIDCProviderMetadata oidcProviderMetadata = serverConfiguration.toProviderMetadata();
         if (oidcProviderMetadata.getScopes() != null) {
@@ -606,6 +626,11 @@ public class OicSecurityRealm extends SecurityRealm {
                 .filter(d -> !properties.contains(d))
                 .forEach(d -> d.getFallbackConfiguration(serverConfiguration, oidcConfiguration));
         executions.forEach(execution -> execution.customizeConfiguration(oidcConfiguration));
+
+        if (clientAssertionFilePath != null) {
+            applyJwtBearerAuthentication(oidcConfiguration);
+        }
+
         OidcClient client = new OidcClient(oidcConfiguration);
         // add the extra settings for the client...
         client.setCallbackUrl(buildOAuthRedirectUrl());
@@ -616,6 +641,42 @@ public class OicSecurityRealm extends SecurityRealm {
         client.setCallbackUrlResolver(new NoParameterCallbackUrlResolver());
         executions.forEach(execution -> execution.customizeClient(client));
         return client;
+    }
+
+    private void applyJwtBearerAuthentication(OidcConfiguration oidcConfiguration) {
+        Path filePath = Path.of(clientAssertionFilePath);
+
+        var existingResolver = oidcConfiguration.getOpMetadataResolver();
+        OIDCProviderMetadata metadata =
+                (existingResolver != null) ? existingResolver.load() : serverConfiguration.toProviderMetadata();
+        TokenValidator existingTokenValidator =
+                (existingResolver != null) ? existingResolver.getTokenValidator() : null;
+
+        var jwtBearerResolver = new StaticOidcOpMetadataResolver(oidcConfiguration, metadata) {
+            @Override
+            protected void internalLoad() {
+                super.internalLoad();
+                var jwtAuth = new FileJwtClientAuthentication(clientId, filePath);
+                ClientAuthenticationBuilder jwtBuilder = new ClientAuthenticationBuilder() {
+                    @Override
+                    public void buildClientAuthentication() {}
+
+                    @Override
+                    public ClientAuthentication getClientAuthentication() {
+                        return jwtAuth;
+                    }
+                };
+                clientAuthToken = jwtBuilder;
+                clientAuthPar = jwtBuilder;
+            }
+
+            @Override
+            protected TokenValidator createTokenValidator() {
+                return existingTokenValidator != null ? existingTokenValidator : super.createTokenValidator();
+            }
+        };
+        oidcConfiguration.setOpMetadataResolver(jwtBearerResolver);
+        jwtBearerResolver.init();
     }
 
     @DataBoundSetter
@@ -1411,10 +1472,35 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         @RequirePOST
-        public FormValidation doCheckClientSecret(@QueryParameter String clientSecret) {
+        public FormValidation doCheckClientSecret(
+                @QueryParameter String clientSecret, @QueryParameter String clientAssertionFilePath) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (Util.fixEmptyAndTrim(clientSecret) == null) {
+                if (Util.fixEmptyAndTrim(clientAssertionFilePath) != null) {
+                    return FormValidation.ok();
+                }
                 return FormValidation.error(Messages.OicSecurityRealm_ClientSecretRequired());
+            }
+            return FormValidation.ok();
+        }
+
+        @RequirePOST
+        public FormValidation doCheckClientAssertionFilePath(@QueryParameter String clientAssertionFilePath) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            String trimmed = Util.fixEmptyAndTrim(clientAssertionFilePath);
+            if (trimmed == null) {
+                return FormValidation.ok();
+            }
+            try {
+                Path path = Path.of(trimmed);
+                if (!path.isAbsolute()) {
+                    return FormValidation.error(Messages.OicSecurityRealm_ClientAssertionFilePathMustBeAbsolute());
+                }
+                if (!path.toFile().exists()) {
+                    return FormValidation.warning(Messages.OicSecurityRealm_ClientAssertionFilePathDoesNotExist());
+                }
+            } catch (InvalidPathException e) {
+                return FormValidation.error(Messages.OicSecurityRealm_ClientAssertionFilePathInvalid());
             }
             return FormValidation.ok();
         }
