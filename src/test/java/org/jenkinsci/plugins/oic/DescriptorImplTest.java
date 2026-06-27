@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import hudson.util.FormValidation;
+import java.nio.file.Path;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.oic.OicSecurityRealm.DescriptorImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,16 +107,18 @@ class DescriptorImplTest {
                 .contains("must be absolute"));
 
         // Absolute path that does not exist → warning (Kubernetes may mount it at runtime)
-        assertEquals(
-                FormValidation.Kind.WARNING,
-                descriptor.doCheckClientAssertionFilePath("/nonexistent/path/xyz/abc/token").kind);
+        // Build an OS-agnostic absolute path: on Windows "/foo" is not absolute, tmpdir always is
+        String nonExistentAbsPath = Path.of(System.getProperty("java.io.tmpdir"), "nonexistent-oic-assertion-path-xyz")
+                .toString();
+        assertEquals(FormValidation.Kind.WARNING, descriptor.doCheckClientAssertionFilePath(nonExistentAbsPath).kind);
         assertTrue(descriptor
-                .doCheckClientAssertionFilePath("/nonexistent/path/xyz/abc/token")
+                .doCheckClientAssertionFilePath(nonExistentAbsPath)
                 .getMessage()
                 .contains("does not currently exist"));
 
-        // Absolute path that exists → ok
-        assertEquals(FormValidation.ok(), descriptor.doCheckClientAssertionFilePath("/tmp"));
+        // Absolute path that exists → ok (tmpdir always exists and is absolute on all OS)
+        assertEquals(
+                FormValidation.ok(), descriptor.doCheckClientAssertionFilePath(System.getProperty("java.io.tmpdir")));
 
         // Path containing a null byte — invalid on all OS → error
         assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckClientAssertionFilePath("/tmp/\0null").kind);
