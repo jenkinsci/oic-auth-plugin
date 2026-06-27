@@ -1,0 +1,11 @@
+jenkins:
+  securityRealm:
+    oic:
+      serverConfiguration:
+        manual:
+          authorizationServerUrl: http://localhost/authorize
+          issuer: http://localhost/
+          tokenServerUrl: http://localhost/token
+          scopes: openid email
+      clientId: clientId
+      clientAssertionFilePath: /var/run/secrets/tokens/id-token
