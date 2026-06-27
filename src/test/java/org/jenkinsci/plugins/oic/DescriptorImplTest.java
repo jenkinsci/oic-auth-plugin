@@ -36,10 +36,14 @@ class DescriptorImplTest {
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
         assertEquals(
                 "Client secret is required.",
-                descriptor.doCheckClientSecret(null).getMessage());
+                descriptor.doCheckClientSecret(null, null).getMessage());
         assertEquals(
-                "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
-        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
+                "Client secret is required.",
+                descriptor.doCheckClientSecret("", null).getMessage());
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password", null));
+        // With JWT bearer file path set, empty secret is allowed
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret(null, "/var/run/secrets/token"));
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("", "/var/run/secrets/token"));
 
         TestRealm realm = new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(false));
         jenkins.setSecurityRealm(realm);
@@ -63,10 +67,14 @@ class DescriptorImplTest {
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
         assertEquals(
                 "Client secret is required.",
-                descriptor.doCheckClientSecret(null).getMessage());
+                descriptor.doCheckClientSecret(null, null).getMessage());
         assertEquals(
-                "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
-        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
+                "Client secret is required.",
+                descriptor.doCheckClientSecret("", null).getMessage());
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password", null));
+        // With JWT bearer file path set, empty secret is allowed
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret(null, "/var/run/secrets/token"));
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("", "/var/run/secrets/token"));
 
         TestRealm realm = new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(true));
         jenkins.setSecurityRealm(realm);

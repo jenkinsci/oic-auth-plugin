@@ -6,6 +6,9 @@
   <f:entry title="${%ClientSecret}" field="clientSecret">
     <f:password/>
   </f:entry>
+  <f:entry title="${%ClientAssertionFilePath}" field="clientAssertionFilePath">
+    <f:textbox/>
+  </f:entry>
 
   <st:adjunct includes="org.jenkinsci.plugins.oic.OicSecurityRealm.logout-idp-toggle" />
 
