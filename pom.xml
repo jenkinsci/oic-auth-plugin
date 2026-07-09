@@ -51,6 +51,11 @@
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <spotbugs.effort>Max</spotbugs.effort>
     <hpi.compatibleSinceVersion>4.525</hpi.compatibleSinceVersion>
+    <!-- 
+      pac4j 6.5.0+ ships what was formerly test code in production jars, this exposes things that should not be near a production system
+      DO NOT accept dependabot updates here until this is fully investigated and resolved.
+      https://groups.google.com/g/pac4j-dev/c/PgWtjlRwP4E
+    -->
     <pac4jVersion>6.4.3</pac4jVersion>
     <hpi.bundledArtifacts>content-type,jmespath-core,lang-tag,oauth2-oidc-sdk,pac4j-core,pac4j-jakartaee,pac4j-oidc,protobuf-java,tink</hpi.bundledArtifacts>
   </properties>
