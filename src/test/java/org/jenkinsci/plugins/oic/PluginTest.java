@@ -76,6 +76,7 @@ import javax.net.ssl.SSLException;
 import jenkins.model.Jenkins;
 import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.htmlunit.CookieManager;
+import org.htmlunit.Page;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.util.Cookie;
 import org.jenkinsci.plugins.oic.plugintest.PluginTestHelper;
@@ -210,6 +211,39 @@ class PluginTest {
 
         String secondLoginSession = cookieManager.getCookie(cookieName).getValue();
         assertNotEquals(firstLoginSession, secondLoginSession, "The session should be renewed when the user log in");
+    }
+
+    @Test
+    void finishLoginWithMissingSessionStateRestartsLogin() throws Exception {
+        configureTestRealm(wireMock, jenkins, sc -> {});
+        webClient.getOptions().setRedirectEnabled(false);
+        webClient.getOptions().setThrowExceptionOnFailingStatusCode(false);
+
+        Page page = webClient.goTo("securityRealm/finishLogin?state=stale-state&code=unused-code", null);
+
+        assertEquals(302, page.getWebResponse().getStatusCode());
+        assertEquals(
+                jenkinsRule.contextPath + "/securityRealm/commenceLogin",
+                page.getWebResponse().getResponseHeaderValue("Location"));
+        assertAnonymous(webClient);
+        wireMock.verify(0, postRequestedFor(urlPathEqualTo("/token")));
+    }
+
+    @Test
+    void finishLoginWithMismatchedStateRestartsLogin() throws Exception {
+        configureTestRealm(wireMock, jenkins, sc -> {});
+        webClient.getOptions().setRedirectEnabled(false);
+        webClient.getOptions().setThrowExceptionOnFailingStatusCode(false);
+
+        webClient.goTo("securityRealm/commenceLogin", null);
+        Page page = webClient.goTo("securityRealm/finishLogin?state=stale-state&code=unused-code", null);
+
+        assertEquals(302, page.getWebResponse().getStatusCode());
+        assertEquals(
+                jenkinsRule.contextPath + "/securityRealm/commenceLogin",
+                page.getWebResponse().getResponseHeaderValue("Location"));
+        assertAnonymous(webClient);
+        wireMock.verify(0, postRequestedFor(urlPathEqualTo("/token")));
     }
 
     @Test
