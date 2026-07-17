@@ -186,9 +186,11 @@ public class OicSecurityRealmTokenExpirationTest {
         when(realm.canRefreshToken(any())).thenReturn(true);
 
         OicCredentials expiredCredentials = mock(OicCredentials.class);
-        when(expiredCredentials.getExpiresAtMillis()).thenReturn(Clock.systemUTC().millis() - 10);
+        when(expiredCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() - 10);
         OicCredentials refreshedCredentials = mock(OicCredentials.class);
-        when(refreshedCredentials.getExpiresAtMillis()).thenReturn(Clock.systemUTC().millis() + 60_000);
+        when(refreshedCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() + 60_000);
 
         User user = mock(User.class);
         when(user.getId()).thenReturn("concurrent-refresh-user");
@@ -242,7 +244,8 @@ public class OicSecurityRealmTokenExpirationTest {
         when(realm.getLoginUrl()).thenCallRealMethod();
 
         OicCredentials expiredCredentials = mock(OicCredentials.class);
-        when(expiredCredentials.getExpiresAtMillis()).thenReturn(Clock.systemUTC().millis() - 10);
+        when(expiredCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() - 10);
 
         User user = mock(User.class);
         when(user.getId()).thenReturn("redirect-user");
@@ -271,7 +274,8 @@ public class OicSecurityRealmTokenExpirationTest {
         when(realm.isTokenExpirationCheckDisabled()).thenReturn(false);
 
         OicCredentials expiredCredentials = mock(OicCredentials.class);
-        when(expiredCredentials.getExpiresAtMillis()).thenReturn(Clock.systemUTC().millis() - 10);
+        when(expiredCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() - 10);
 
         User user = mock(User.class);
         when(user.getId()).thenReturn("ajax-user");
@@ -309,12 +313,12 @@ public class OicSecurityRealmTokenExpirationTest {
         verify(user).addProperty(credentials.capture());
 
         OicCredentials expiredCredentials = credentials.getValue();
-        assertFalse(expiredCredentials.getAccessToken() != null && !expiredCredentials.getAccessToken()
-                .isEmpty());
-        assertFalse(expiredCredentials.getIdToken() != null && !expiredCredentials.getIdToken()
-                .isEmpty());
-        assertFalse(expiredCredentials.getRefreshToken() != null && !expiredCredentials.getRefreshToken()
-                .isEmpty());
+        assertFalse(expiredCredentials.getAccessToken() != null
+                && !expiredCredentials.getAccessToken().isEmpty());
+        assertFalse(expiredCredentials.getIdToken() != null
+                && !expiredCredentials.getIdToken().isEmpty());
+        assertFalse(expiredCredentials.getRefreshToken() != null
+                && !expiredCredentials.getRefreshToken().isEmpty());
         assertTrue(expiredCredentials.getExpiresAtMillis() <= Clock.systemUTC().millis());
     }
 }

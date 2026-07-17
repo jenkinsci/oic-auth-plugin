@@ -1301,7 +1301,8 @@ public class OicSecurityRealm extends SecurityRealm {
             return false;
         }
 
-        List<GrantType> grantTypes = getServerConfiguration().toProviderMetadata().getGrantTypes();
+        List<GrantType> grantTypes =
+                getServerConfiguration().toProviderMetadata().getGrantTypes();
         return grantTypes == null || grantTypes.contains(GrantType.REFRESH_TOKEN);
     }
 
