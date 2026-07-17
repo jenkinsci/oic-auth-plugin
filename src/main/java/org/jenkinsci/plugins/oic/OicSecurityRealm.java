@@ -1311,8 +1311,7 @@ public class OicSecurityRealm extends SecurityRealm {
             return null;
         }
         try {
-            OIDCProviderMetadata providerMetadata = serverConfiguration.toProviderMetadata();
-            return providerMetadata == null ? null : providerMetadata.getGrantTypes();
+            return serverConfiguration.toProviderMetadata().getGrantTypes();
         } catch (RuntimeException e) {
             LOGGER.log(Level.FINER, "Could not read OIDC provider grant types for refresh diagnostic", e);
             return "unavailable";
