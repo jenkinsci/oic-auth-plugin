@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import hudson.util.FormValidation;
+import java.nio.file.Path;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.oic.OicSecurityRealm.DescriptorImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,10 +37,14 @@ class DescriptorImplTest {
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
         assertEquals(
                 "Client secret is required.",
-                descriptor.doCheckClientSecret(null).getMessage());
+                descriptor.doCheckClientSecret(null, null).getMessage());
         assertEquals(
-                "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
-        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
+                "Client secret is required.",
+                descriptor.doCheckClientSecret("", null).getMessage());
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password", null));
+        // With JWT bearer file path set, empty secret is allowed
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret(null, "/var/run/secrets/token"));
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("", "/var/run/secrets/token"));
 
         TestRealm realm = new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(false));
         jenkins.setSecurityRealm(realm);
@@ -63,10 +68,14 @@ class DescriptorImplTest {
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
         assertEquals(
                 "Client secret is required.",
-                descriptor.doCheckClientSecret(null).getMessage());
+                descriptor.doCheckClientSecret(null, null).getMessage());
         assertEquals(
-                "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
-        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
+                "Client secret is required.",
+                descriptor.doCheckClientSecret("", null).getMessage());
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password", null));
+        // With JWT bearer file path set, empty secret is allowed
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret(null, "/var/run/secrets/token"));
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("", "/var/run/secrets/token"));
 
         TestRealm realm = new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(true));
         jenkins.setSecurityRealm(realm);
@@ -78,6 +87,45 @@ class DescriptorImplTest {
         assertThat(
                 getConfiguredSecuritySecurityRealm().getServerConfiguration(),
                 instanceOf(OicServerWellKnownConfiguration.class));
+    }
+
+    @Test
+    void doCheckClientAssertionFilePath() {
+        OicSecurityRealm.DescriptorImpl descriptor =
+                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
+
+        // Null or blank → ok (field is optional)
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientAssertionFilePath(null));
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientAssertionFilePath(""));
+        assertEquals(FormValidation.ok(), descriptor.doCheckClientAssertionFilePath("   "));
+
+        // Relative path → error
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckClientAssertionFilePath("relative/path").kind);
+        assertTrue(descriptor
+                .doCheckClientAssertionFilePath("relative/path")
+                .getMessage()
+                .contains("must be absolute"));
+
+        // Absolute path that does not exist → warning (Kubernetes may mount it at runtime)
+        // Build an OS-agnostic absolute path: on Windows "/foo" is not absolute, tmpdir always is
+        String nonExistentAbsPath = Path.of(System.getProperty("java.io.tmpdir"), "nonexistent-oic-assertion-path-xyz")
+                .toString();
+        assertEquals(FormValidation.Kind.WARNING, descriptor.doCheckClientAssertionFilePath(nonExistentAbsPath).kind);
+        assertTrue(descriptor
+                .doCheckClientAssertionFilePath(nonExistentAbsPath)
+                .getMessage()
+                .contains("does not currently exist"));
+
+        // Absolute path that exists → ok (tmpdir always exists and is absolute on all OS)
+        assertEquals(
+                FormValidation.ok(), descriptor.doCheckClientAssertionFilePath(System.getProperty("java.io.tmpdir")));
+
+        // Path containing a null byte — invalid on all OS → error
+        assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckClientAssertionFilePath("/tmp/\0null").kind);
+        assertTrue(descriptor
+                .doCheckClientAssertionFilePath("/tmp/\0null")
+                .getMessage()
+                .contains("Invalid file path"));
     }
 
     @Test
