@@ -363,6 +363,92 @@ public class OicSecurityRealmTokenExpirationTest {
     }
 
     @Test
+    void handleExpiredToken_redirectsWhenRequestIsNull() throws Exception {
+        OicSecurityRealm realm = mock(OicSecurityRealm.class);
+        when(realm.handleExpiredToken(any(), any(), any())).thenCallRealMethod();
+        when(realm.isNonInteractiveRequest(any())).thenCallRealMethod();
+        when(realm.isExpired(any())).thenCallRealMethod();
+        when(realm.canRefreshToken(any())).thenReturn(false);
+        when(realm.isTokenExpirationCheckDisabled()).thenReturn(false);
+        when(realm.getLoginUrl()).thenReturn("securityRealm/commenceLogin");
+
+        OicCredentials expiredCredentials = mock(OicCredentials.class);
+        when(expiredCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() - 10);
+        User user = mock(User.class);
+        when(user.getId()).thenReturn("null-request-user");
+        when(user.getProperty(OicCredentials.class)).thenReturn(expiredCredentials);
+
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        assertFalse(realm.handleExpiredToken(user, null, response));
+
+        verify(response).sendRedirect("/securityRealm/commenceLogin");
+    }
+
+    @Test
+    void handleExpiredToken_withoutExistingSessionInvalidatesCreatedSession() throws Exception {
+        OicSecurityRealm realm = mock(OicSecurityRealm.class);
+        when(realm.handleExpiredToken(any(), any(), any())).thenCallRealMethod();
+        when(realm.isNonInteractiveRequest(any())).thenCallRealMethod();
+        when(realm.isExpired(any())).thenCallRealMethod();
+        when(realm.canRefreshToken(any())).thenReturn(false);
+        when(realm.isTokenExpirationCheckDisabled()).thenReturn(false);
+        when(realm.getLoginUrl()).thenReturn("/securityRealm/commenceLogin");
+
+        OicCredentials expiredCredentials = mock(OicCredentials.class);
+        when(expiredCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() - 10);
+        when(expiredCredentials.getRefreshToken()).thenReturn("refresh-token");
+        User user = mock(User.class);
+        when(user.getId()).thenReturn("new-session-user");
+        when(user.getProperty(OicCredentials.class)).thenReturn(expiredCredentials);
+
+        HttpSession session = mock(HttpSession.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getSession(false)).thenReturn(null);
+        when(request.getSession()).thenReturn(session);
+        when(request.getContextPath()).thenReturn("");
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        assertFalse(realm.handleExpiredToken(user, request, response));
+
+        verify(session).invalidate();
+        verify(response).sendRedirect("/securityRealm/commenceLogin");
+    }
+
+    @Test
+    void handleExpiredToken_withAuthorizationHeaderDoesNotInvalidateSession() throws Exception {
+        OicSecurityRealm realm = mock(OicSecurityRealm.class);
+        when(realm.handleExpiredToken(any(), any(), any())).thenCallRealMethod();
+        when(realm.isNonInteractiveRequest(any())).thenCallRealMethod();
+        when(realm.isExpired(any())).thenCallRealMethod();
+        when(realm.canRefreshToken(any())).thenReturn(false);
+        when(realm.isTokenExpirationCheckDisabled()).thenReturn(false);
+        when(realm.getLoginUrl()).thenReturn("/securityRealm/commenceLogin");
+
+        OicCredentials expiredCredentials = mock(OicCredentials.class);
+        when(expiredCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() - 10);
+        User user = mock(User.class);
+        when(user.getId()).thenReturn("authorization-header-user");
+        when(user.getProperty(OicCredentials.class)).thenReturn(expiredCredentials);
+
+        HttpSession session = mock(HttpSession.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getSession(false)).thenReturn(null);
+        when(request.getSession()).thenReturn(session);
+        when(request.getHeader("Authorization")).thenReturn("Bearer token");
+        when(request.getContextPath()).thenReturn("");
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        assertFalse(realm.handleExpiredToken(user, request, response));
+
+        verify(session, never()).invalidate();
+        verify(response).sendRedirect("/securityRealm/commenceLogin");
+    }
+
+    @Test
     void handleExpiredToken_nonInteractiveRequestReturnsUnauthorizedInsteadOfRedirect() throws Exception {
         OicSecurityRealm realm = mock(OicSecurityRealm.class);
         when(realm.handleExpiredToken(any(), any(), any())).thenCallRealMethod();
@@ -427,6 +513,14 @@ public class OicSecurityRealmTokenExpirationTest {
         when(navigation.getHeader("Accept")).thenReturn("text/html,application/xhtml+xml");
         when(navigation.getRequestURI()).thenReturn("/job/example/");
         assertFalse(realm.isNonInteractiveRequest(navigation));
+
+        HttpServletRequest iframe = mock(HttpServletRequest.class);
+        when(iframe.getHeader("Sec-Fetch-Dest")).thenReturn("iframe");
+        assertFalse(realm.isNonInteractiveRequest(iframe));
+
+        HttpServletRequest xhtml = mock(HttpServletRequest.class);
+        when(xhtml.getHeader("Accept")).thenReturn("application/xhtml+xml");
+        assertFalse(realm.isNonInteractiveRequest(xhtml));
     }
 
     @Test
