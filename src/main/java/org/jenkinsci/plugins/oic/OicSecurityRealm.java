@@ -128,6 +128,8 @@ import org.pac4j.jee.http.adapter.JEEHttpActionAdapter;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.oidc.credentials.authenticator.OidcAuthenticator;
+import org.pac4j.oidc.exceptions.OidcMissingSessionStateException;
+import org.pac4j.oidc.exceptions.OidcStateMismatchException;
 import org.pac4j.oidc.profile.OidcProfile;
 import org.pac4j.oidc.redirect.OidcRedirectionActionBuilder;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -1190,6 +1192,12 @@ public class OicSecurityRealm extends SecurityRealm {
         } catch (HttpAction e) {
             // this may be an OK flow for logout login is handled upstream.
             JEEHttpActionAdapter.INSTANCE.adapt(e, webContext);
+        } catch (OidcMissingSessionStateException | OidcStateMismatchException e) {
+            LOGGER.log(
+                    Level.FINE,
+                    "Restarting OpenID Connect login after callback state validation failed: {0}",
+                    e.getClass().getSimpleName());
+            redirectToLoginUrl(request, response);
         }
     }
 
