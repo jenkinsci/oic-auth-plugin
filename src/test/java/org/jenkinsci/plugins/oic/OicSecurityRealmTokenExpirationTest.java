@@ -234,6 +234,70 @@ public class OicSecurityRealmTokenExpirationTest {
     }
 
     @Test
+    void handleTokenExpiration_expiredCredentialsDelegateToLockedRefreshPath() throws Exception {
+        OicSecurityRealm realm = mock(OicSecurityRealm.class);
+        when(realm.isLogoutRequest(any())).thenCallRealMethod();
+        when(realm.handleTokenExpiration(any(), any())).thenCallRealMethod();
+        when(realm.isExpired(any())).thenCallRealMethod();
+
+        OicCredentials expiredCredentials = mock(OicCredentials.class);
+        when(expiredCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() - 10);
+        User user = mock(User.class);
+        when(user.getProperty(OicCredentials.class)).thenReturn(expiredCredentials);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/job/example/");
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        when(realm.handleExpiredToken(user, request, response)).thenReturn(false);
+
+        try (MockedStatic<User> userMocked = mockStatic(User.class)) {
+            userMocked.when(() -> User.get2(any())).thenReturn(user);
+
+            assertFalse(realm.handleTokenExpiration(request, response));
+        }
+
+        verify(realm).handleExpiredToken(user, request, response);
+    }
+
+    @Test
+    void handleExpiredToken_returnsWhenCredentialsDisappearOrAreAlreadyFresh() throws Exception {
+        OicSecurityRealm realm = mock(OicSecurityRealm.class);
+        when(realm.handleExpiredToken(any(), any(), any())).thenCallRealMethod();
+        when(realm.isExpired(any())).thenCallRealMethod();
+
+        User user = mock(User.class);
+        when(user.getId()).thenReturn("fresh-after-lock-user");
+        when(user.getProperty(OicCredentials.class)).thenReturn(null);
+        assertTrue(realm.handleExpiredToken(user, null, null));
+
+        OicCredentials freshCredentials = mock(OicCredentials.class);
+        when(freshCredentials.getExpiresAtMillis()).thenReturn(Clock.systemUTC().millis() + 60_000);
+        when(user.getProperty(OicCredentials.class)).thenReturn(freshCredentials);
+        assertTrue(realm.handleExpiredToken(user, null, null));
+
+        verify(realm, never()).refreshExpiredToken(anyString(), any(), any(), any());
+    }
+
+    @Test
+    void handleExpiredToken_allowsExpiredTokenWhenExpirationCheckDisabled() throws Exception {
+        OicSecurityRealm realm = mock(OicSecurityRealm.class);
+        when(realm.handleExpiredToken(any(), any(), any())).thenCallRealMethod();
+        when(realm.isExpired(any())).thenCallRealMethod();
+        when(realm.canRefreshToken(any())).thenReturn(false);
+        when(realm.isTokenExpirationCheckDisabled()).thenReturn(true);
+
+        OicCredentials expiredCredentials = mock(OicCredentials.class);
+        when(expiredCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() - 10);
+        User user = mock(User.class);
+        when(user.getId()).thenReturn("disabled-expiration-check-user");
+        when(user.getProperty(OicCredentials.class)).thenReturn(expiredCredentials);
+
+        assertTrue(realm.handleExpiredToken(user, null, null));
+    }
+
+    @Test
     void handleExpiredToken_redirectsToRootRelativeLoginUrl() throws Exception {
         OicSecurityRealm realm = mock(OicSecurityRealm.class);
         when(realm.handleExpiredToken(any(), any(), any())).thenCallRealMethod();
@@ -262,6 +326,40 @@ public class OicSecurityRealmTokenExpirationTest {
 
         verify(session).invalidate();
         verify(response).sendRedirect("/securityRealm/commenceLogin");
+    }
+
+    @Test
+    void handleExpiredToken_preservesContextPathForRootRelativeLoginUrl() throws Exception {
+        OicSecurityRealm realm = mock(OicSecurityRealm.class);
+        when(realm.handleExpiredToken(any(), any(), any())).thenCallRealMethod();
+        when(realm.isNonInteractiveRequest(any())).thenCallRealMethod();
+        when(realm.isExpired(any())).thenCallRealMethod();
+        when(realm.canRefreshToken(any())).thenReturn(false);
+        when(realm.isTokenExpirationCheckDisabled()).thenReturn(false);
+        when(realm.getLoginUrl()).thenReturn("/securityRealm/commenceLogin");
+
+        OicServerConfiguration serverConfiguration = mock(OicServerConfiguration.class);
+        when(serverConfiguration.toProviderMetadata()).thenThrow(new IllegalStateException("metadata unavailable"));
+        when(realm.getServerConfiguration()).thenReturn(serverConfiguration);
+
+        OicCredentials expiredCredentials = mock(OicCredentials.class);
+        when(expiredCredentials.getExpiresAtMillis())
+                .thenReturn(Clock.systemUTC().millis() - 10);
+        User user = mock(User.class);
+        when(user.getId()).thenReturn("context-path-user");
+        when(user.getProperty(OicCredentials.class)).thenReturn(expiredCredentials);
+
+        HttpSession session = mock(HttpSession.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(request.getContextPath()).thenReturn("/jenkins");
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        assertFalse(realm.handleExpiredToken(user, request, response));
+
+        verify(session).invalidate();
+        verify(response).sendRedirect("/jenkins/securityRealm/commenceLogin");
     }
 
     @Test
@@ -298,6 +396,40 @@ public class OicSecurityRealmTokenExpirationTest {
     }
 
     @Test
+    void isNonInteractiveRequest_recognizesEachSupportedRequestSignal() {
+        OicSecurityRealm realm = mock(OicSecurityRealm.class);
+        when(realm.isNonInteractiveRequest(any())).thenCallRealMethod();
+
+        assertFalse(realm.isNonInteractiveRequest(null));
+
+        HttpServletRequest xhr = mock(HttpServletRequest.class);
+        when(xhr.getHeader("X-Requested-With")).thenReturn("xmlhttprequest");
+        assertTrue(realm.isNonInteractiveRequest(xhr));
+
+        HttpServletRequest fetch = mock(HttpServletRequest.class);
+        when(fetch.getHeader("Sec-Fetch-Dest")).thenReturn("empty");
+        assertTrue(realm.isNonInteractiveRequest(fetch));
+
+        HttpServletRequest api = mock(HttpServletRequest.class);
+        when(api.getHeader("Accept")).thenReturn("application/json");
+        assertTrue(realm.isNonInteractiveRequest(api));
+
+        HttpServletRequest ajaxPath = mock(HttpServletRequest.class);
+        when(ajaxPath.getRequestURI()).thenReturn("/widget/ExecutorWidget/ajax");
+        assertTrue(realm.isNonInteractiveRequest(ajaxPath));
+
+        HttpServletRequest crumb = mock(HttpServletRequest.class);
+        when(crumb.getHeader("Jenkins-Crumb")).thenReturn("crumb");
+        assertTrue(realm.isNonInteractiveRequest(crumb));
+
+        HttpServletRequest navigation = mock(HttpServletRequest.class);
+        when(navigation.getHeader("Sec-Fetch-Dest")).thenReturn("document");
+        when(navigation.getHeader("Accept")).thenReturn("text/html,application/xhtml+xml");
+        when(navigation.getRequestURI()).thenReturn("/job/example/");
+        assertFalse(realm.isNonInteractiveRequest(navigation));
+    }
+
+    @Test
     void expireCredentials_replacesCredentialsWithExpiredEmptyTokens() throws Exception {
         OicSecurityRealm realm = mock(OicSecurityRealm.class);
         doCallRealMethod().when(realm).expireCredentials(anyString());
@@ -320,5 +452,17 @@ public class OicSecurityRealmTokenExpirationTest {
         assertFalse(expiredCredentials.getRefreshToken() != null
                 && !expiredCredentials.getRefreshToken().isEmpty());
         assertTrue(expiredCredentials.getExpiresAtMillis() <= Clock.systemUTC().millis());
+    }
+
+    @Test
+    void expireCredentials_ignoresMissingUser() throws Exception {
+        OicSecurityRealm realm = mock(OicSecurityRealm.class);
+        doCallRealMethod().when(realm).expireCredentials(anyString());
+
+        try (MockedStatic<User> userMocked = mockStatic(User.class)) {
+            userMocked.when(() -> User.getById("missing-user", false)).thenReturn(null);
+
+            realm.expireCredentials("missing-user");
+        }
     }
 }
