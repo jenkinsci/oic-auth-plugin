@@ -27,20 +27,20 @@ public class OicSecurityRealmTokenExpirationTest {
     void handleTokenExpiration_logoutRequestUri() throws Exception {
         OicSecurityRealm realm = mock(OicSecurityRealm.class);
         when(realm.isLogoutRequest(any())).thenCallRealMethod();
-        when(realm.handleTokenExpiration(any(), any())).thenCallRealMethod();
+        when(realm.validateAuthentication(any(), any())).thenCallRealMethod();
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/logout");
 
         assertTrue(realm.isLogoutRequest(request));
-        assertTrue(realm.handleTokenExpiration(request, null));
+        assertTrue(realm.validateAuthentication(request, null));
     }
 
     @Test
     void handleTokenExpiration_noUser() throws Exception {
         OicSecurityRealm realm = mock(OicSecurityRealm.class);
         when(realm.isLogoutRequest(any())).thenCallRealMethod();
-        when(realm.handleTokenExpiration(any(), any())).thenCallRealMethod();
+        when(realm.validateAuthentication(any(), any())).thenCallRealMethod();
 
         try (MockedStatic<User> userMocked = mockStatic(User.class)) {
             userMocked.when(() -> User.get2(any())).thenReturn(null);
@@ -49,7 +49,7 @@ public class OicSecurityRealmTokenExpirationTest {
             when(request.getRequestURI()).thenReturn("/other");
 
             assertFalse(realm.isLogoutRequest(request));
-            assertTrue(realm.handleTokenExpiration(request, null));
+            assertTrue(realm.validateAuthentication(request, null));
         }
     }
 
@@ -57,7 +57,7 @@ public class OicSecurityRealmTokenExpirationTest {
     void handleTokenExpiration_NoOicCredentials() throws Exception {
         OicSecurityRealm realm = mock(OicSecurityRealm.class);
         when(realm.isLogoutRequest(any())).thenCallRealMethod();
-        when(realm.handleTokenExpiration(any(), any())).thenCallRealMethod();
+        when(realm.validateAuthentication(any(), any())).thenCallRealMethod();
 
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/other");
@@ -80,7 +80,7 @@ public class OicSecurityRealmTokenExpirationTest {
 
             // OicCredentials is null
             Assertions.assertNull(user.getProperty(OicCredentials.class));
-            assertTrue(realm.handleTokenExpiration(request, response));
+            assertTrue(realm.validateAuthentication(request, response));
         }
     }
 
@@ -91,34 +91,34 @@ public class OicSecurityRealmTokenExpirationTest {
         User mockUser = mock(User.class);
 
         OicSecurityRealm realm = mock(OicSecurityRealm.class);
-        when(realm.isValidApiTokenRequest(any(), any())).thenCallRealMethod();
+        when(realm.attemptBasicAuth(any(), any())).thenCallRealMethod();
 
         // ---- Token access w/o OIC Session not allowed
-        assertFalse(realm.isValidApiTokenRequest(null, null));
+        assertFalse(realm.attemptBasicAuth(null, null).isPresent());
 
         // ---- Allow token access with OIC Session
         when(realm.isAllowTokenAccessWithoutOicSession()).thenReturn(true);
 
         // ---- No basic auth header set
         when(request.getHeader(any())).thenReturn(null);
-        assertFalse(realm.isValidApiTokenRequest(request, null));
+        assertFalse(realm.attemptBasicAuth(null, request).isPresent());
         when(request.getHeader(any())).thenReturn("Other value");
-        assertFalse(realm.isValidApiTokenRequest(request, null));
+        assertFalse(realm.attemptBasicAuth(null, request).isPresent());
 
         // ---- Basic auth header set: hello:world but no ApiTokenProperty
         when(request.getHeader(any())).thenReturn("Basic aGVsbG86d29ybGQ=");
         when(mockUser.getProperty(ApiTokenProperty.class)).thenReturn(null);
-        assertFalse(realm.isValidApiTokenRequest(request, mockUser));
+        assertFalse(realm.attemptBasicAuth(mockUser, request).isPresent());
 
         // ---- Basic auth header set: hello:world AND ApiTokenProperty but passwords do not match
         when(mockUser.getProperty(ApiTokenProperty.class)).thenReturn(mockApiTokenProperty);
         when(mockApiTokenProperty.matchesPassword(any())).thenReturn(false);
-        assertFalse(realm.isValidApiTokenRequest(request, mockUser));
+        assertFalse(realm.attemptBasicAuth(mockUser, request).isPresent());
 
         // ---- Basic auth header set: hello:world AND ApiTokenProperty AND passwords match
         when(mockUser.getProperty(ApiTokenProperty.class)).thenReturn(mockApiTokenProperty);
         when(mockApiTokenProperty.matchesPassword(any())).thenReturn(true);
-        assertTrue(realm.isValidApiTokenRequest(request, mockUser));
+        assertTrue(realm.attemptBasicAuth(mockUser, request).orElseThrow());
     }
 
     @Test
