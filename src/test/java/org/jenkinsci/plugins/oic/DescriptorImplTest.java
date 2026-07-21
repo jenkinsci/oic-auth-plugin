@@ -124,6 +124,16 @@ class DescriptorImplTest {
         assertEquals(FormValidation.ok(), descriptor.doCheckGroupsFieldName("mygroups"));
     }
 
+        @Test
+        void doCheckAvatarFieldName() {
+                OicSecurityRealm.DescriptorImpl descriptor =
+                                (DescriptorImpl) jenkins.getDescriptorOrDie(OicSecurityRealm.class);
+
+                assertEquals(FormValidation.ok(), descriptor.doCheckAvatarFieldName(""));
+                assertEquals(FormValidation.Kind.ERROR, descriptor.doCheckAvatarFieldName("]not valid").kind);
+                assertEquals(FormValidation.ok(), descriptor.doCheckAvatarFieldName("picture"));
+        }
+
     @Test
     void doCheckTokenFieldToCheckKey() {
         OicSecurityRealm.DescriptorImpl descriptor =

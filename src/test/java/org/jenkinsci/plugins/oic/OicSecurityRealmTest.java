@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
@@ -251,4 +252,12 @@ class OicSecurityRealmTest {
                             hasItemInArray("emailaddr=joe%40example.com")));
         }
     }
+
+        @Test
+        void testProtectedAvatarUrlDetection() {
+                assertTrue(OicSecurityRealm.isLikelyProtectedAvatarUrl("https://graph.microsoft.com/v1.0/me/photo/$value"));
+                assertTrue(OicSecurityRealm.isLikelyProtectedAvatarUrl("https://graph.microsoft.com/beta/me/photo/$value"));
+                assertFalse(OicSecurityRealm.isLikelyProtectedAvatarUrl("https://example.org/my-avatar.png"));
+                assertFalse(OicSecurityRealm.isLikelyProtectedAvatarUrl(null));
+        }
 }

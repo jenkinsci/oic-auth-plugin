@@ -1,3 +1,5 @@
+allowMicrosoftGraphAvatar: true
+avatarFieldName: "avatarFieldName"
 clientId: "clientId"
 disableSslVerification: true
 emailFieldName: "emailFieldName"

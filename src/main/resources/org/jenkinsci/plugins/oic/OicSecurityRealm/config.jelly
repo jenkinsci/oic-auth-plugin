@@ -25,6 +25,12 @@
       <f:entry title="${%EmailFieldName}" field="emailFieldName">
         <f:textbox/>
       </f:entry>
+      <f:entry title="${%AvatarFieldName}" field="avatarFieldName">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%AllowMicrosoftGraphAvatar}" field="allowMicrosoftGraphAvatar">
+        <f:checkbox/>
+      </f:entry>
       <f:entry title="${%GroupsFieldName}" field="groupsFieldName">
         <f:textbox/>
       </f:entry>

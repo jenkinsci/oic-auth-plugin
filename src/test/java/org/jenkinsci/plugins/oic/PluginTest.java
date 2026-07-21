@@ -16,7 +16,9 @@ import static org.hamcrest.Matchers.empty;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertAvatarUrl;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertAnonymous;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertNoAvatar;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestAvatar;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUser;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUserEmail;
@@ -316,6 +318,73 @@ class PluginTest {
         var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestAvatar(user, wireMock);
+    }
+
+    @Test
+    void testLoginIgnoresProtectedMicrosoftGraphAvatar() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfo(
+                wireMock,
+                Map.of(
+                        "sub", TEST_USER_USERNAME,
+                        FULL_NAME_FIELD, TEST_USER_FULL_NAME,
+                        EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS,
+                        "picture", "https://graph.microsoft.com/v1.0/me/photo/$value"));
+        configureWellKnown(wireMock, null, null);
+
+        jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+
+        var user = assertTestUser(webClient);
+        assertTestUserEmail(user);
+        assertNoAvatar(user);
+    }
+
+    @Test
+    void testLoginCanDisableAvatarSynchronization() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithAvatar(wireMock);
+        configureWellKnown(wireMock, null, null);
+
+        var realm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
+        realm.setAvatarFieldName("");
+        jenkins.setSecurityRealm(realm);
+
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+
+        var user = assertTestUser(webClient);
+        assertTestUserEmail(user);
+        assertNoAvatar(user);
+    }
+
+    @Test
+    void testLoginCanUseMicrosoftGraphAvatarWhenEnabled() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        String graphAvatarUrl = "https://graph.microsoft.com/v1.0/me/photo/$value";
+        mockUserInfo(
+                wireMock,
+                Map.of(
+                        "sub", TEST_USER_USERNAME,
+                        FULL_NAME_FIELD, TEST_USER_FULL_NAME,
+                        EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS,
+                        "picture", graphAvatarUrl));
+        configureWellKnown(wireMock, null, null);
+
+        var realm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
+        realm.setAllowMicrosoftGraphAvatar(true);
+        jenkins.setSecurityRealm(realm);
+
+        assertAnonymous(webClient);
+        browseLoginPage(webClient, jenkins);
+
+        var user = assertTestUser(webClient);
+        assertTestUserEmail(user);
+        assertAvatarUrl(user, graphAvatarUrl);
     }
 
     @Test

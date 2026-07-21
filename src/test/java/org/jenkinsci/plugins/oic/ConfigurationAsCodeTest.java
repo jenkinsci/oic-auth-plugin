@@ -71,7 +71,9 @@ class ConfigurationAsCodeTest {
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
         assertTrue(oicSecurityRealm.isDisableSslVerification());
+        assertTrue(oicSecurityRealm.isAllowMicrosoftGraphAvatar());
         assertEquals("emailFieldName", oicSecurityRealm.getEmailFieldName());
+        assertEquals("avatarFieldName", oicSecurityRealm.getAvatarFieldName());
         var escapeHatch = oicSecurityRealm.getProperties().get(EscapeHatch.class);
         assertThat(escapeHatch, notNullValue());
         assertThat(escapeHatch.getUsername(), is("escapeHatchUsername"));
@@ -147,6 +149,8 @@ class ConfigurationAsCodeTest {
         assertNull(oicSecurityRealm.getEmailFieldName());
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
+        assertFalse(oicSecurityRealm.isAllowMicrosoftGraphAvatar());
+        assertEquals("picture", oicSecurityRealm.getAvatarFieldName());
         assertEquals("openid email", serverConf.getScopes());
         assertEquals("http://localhost/token", serverConf.getTokenServerUrl());
         assertEquals(TokenAuthMethod.client_secret_post, serverConf.getTokenAuthMethod());
@@ -174,6 +178,8 @@ class ConfigurationAsCodeTest {
         assertNull(oicSecurityRealm.getEmailFieldName());
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
+        assertFalse(oicSecurityRealm.isAllowMicrosoftGraphAvatar());
+        assertEquals("picture", oicSecurityRealm.getAvatarFieldName());
 
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
