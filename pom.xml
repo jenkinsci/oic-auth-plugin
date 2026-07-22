@@ -58,6 +58,7 @@
     -->
     <pac4jVersion>6.4.3</pac4jVersion>
     <hpi.bundledArtifacts>content-type,jmespath-core,lang-tag,oauth2-oidc-sdk,pac4j-core,pac4j-jakartaee,pac4j-oidc,protobuf-java,tink</hpi.bundledArtifacts>
+    <ban-commons-lang-2.skip>false</ban-commons-lang-2.skip>
   </properties>
 
   <dependencyManagement>
