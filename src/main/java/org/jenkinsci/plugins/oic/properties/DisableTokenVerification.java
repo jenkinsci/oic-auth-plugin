@@ -4,7 +4,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import java.io.Serial;
 import jenkins.security.FIPS140;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.jenkinsci.plugins.oic.AnythingGoesTokenValidator;
 import org.jenkinsci.plugins.oic.OicServerConfiguration;
 import org.jenkinsci.plugins.oic.OidcProperty;
