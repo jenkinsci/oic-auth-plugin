@@ -52,6 +52,8 @@ public class TestRealm extends OicSecurityRealm {
         public String emailFieldName = null;
         public String scopes = null;
         public String groupsFieldName = null;
+        public String avatarFieldName = "picture";
+        public boolean allowMicrosoftGraphAvatar = false;
         public boolean disableSslVerification = false;
         public Boolean logoutFromOpenidProvider = false;
         public String endSessionEndpoint = null;
@@ -108,6 +110,16 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithGroupsFieldName(String groupsFieldName) {
             this.groupsFieldName = groupsFieldName;
+            return this;
+        }
+
+        public Builder WithAvatarFieldName(String avatarFieldName) {
+            this.avatarFieldName = avatarFieldName;
+            return this;
+        }
+
+        public Builder WithAllowMicrosoftGraphAvatar(boolean allowMicrosoftGraphAvatar) {
+            this.allowMicrosoftGraphAvatar = allowMicrosoftGraphAvatar;
             return this;
         }
 
@@ -239,6 +251,8 @@ public class TestRealm extends OicSecurityRealm {
         this.setFullNameFieldName(builder.fullNameFieldName);
         this.setEmailFieldName(builder.emailFieldName);
         this.setGroupsFieldName(builder.groupsFieldName);
+        this.setAvatarFieldName(builder.avatarFieldName);
+        this.setAllowMicrosoftGraphAvatar(builder.allowMicrosoftGraphAvatar);
         this.setLogoutFromOpenidProvider(builder.logoutFromOpenidProvider);
         this.setPostLogoutRedirectUrl(builder.postLogoutRedirectUrl);
         this.setProperties(builder.properties);

@@ -210,6 +210,8 @@ public class OicSecurityRealm extends SecurityRealm {
     private transient Expression<Object> emailFieldExpr = null;
     private String groupsFieldName = null;
     private transient Expression<Object> groupsFieldExpr = null;
+    private String avatarFieldName = "picture";
+    private boolean allowMicrosoftGraphAvatar = false;
     private transient Expression<Object> avatarFieldExpr = null;
     private transient String simpleGroupsFieldName = null;
     private transient String nestedGroupFieldName = null;
@@ -367,8 +369,7 @@ public class OicSecurityRealm extends SecurityRealm {
         this.serverConfiguration = serverConfiguration;
         this.userIdStrategy = userIdStrategy;
         this.groupIdStrategy = groupIdStrategy;
-        this.avatarFieldExpr =
-                compileJMESPath("picture", "avatar field"); // Default on OIDC spec, part of profile claim
+        this.setAvatarFieldName(this.avatarFieldName);
     }
 
     @SuppressWarnings("deprecated")
@@ -429,9 +430,12 @@ public class OicSecurityRealm extends SecurityRealm {
         } else {
             this.setGroupsFieldName(this.groupsFieldName);
         }
+        if (this.avatarFieldName == null) {
+            // Backward compatibility for pre-avatarFieldName persisted configurations.
+            this.avatarFieldName = "picture";
+        }
         // ensure Field JMESPath are computed
-        this.avatarFieldExpr =
-                compileJMESPath("picture", "avatar field"); // Default on OIDC spec, part of profile claim
+        this.setAvatarFieldName(this.avatarFieldName);
         this.setUserNameField(this.userNameField);
         this.setEmailFieldName(this.emailFieldName);
         this.setFullNameFieldName(this.fullNameFieldName);
@@ -518,6 +522,14 @@ public class OicSecurityRealm extends SecurityRealm {
 
     public String getGroupsFieldName() {
         return groupsFieldName;
+    }
+
+    public String getAvatarFieldName() {
+        return avatarFieldName;
+    }
+
+    public boolean isAllowMicrosoftGraphAvatar() {
+        return allowMicrosoftGraphAvatar;
     }
 
     @Override
@@ -670,6 +682,17 @@ public class OicSecurityRealm extends SecurityRealm {
     public void setGroupsFieldName(String groupsFieldName) {
         this.groupsFieldName = Util.fixEmptyAndTrim(groupsFieldName);
         this.groupsFieldExpr = compileJMESPath(this.groupsFieldName, "groups field");
+    }
+
+    @DataBoundSetter
+    public void setAvatarFieldName(String avatarFieldName) {
+        this.avatarFieldName = Util.fixNull(Util.fixEmptyAndTrim(avatarFieldName));
+        this.avatarFieldExpr = compileJMESPath(this.avatarFieldName, "avatar field");
+    }
+
+    @DataBoundSetter
+    public void setAllowMicrosoftGraphAvatar(boolean allowMicrosoftGraphAvatar) {
+        this.allowMicrosoftGraphAvatar = allowMicrosoftGraphAvatar;
     }
 
     @DataBoundSetter
@@ -872,9 +895,13 @@ public class OicSecurityRealm extends SecurityRealm {
 
         // Set avatar if possible
         String avatarUrl = determineStringField(avatarFieldExpr, idToken, userInfo);
+        if (!allowMicrosoftGraphAvatar && isLikelyProtectedAvatarUrl(avatarUrl)) {
+            LOGGER.finest("Ignoring protected avatar URL for user " + user.getId() + ": " + avatarUrl);
+            avatarUrl = null;
+        }
         OicAvatarProperty oicAvatarProperty;
         if (avatarUrl != null) {
-            LOGGER.finest(() -> "Avatar url is: " + avatarUrl);
+            LOGGER.finest("Avatar url is: " + avatarUrl);
             OicAvatarProperty.AvatarImage avatarImage = new OicAvatarProperty.AvatarImage(avatarUrl);
             oicAvatarProperty = new OicAvatarProperty(avatarImage);
         } else {
@@ -917,6 +944,22 @@ public class OicSecurityRealm extends SecurityRealm {
             }
         }
         return null;
+    }
+
+    static boolean isLikelyProtectedAvatarUrl(String avatarUrl) {
+        if (avatarUrl == null) {
+            return false;
+        }
+        try {
+            URI parsed = URI.create(avatarUrl);
+            if (!"graph.microsoft.com".equalsIgnoreCase(parsed.getHost())) {
+                return false;
+            }
+            String path = parsed.getPath();
+            return path != null && path.endsWith("/photo/$value");
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     protected String getStringField(Object object, Expression<Object> fieldExpr) {
@@ -1453,6 +1496,11 @@ public class OicSecurityRealm extends SecurityRealm {
         @RequirePOST
         public FormValidation doCheckGroupsFieldName(@QueryParameter String groupsFieldName) {
             return this.doCheckFieldName(groupsFieldName, FormValidation.ok());
+        }
+
+        @RequirePOST
+        public FormValidation doCheckAvatarFieldName(@QueryParameter String avatarFieldName) {
+            return this.doCheckFieldName(avatarFieldName, FormValidation.ok());
         }
 
         @RequirePOST

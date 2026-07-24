@@ -12,7 +12,9 @@ jenkins:
       clientId: clientId
       clientSecret: clientSecret
       disableSslVerification: true
+      allowMicrosoftGraphAvatar: true
       emailFieldName: emailFieldName
+      avatarFieldName: avatarFieldName
       fullNameFieldName: fullNameFieldName
       groupsFieldName: groupsFieldName
       logoutFromOpenidProvider: true
