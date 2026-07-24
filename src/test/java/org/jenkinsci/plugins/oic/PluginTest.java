@@ -16,8 +16,8 @@ import static org.hamcrest.Matchers.empty;
 import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
-import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertAvatarUrl;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertAnonymous;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertAvatarUrl;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertNoAvatar;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestAvatar;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUser;
@@ -327,10 +327,14 @@ class PluginTest {
         mockUserInfo(
                 wireMock,
                 Map.of(
-                        "sub", TEST_USER_USERNAME,
-                        FULL_NAME_FIELD, TEST_USER_FULL_NAME,
-                        EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS,
-                        "picture", "https://graph.microsoft.com/v1.0/me/photo/$value"));
+                        "sub",
+                        TEST_USER_USERNAME,
+                        FULL_NAME_FIELD,
+                        TEST_USER_FULL_NAME,
+                        EMAIL_FIELD,
+                        TEST_USER_EMAIL_ADDRESS,
+                        "picture",
+                        "https://graph.microsoft.com/v1.0/me/photo/$value"));
         configureWellKnown(wireMock, null, null);
 
         jenkins.setSecurityRealm(new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true));
@@ -369,10 +373,14 @@ class PluginTest {
         mockUserInfo(
                 wireMock,
                 Map.of(
-                        "sub", TEST_USER_USERNAME,
-                        FULL_NAME_FIELD, TEST_USER_FULL_NAME,
-                        EMAIL_FIELD, TEST_USER_EMAIL_ADDRESS,
-                        "picture", graphAvatarUrl));
+                        "sub",
+                        TEST_USER_USERNAME,
+                        FULL_NAME_FIELD,
+                        TEST_USER_FULL_NAME,
+                        EMAIL_FIELD,
+                        TEST_USER_EMAIL_ADDRESS,
+                        "picture",
+                        graphAvatarUrl));
         configureWellKnown(wireMock, null, null);
 
         var realm = new TestRealm(wireMock, null, EMAIL_FIELD, GROUPS_FIELD, true);
