@@ -33,7 +33,8 @@ class SecurityRealmConfigurationFIPSTest {
     @Test
     void escapeHatchThrowsException() {
         assertThrows(
-                Descriptor.FormException.class, () -> new OicSecurityRealm("clientId", null, null, null, null, null)
+                Descriptor.FormException.class,
+                () -> new OicSecurityRealm("clientId", null, null, null, null, null)
                         .getProperties()
                         .add(new EscapeHatch("admin", null, Secret.fromString("very-secret"))));
     }

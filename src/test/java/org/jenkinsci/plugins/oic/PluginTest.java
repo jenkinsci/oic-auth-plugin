@@ -77,7 +77,7 @@ import jenkins.model.Jenkins;
 import jenkins.security.LastGrantedAuthoritiesProperty;
 import org.htmlunit.CookieManager;
 import org.htmlunit.html.HtmlPage;
-import org.htmlunit.util.Cookie;
+import org.htmlunit.http.Cookie;
 import org.jenkinsci.plugins.oic.plugintest.PluginTestHelper;
 import org.jenkinsci.plugins.oic.properties.DisableNonce;
 import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
