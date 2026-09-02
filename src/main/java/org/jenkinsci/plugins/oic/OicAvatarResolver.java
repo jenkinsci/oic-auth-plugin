@@ -11,7 +11,7 @@ public class OicAvatarResolver extends UserAvatarResolver {
         if (user != null) {
             OicAvatarProperty avatarProperty = user.getProperty(OicAvatarProperty.class);
             if (avatarProperty != null) {
-                return avatarProperty.getAvatarUrl();
+                return avatarProperty.getAvatarUrlForUser(user);
             }
         }
         return null;

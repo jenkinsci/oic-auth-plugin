@@ -64,6 +64,17 @@ public class PluginTestAsserts {
         }
     }
 
+    public static void assertAvatarUrl(User user, String expectedAvatarUrl) {
+        OicAvatarProperty avatarProperty = user.getProperty(OicAvatarProperty.class);
+        assertNotNull(avatarProperty);
+        assertEquals(expectedAvatarUrl, avatarProperty.getAvatarUrl(), "Avatar url should be " + expectedAvatarUrl);
+        String urlViaAvatarResolver = UserAvatarResolver.resolve(user, "48x48");
+        assertEquals(
+                expectedAvatarUrl == null ? "symbol-person-circle" : expectedAvatarUrl,
+                urlViaAvatarResolver,
+                "Avatar url should be " + expectedAvatarUrl);
+    }
+
     public static void assertTestUserIsMemberOfGroups(User user, String... testUserGroups) {
         for (String group : testUserGroups) {
             assertTrue(user.getAuthorities().contains(group), "User should be part of group " + group);

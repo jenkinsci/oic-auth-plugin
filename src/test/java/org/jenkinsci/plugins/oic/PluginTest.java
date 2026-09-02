@@ -17,6 +17,7 @@ import static org.jenkinsci.plugins.oic.TestRealm.EMAIL_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.FULL_NAME_FIELD;
 import static org.jenkinsci.plugins.oic.TestRealm.GROUPS_FIELD;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertAnonymous;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertAvatarUrl;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestAvatar;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUser;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUserEmail;
@@ -316,6 +317,53 @@ class PluginTest {
         var user = assertTestUser(webClient);
         assertTestUserEmail(user);
         assertTestAvatar(user, wireMock);
+    }
+
+    @Test
+    void testLoginUsingUserInfoEndpointWithAvatarServedFromJenkins() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithAvatar(wireMock);
+        configureWellKnown(wireMock, null, null);
+
+        wireMock.stubFor(get(urlPathEqualTo("/my-avatar.png"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "image/png")
+                        .withBody(Base64.getDecoder().decode(TEST_ENCODED_AVATAR))));
+
+        jenkins.setSecurityRealm(new TestRealm.Builder(wireMock)
+                .WithMinimalDefaults()
+                        .WithAutomanualconfigure(true)
+                        .WithDisableSslVerification(true)
+                        .WithServeAvatarFromJenkins(true)
+                        .build());
+        browseLoginPage(webClient, jenkins);
+
+        var user = assertTestUser(webClient);
+        assertAvatarUrl(user, user.getUrl() + "/oic-avatar/image");
+    }
+
+    @Test
+    void testLoginWithAvatarServedFromJenkinsWhenDownloadFails() throws Exception {
+        mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
+        mockTokenReturnsIdTokenWithoutValues(wireMock);
+        mockUserInfoWithAvatar(wireMock);
+        configureWellKnown(wireMock, null, null);
+
+        wireMock.stubFor(
+                get(urlPathEqualTo("/my-avatar.png")).willReturn(aResponse().withStatus(404)));
+
+        jenkins.setSecurityRealm(new TestRealm.Builder(wireMock)
+                .WithMinimalDefaults()
+                        .WithAutomanualconfigure(true)
+                        .WithDisableSslVerification(true)
+                        .WithServeAvatarFromJenkins(true)
+                        .build());
+        browseLoginPage(webClient, jenkins);
+
+        var user = assertTestUser(webClient);
+        assertAvatarUrl(user, null);
     }
 
     @Test

@@ -11,6 +11,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
 import jenkins.security.FIPS140;
 import jenkins.util.SystemProperties;
 import org.jenkinsci.plugins.oic.ssl.IgnoringHostNameVerifier;
@@ -32,16 +33,17 @@ class ProxyAwareResourceRetriever extends DefaultResourceRetriever {
     private static final int SIZE_LIMIT = SystemProperties.getInteger("OIC_CONNECTION_SIZE_LIMIT", 0);
 
     private final boolean disableTLSValidation;
+    private final SSLSocketFactory sslSocketFactory;
 
     private ProxyAwareResourceRetriever(boolean disableTLSValidation)
             throws KeyManagementException, NoSuchAlgorithmException {
-        super(
-                CONNECTION_TIMEOUT_MS,
-                READ_TIMEOUT_MS,
-                SIZE_LIMIT,
-                true,
-                disableTLSValidation ? TLSUtils.createAnythingGoesSSLSocketFactory() : null);
+        this(disableTLSValidation, disableTLSValidation ? TLSUtils.createAnythingGoesSSLSocketFactory() : null);
+    }
+
+    private ProxyAwareResourceRetriever(boolean disableTLSValidation, SSLSocketFactory sslSocketFactory) {
+        super(CONNECTION_TIMEOUT_MS, READ_TIMEOUT_MS, SIZE_LIMIT, true, sslSocketFactory);
         this.disableTLSValidation = disableTLSValidation;
+        this.sslSocketFactory = sslSocketFactory;
         // set the same default headers as the in the default client should a resolver not be specified
         // https://github.com/pac4j/pac4j/blob/pac4j-parent-5.7.7/pac4j-oidc/src/main/java/org/pac4j/oidc/config/OidcConfiguration.java#L179-L193
         setHeaders(Map.of(HttpConstants.ACCEPT_HEADER, List.of(HttpConstants.APPLICATION_JSON)));
@@ -51,8 +53,10 @@ class ProxyAwareResourceRetriever extends DefaultResourceRetriever {
     protected HttpURLConnection openHTTPConnection(URL url) throws IOException {
         @SuppressWarnings("deprecation")
         HttpURLConnection con = (HttpURLConnection) ProxyConfiguration.open(url);
-        if (disableTLSValidation && con instanceof HttpsURLConnection) {
-            ((HttpsURLConnection) con).setHostnameVerifier(IgnoringHostNameVerifier.INSTANCE);
+        if (disableTLSValidation && con instanceof HttpsURLConnection https) {
+            https.setHostnameVerifier(IgnoringHostNameVerifier.INSTANCE);
+            // the superclass only applies the socket factory when it retrieves a resource itself
+            https.setSSLSocketFactory(sslSocketFactory);
         }
         return con;
     }

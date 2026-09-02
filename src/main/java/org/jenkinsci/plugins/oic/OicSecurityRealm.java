@@ -34,6 +34,7 @@ import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.oauth2.sdk.token.RefreshToken;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.Util;
@@ -291,6 +292,9 @@ public class OicSecurityRealm extends SecurityRealm {
     /** Flag to enable traditional Jenkins API token based access (no OicSession needed)
      */
     private boolean allowTokenAccessWithoutOicSession = false;
+
+    /** Download the avatar from the provider and serve it from Jenkins instead of linking to the provider. */
+    private boolean serveAvatarFromJenkins = false;
 
     /**
      * Additional number of seconds to add to token expiration
@@ -557,6 +561,10 @@ public class OicSecurityRealm extends SecurityRealm {
         return allowTokenAccessWithoutOicSession;
     }
 
+    public boolean isServeAvatarFromJenkins() {
+        return serveAvatarFromJenkins;
+    }
+
     public DescribableList<OidcProperty, OidcPropertyDescriptor> getProperties() {
         return properties;
     }
@@ -717,6 +725,11 @@ public class OicSecurityRealm extends SecurityRealm {
         this.allowTokenAccessWithoutOicSession = allowTokenAccessWithoutOicSession;
     }
 
+    @DataBoundSetter
+    public void setServeAvatarFromJenkins(boolean serveAvatarFromJenkins) {
+        this.serveAvatarFromJenkins = serveAvatarFromJenkins;
+    }
+
     @Override
     public String getLoginUrl() {
         // Login begins with our doCommenceLogin(String,String) method
@@ -872,22 +885,37 @@ public class OicSecurityRealm extends SecurityRealm {
 
         // Set avatar if possible
         String avatarUrl = determineStringField(avatarFieldExpr, idToken, userInfo);
-        OicAvatarProperty oicAvatarProperty;
-        if (avatarUrl != null) {
-            LOGGER.finest(() -> "Avatar url is: " + avatarUrl);
-            OicAvatarProperty.AvatarImage avatarImage = new OicAvatarProperty.AvatarImage(avatarUrl);
-            oicAvatarProperty = new OicAvatarProperty(avatarImage);
-        } else {
-            LOGGER.finest(() -> "No avatar URL found for user " + user.getId() + ". Ensure to remove existing avatar");
-            oicAvatarProperty = new OicAvatarProperty(null);
-        }
-        user.addProperty(oicAvatarProperty);
+        user.addProperty(createAvatarProperty(user, avatarUrl, credentials));
 
         user.addProperty(credentials);
 
         OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
         SecurityListener.fireAuthenticated2(userDetails);
         SecurityListener.fireLoggedIn(userName);
+    }
+
+    private OicAvatarProperty createAvatarProperty(
+            @NonNull User user, @CheckForNull String avatarUrl, @NonNull OicCredentials credentials)
+            throws IOException {
+        if (avatarUrl == null) {
+            LOGGER.finest(() -> "No avatar URL found for user " + user.getId() + ". Ensure to remove existing avatar");
+            return new OicAvatarProperty(null);
+        }
+        LOGGER.finest(() -> "Avatar url is: " + sanitizeForLog(avatarUrl));
+        if (serveAvatarFromJenkins) {
+            OicAvatarProperty.AvatarData avatarData = new OicAvatarFetcher(getResourceRetriever())
+                    .fetch(avatarUrl, Util.fixEmptyAndTrim(credentials.getAccessToken()));
+            if (avatarData == null) {
+                LOGGER.fine(() -> "Could not download the avatar of user " + user.getId());
+                return new OicAvatarProperty(null);
+            }
+            return new OicAvatarProperty(user, avatarData);
+        }
+        return new OicAvatarProperty(new OicAvatarProperty.AvatarImage(avatarUrl));
+    }
+
+    static String sanitizeForLog(String value) {
+        return value == null ? null : value.replace('\r', ' ').replace('\n', ' ');
     }
 
     private String determineStringField(Expression<Object> fieldExpr, JWT idToken, Map<String, Object> userInfo)

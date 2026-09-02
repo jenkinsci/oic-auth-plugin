@@ -1,0 +1,6 @@
+<div>
+  Downloads the image referenced by the OIDC <code>picture</code> claim when the user logs in and serves it from
+  Jenkins instead of linking to the identity provider. The access token is sent to the provider when the picture is
+  served over HTTPS, so this also works for providers that only expose the picture through an endpoint requiring
+  authentication. The image is never fetched by the browser and the access token is never exposed to it.
+</div>

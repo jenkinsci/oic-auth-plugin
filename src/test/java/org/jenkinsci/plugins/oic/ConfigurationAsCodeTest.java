@@ -81,6 +81,7 @@ class ConfigurationAsCodeTest {
                 is("$2a$10$fxteEkfDqwqkmUelZmTxlu9WESjVDKQhp6jsqB1AgsLQ2dC6jikga"));
         assertEquals("fullNameFieldName", oicSecurityRealm.getFullNameFieldName());
         assertEquals("groupsFieldName", oicSecurityRealm.getGroupsFieldName());
+        assertTrue(oicSecurityRealm.isServeAvatarFromJenkins());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
         assertEquals("scopes", serverConf.getScopes());
         assertEquals("http://localhost/token", serverConf.getTokenServerUrl());

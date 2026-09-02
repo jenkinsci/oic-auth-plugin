@@ -69,11 +69,12 @@ If the JWKS endpoint is configured, JWS' signatures will be verified
 Providers have some variation in their implementation of OpenID Connect
 or some oddities they required.
 
-| field                     | format   | description                                                                                         |
-|---------------------------|----------|-----------------------------------------------------------------------------------------------------|
-| logoutFromOpenidProvider  | boolean  | Enable the logout from provider when user logout from Jenkins.                                      |
-| sendScopesInTokenRequest  | boolean  | Some providers expects scopes to be sent in token request                                           |
-| rootURLFromRequest        | boolean  | When computing Jenkins redirect, the root url is either deduced from configured root url or request |
+| field                       | format   | description                                                                                                                       |
+|-----------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------|
+| logoutFromOpenidProvider    | boolean  | Enable the logout from provider when user logout from Jenkins.                                                                    |
+| sendScopesInTokenRequest    | boolean  | Some providers expects scopes to be sent in token request                                                                         |
+| rootURLFromRequest          | boolean  | When computing Jenkins redirect, the root url is either deduced from configured root url or request                               |
+| serveAvatarFromJenkins      | boolean  | Download the avatar from the provider on login and serve it from Jenkins (default: `false`)                                       |
 
 ### Security configuration
 
@@ -98,6 +99,12 @@ They are called claims in OpenID Connect terminology.
 | fullNameFieldName | jmes path | claim to use as name of user                |
 | emailFieldName    | jmes path | claim to use for populating user email      |
 | groupsFieldName   | jmes path | groups the user belongs to                  |
+
+The standard OIDC `picture` claim is used for the user's avatar when available.
+By default the browser loads that URL directly from the identity provider, which does not work for providers that only
+serve the picture to authenticated requests. Enabling `serveAvatarFromJenkins` makes Jenkins download the image during
+login, presenting the access token when the picture is served over HTTPS, and serve it from Jenkins afterwards. The
+access token is never exposed to the browser.
 
 ## Properties
 
@@ -163,6 +170,7 @@ jenkins:
       rootURLFromRequest: <boolean>
       sendScopesInTokenRequest: <boolean>
       postLogoutRedirectUrl: <url>
+      serveAvatarFromJenkins: <boolean>
       # Security
       allowTokenAccessWithoutOicSession: <boolean>
       disableSslVerification: <boolean>

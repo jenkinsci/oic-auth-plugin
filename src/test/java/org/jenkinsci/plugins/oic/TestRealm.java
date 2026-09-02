@@ -52,6 +52,7 @@ public class TestRealm extends OicSecurityRealm {
         public String emailFieldName = null;
         public String scopes = null;
         public String groupsFieldName = null;
+        public boolean serveAvatarFromJenkins = false;
         public boolean disableSslVerification = false;
         public Boolean logoutFromOpenidProvider = false;
         public String endSessionEndpoint = null;
@@ -108,6 +109,11 @@ public class TestRealm extends OicSecurityRealm {
 
         public Builder WithGroupsFieldName(String groupsFieldName) {
             this.groupsFieldName = groupsFieldName;
+            return this;
+        }
+
+        public Builder WithServeAvatarFromJenkins(boolean serveAvatarFromJenkins) {
+            this.serveAvatarFromJenkins = serveAvatarFromJenkins;
             return this;
         }
 
@@ -239,6 +245,7 @@ public class TestRealm extends OicSecurityRealm {
         this.setFullNameFieldName(builder.fullNameFieldName);
         this.setEmailFieldName(builder.emailFieldName);
         this.setGroupsFieldName(builder.groupsFieldName);
+        this.setServeAvatarFromJenkins(builder.serveAvatarFromJenkins);
         this.setLogoutFromOpenidProvider(builder.logoutFromOpenidProvider);
         this.setPostLogoutRedirectUrl(builder.postLogoutRedirectUrl);
         this.setProperties(builder.properties);
