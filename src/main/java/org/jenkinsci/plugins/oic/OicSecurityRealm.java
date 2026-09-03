@@ -169,11 +169,14 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     private static final String ID_TOKEN_REQUEST_ATTRIBUTE = "oic-id-token";
-    private static final String NO_SECRET = "none";
     private static final String SESSION_POST_LOGIN_REDIRECT_URL_KEY = "oic-redirect-on-login-url";
 
     private final String clientId;
-    private final Secret clientSecret;
+    private OicClientAuthentication clientAuthentication;
+
+    /** @deprecated see {@link ClientSecretAuthentication#getClientSecret()} */
+    @Deprecated
+    private transient Secret clientSecret;
 
     /** @deprecated see {@link OicServerWellKnownConfiguration#getWellKnownOpenIDConfigurationUrl()} */
     @Deprecated
@@ -350,7 +353,7 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundConstructor
     public OicSecurityRealm(
             String clientId,
-            Secret clientSecret,
+            OicClientAuthentication clientAuthentication,
             OicServerConfiguration serverConfiguration,
             Boolean disableSslVerification,
             IdStrategy userIdStrategy,
@@ -363,7 +366,7 @@ public class OicSecurityRealm extends SecurityRealm {
                     Messages.OicSecurityRealm_DisableSslVerificationFipsMode(), "disableSslVerification");
         }
         this.clientId = clientId;
-        this.clientSecret = clientSecret;
+        this.clientAuthentication = clientAuthentication;
         this.serverConfiguration = serverConfiguration;
         this.userIdStrategy = userIdStrategy;
         this.groupIdStrategy = groupIdStrategy;
@@ -465,6 +468,9 @@ public class OicSecurityRealm extends SecurityRealm {
             ose.initCause(e);
             throw ose;
         }
+        if (clientAuthentication == null) {
+            clientAuthentication = new ClientSecretAuthentication(clientSecret);
+        }
         createProxyAwareResourceRetriver();
         return this;
     }
@@ -473,8 +479,9 @@ public class OicSecurityRealm extends SecurityRealm {
         return clientId;
     }
 
-    public Secret getClientSecret() {
-        return clientSecret == null ? Secret.fromString(NO_SECRET) : clientSecret;
+    @Restricted(NoExternalUse.class) // jelly access
+    public OicClientAuthentication getClientAuthentication() {
+        return clientAuthentication;
     }
 
     @Restricted(NoExternalUse.class) // jelly access
@@ -581,11 +588,7 @@ public class OicSecurityRealm extends SecurityRealm {
         // TODO cache this and use the well known if available.
         OidcConfiguration conf = new CustomOidcConfiguration(this.isDisableSslVerification());
         conf.setClientId(clientId);
-        conf.setSecret(clientSecret.getPlainText());
-
-        // TODO what do we prefer?
-        // conf.setPreferredJwsAlgorithm(JWSAlgorithm.HS256);
-        // set many more as needed...
+        clientAuthentication.configure(conf);
 
         OIDCProviderMetadata oidcProviderMetadata = serverConfiguration.toProviderMetadata();
         if (oidcProviderMetadata.getScopes() != null) {
@@ -606,6 +609,8 @@ public class OicSecurityRealm extends SecurityRealm {
                 .filter(d -> !properties.contains(d))
                 .forEach(d -> d.getFallbackConfiguration(serverConfiguration, oidcConfiguration));
         executions.forEach(execution -> execution.customizeConfiguration(oidcConfiguration));
+        clientAuthentication.customizeOidcConfiguration(oidcConfiguration, serverConfiguration, clientId);
+
         OidcClient client = new OidcClient(oidcConfiguration);
         // add the extra settings for the client...
         client.setCallbackUrl(buildOAuthRedirectUrl());
@@ -1411,15 +1416,6 @@ public class OicSecurityRealm extends SecurityRealm {
         }
 
         @RequirePOST
-        public FormValidation doCheckClientSecret(@QueryParameter String clientSecret) {
-            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
-            if (Util.fixEmptyAndTrim(clientSecret) == null) {
-                return FormValidation.error(Messages.OicSecurityRealm_ClientSecretRequired());
-            }
-            return FormValidation.ok();
-        }
-
-        @RequirePOST
         public FormValidation doCheckPostLogoutRedirectUrl(@QueryParameter String postLogoutRedirectUrl) {
             Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (Util.fixEmptyAndTrim(postLogoutRedirectUrl) != null) {
@@ -1483,6 +1479,11 @@ public class OicSecurityRealm extends SecurityRealm {
         @Restricted(NoExternalUse.class) // jelly only
         public Descriptor<OicServerConfiguration> getDefaultServerConfigurationType() {
             return Jenkins.get().getDescriptor(OicServerWellKnownConfiguration.class);
+        }
+
+        @Restricted(NoExternalUse.class) // jelly only
+        public Descriptor<OicClientAuthentication> getDefaultClientAuthenticationType() {
+            return Jenkins.get().getDescriptor(ClientSecretAuthentication.class);
         }
 
         @Restricted(NoExternalUse.class) // used by jelly only

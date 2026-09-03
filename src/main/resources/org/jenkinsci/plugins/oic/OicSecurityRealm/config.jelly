@@ -3,9 +3,8 @@
   <f:entry title="${%ClientId}" field="clientId">
     <f:textbox/>
   </f:entry>
-  <f:entry title="${%ClientSecret}" field="clientSecret">
-    <f:password/>
-  </f:entry>
+
+  <f:dropdownDescriptorSelector field="clientAuthentication" title="${%ClientAuthentication}" default="${descriptor.defaultClientAuthenticationType}"/>
 
   <st:adjunct includes="org.jenkinsci.plugins.oic.OicSecurityRealm.logout-idp-toggle" />
 

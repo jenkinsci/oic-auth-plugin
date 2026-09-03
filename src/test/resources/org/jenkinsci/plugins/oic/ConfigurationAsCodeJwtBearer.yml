@@ -3,10 +3,11 @@ jenkins:
     oic:
       serverConfiguration:
         manual:
-          issuer: http://localhost/
           authorizationServerUrl: http://localhost/authorize
+          issuer: http://localhost/
           tokenServerUrl: http://localhost/token
+          scopes: openid email
       clientId: clientId
       clientAuthentication:
-        secret:
-          clientSecret: clientSecret
+        jwtBearer:
+          clientAssertionFilePath: /var/run/secrets/tokens/id-token

@@ -69,7 +69,10 @@ class ConfigurationAsCodeTest {
         assertEquals("http://localhost/authorize", serverConf.getAuthorizationServerUrl());
         assertEquals("http://localhost/", serverConf.getIssuer());
         assertEquals("clientId", oicSecurityRealm.getClientId());
-        assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
+        assertEquals(
+                "clientSecret",
+                Secret.toString(
+                        ((ClientSecretAuthentication) oicSecurityRealm.getClientAuthentication()).getClientSecret()));
         assertTrue(oicSecurityRealm.isDisableSslVerification());
         assertEquals("emailFieldName", oicSecurityRealm.getEmailFieldName());
         var escapeHatch = oicSecurityRealm.getProperties().get(EscapeHatch.class);
@@ -142,7 +145,10 @@ class ConfigurationAsCodeTest {
         assertEquals("http://localhost/authorize", serverConf.getAuthorizationServerUrl());
         assertEquals("http://localhost/", serverConf.getIssuer());
         assertEquals("clientId", oicSecurityRealm.getClientId());
-        assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
+        assertEquals(
+                "clientSecret",
+                Secret.toString(
+                        ((ClientSecretAuthentication) oicSecurityRealm.getClientAuthentication()).getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
         assertNull(oicSecurityRealm.getEmailFieldName());
         assertNull(oicSecurityRealm.getFullNameFieldName());
@@ -176,13 +182,31 @@ class ConfigurationAsCodeTest {
         assertNull(oicSecurityRealm.getGroupsFieldName());
 
         assertEquals("clientId", oicSecurityRealm.getClientId());
-        assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
+        assertEquals(
+                "clientSecret",
+                Secret.toString(
+                        ((ClientSecretAuthentication) oicSecurityRealm.getClientAuthentication()).getClientSecret()));
 
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
 
         assertEquals(urlBase + "/well.known", serverConf.getWellKnownOpenIDConfigurationUrl());
         assertThat(oicSecurityRealm.getProperties(), empty());
+    }
+
+    @Test
+    @ConfiguredWithCode("ConfigurationAsCodeJwtBearer.yml")
+    void testJwtBearerConfig(JenkinsConfiguredWithCodeRule j) {
+        SecurityRealm realm = Jenkins.get().getSecurityRealm();
+        assertInstanceOf(OicSecurityRealm.class, realm);
+        OicSecurityRealm oicSecurityRealm = (OicSecurityRealm) realm;
+
+        assertEquals("clientId", oicSecurityRealm.getClientId());
+        assertInstanceOf(JwtBearerClientAuthentication.class, oicSecurityRealm.getClientAuthentication());
+        assertEquals(
+                "/var/run/secrets/tokens/id-token",
+                ((JwtBearerClientAuthentication) oicSecurityRealm.getClientAuthentication())
+                        .getClientAssertionFilePath());
     }
 
     /** Class to setup WellKnownMockExtension for well known with stub and setting port in env variable

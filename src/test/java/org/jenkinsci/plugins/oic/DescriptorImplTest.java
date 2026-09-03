@@ -34,12 +34,6 @@ class DescriptorImplTest {
         assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
         assertEquals("Client id is required.", descriptor.doCheckClientId("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
-        assertEquals(
-                "Client secret is required.",
-                descriptor.doCheckClientSecret(null).getMessage());
-        assertEquals(
-                "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
-        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
 
         TestRealm realm = new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(false));
         jenkins.setSecurityRealm(realm);
@@ -61,12 +55,6 @@ class DescriptorImplTest {
         assertEquals("Client id is required.", descriptor.doCheckClientId(null).getMessage());
         assertEquals("Client id is required.", descriptor.doCheckClientId("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientId("goodClientId"));
-        assertEquals(
-                "Client secret is required.",
-                descriptor.doCheckClientSecret(null).getMessage());
-        assertEquals(
-                "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
-        assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
 
         TestRealm realm = new TestRealm(new TestRealm.Builder("http://ignored.test/").WithAutomanualconfigure(true));
         jenkins.setSecurityRealm(realm);

@@ -38,6 +38,7 @@ public class TestRealm extends OicSecurityRealm {
     public static class Builder {
         public String clientId = CLIENT_ID;
         public Secret clientSecret = Secret.fromString("secret");
+        public String clientAssertionFilePath = null;
         public String issuer = ISSUER;
         public String wellKnownOpenIDConfigurationUrl;
         public String tokenServerUrl;
@@ -83,6 +84,11 @@ public class TestRealm extends OicSecurityRealm {
         public Builder WithClient(String clientId, String clientSecret) {
             this.clientId = clientId;
             this.clientSecret = clientSecret == null ? null : Secret.fromString(clientSecret);
+            return this;
+        }
+
+        public Builder WithClientAssertionFilePath(String clientAssertionFilePath) {
+            this.clientAssertionFilePath = clientAssertionFilePath;
             return this;
         }
 
@@ -223,12 +229,19 @@ public class TestRealm extends OicSecurityRealm {
                 throw new IllegalArgumentException(e);
             }
         }
+
+        public OicClientAuthentication buildClientAuthentication() {
+            if (clientAssertionFilePath != null) {
+                return new JwtBearerClientAuthentication(clientAssertionFilePath);
+            }
+            return new ClientSecretAuthentication(clientSecret);
+        }
     }
 
     public TestRealm(Builder builder) throws Exception {
         super(
                 builder.clientId,
-                builder.clientSecret,
+                builder.buildClientAuthentication(),
                 builder.buildServerConfiguration(),
                 builder.disableSslVerification,
                 builder.userIdStrategy,

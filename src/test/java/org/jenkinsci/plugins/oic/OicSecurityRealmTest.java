@@ -82,7 +82,8 @@ class OicSecurityRealmTest {
     void testShouldSetNullClientSecretWhenSecretIsNull(JenkinsRule jenkinsRule) throws Exception {
         TestRealm realm = new TestRealm.Builder(wireMock)
                 .WithMinimalDefaults().WithClient("id without secret", null).build();
-        assertEquals("none", Secret.toString(realm.getClientSecret()));
+        var clientAuthentication = (ClientSecretAuthentication) realm.getClientAuthentication();
+        assertEquals("none", Secret.toString(clientAuthentication.getClientSecret()));
     }
 
     @Test

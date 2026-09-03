@@ -10,7 +10,9 @@ jenkins:
           tokenServerUrl: http://localhost/token
           scopes: scopes
       clientId: clientId
-      clientSecret: clientSecret
+      clientAuthentication:
+        secret:
+          clientSecret: clientSecret
       disableSslVerification: true
       emailFieldName: emailFieldName
       fullNameFieldName: fullNameFieldName
