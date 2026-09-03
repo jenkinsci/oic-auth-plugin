@@ -53,10 +53,17 @@ class OicSecurityRealmFipsTest {
     @Test
     @WithoutJenkins
     void settingNonCompliantValuesNotAllowedTest() throws IOException, Descriptor.FormException {
-        OicSecurityRealm realm = new OicSecurityRealm("clientId", Secret.fromString("secret"), null, false, null, null);
+        OicSecurityRealm realm = new OicSecurityRealm(
+                "clientId", new ClientSecretAuthentication(Secret.fromString("secret")), null, false, null, null);
         Exception ex = assertThrows(
                 Descriptor.FormException.class,
-                () -> new OicSecurityRealm("clientId", Secret.fromString("secret"), null, true, null, null));
+                () -> new OicSecurityRealm(
+                        "clientId",
+                        new ClientSecretAuthentication(Secret.fromString("secret")),
+                        null,
+                        true,
+                        null,
+                        null));
         assertThat(
                 "Exception contains the reason",
                 ex.getMessage(),

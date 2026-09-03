@@ -7,11 +7,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestUser;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.browseLoginPage;
-import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.configureTestRealm;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockAuthorizationRedirectsToFinishLogin;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestMocks.mockTokenReturnsIdTokenWithGroup;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.nio.file.Files;
@@ -71,7 +68,9 @@ class JwtBearerClientAuthPluginTest {
 
         mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
         mockTokenReturnsIdTokenWithGroup(wireMock);
-        configureTestRealm(wireMock, jenkins, sc -> sc.setClientAssertionFilePath(jwtFile.toString()));
+        jenkins.setSecurityRealm(new TestRealm(new TestRealm.Builder(wireMock)
+                .WithMinimalDefaults()
+                .WithClientAssertionFilePath(jwtFile.toString())));
 
         browseLoginPage(webClient, jenkins);
         assertTestUser(webClient);
@@ -93,7 +92,9 @@ class JwtBearerClientAuthPluginTest {
 
         mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
         mockTokenReturnsIdTokenWithGroup(wireMock);
-        configureTestRealm(wireMock, jenkins, sc -> sc.setClientAssertionFilePath(jwtFile.toString()));
+        jenkins.setSecurityRealm(new TestRealm(new TestRealm.Builder(wireMock)
+                .WithMinimalDefaults()
+                .WithClientAssertionFilePath(jwtFile.toString())));
 
         // First login uses the original JWT
         browseLoginPage(webClient, jenkins);
@@ -110,28 +111,5 @@ class JwtBearerClientAuthPluginTest {
         browseLoginPage(webClient2, jenkins);
         wireMock.verify(postRequestedFor(urlPathEqualTo("/token"))
                 .withRequestBody(containing("client_assertion=" + ROTATED_K8S_JWT)));
-    }
-
-    @Test
-    void setClientAssertionFilePath_trimsWhitespace() throws Exception {
-        var realm = new TestRealm(new TestRealm.Builder(wireMock).WithMinimalDefaults());
-        realm.setClientAssertionFilePath("  /var/run/secrets/tokens/id-token  ");
-        assertEquals("/var/run/secrets/tokens/id-token", realm.getClientAssertionFilePath());
-    }
-
-    @Test
-    void setClientAssertionFilePath_null_clearsPath() throws Exception {
-        var realm = new TestRealm(new TestRealm.Builder(wireMock).WithMinimalDefaults());
-        realm.setClientAssertionFilePath("/var/run/secrets/tokens/id-token");
-        realm.setClientAssertionFilePath(null);
-        assertNull(realm.getClientAssertionFilePath());
-    }
-
-    @Test
-    void setClientAssertionFilePath_blankString_clearsPath() throws Exception {
-        var realm = new TestRealm(new TestRealm.Builder(wireMock).WithMinimalDefaults());
-        realm.setClientAssertionFilePath("/var/run/secrets/tokens/id-token");
-        realm.setClientAssertionFilePath("   ");
-        assertNull(realm.getClientAssertionFilePath());
     }
 }

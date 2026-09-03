@@ -7,4 +7,6 @@ jenkins:
           authorizationServerUrl: http://localhost/authorize
           tokenServerUrl: http://localhost/token
       clientId: clientId
-      clientSecret: clientSecret
+      clientAuthentication:
+        secret:
+          clientSecret: clientSecret
