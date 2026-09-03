@@ -68,9 +68,8 @@ class JwtBearerClientAuthPluginTest {
 
         mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
         mockTokenReturnsIdTokenWithGroup(wireMock);
-        jenkins.setSecurityRealm(new TestRealm(new TestRealm.Builder(wireMock)
-                .WithMinimalDefaults()
-                .WithClientAssertionFilePath(jwtFile.toString())));
+        jenkins.setSecurityRealm(new TestRealm(
+                new TestRealm.Builder(wireMock).WithMinimalDefaults().WithClientAssertionFilePath(jwtFile.toString())));
 
         browseLoginPage(webClient, jenkins);
         assertTestUser(webClient);
@@ -92,9 +91,8 @@ class JwtBearerClientAuthPluginTest {
 
         mockAuthorizationRedirectsToFinishLogin(wireMock, jenkins);
         mockTokenReturnsIdTokenWithGroup(wireMock);
-        jenkins.setSecurityRealm(new TestRealm(new TestRealm.Builder(wireMock)
-                .WithMinimalDefaults()
-                .WithClientAssertionFilePath(jwtFile.toString())));
+        jenkins.setSecurityRealm(new TestRealm(
+                new TestRealm.Builder(wireMock).WithMinimalDefaults().WithClientAssertionFilePath(jwtFile.toString())));
 
         // First login uses the original JWT
         browseLoginPage(webClient, jenkins);

@@ -71,8 +71,8 @@ class ConfigurationAsCodeTest {
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals(
                 "clientSecret",
-                Secret.toString(((ClientSecretAuthentication) oicSecurityRealm.getClientAuthentication())
-                        .getClientSecret()));
+                Secret.toString(
+                        ((ClientSecretAuthentication) oicSecurityRealm.getClientAuthentication()).getClientSecret()));
         assertTrue(oicSecurityRealm.isDisableSslVerification());
         assertEquals("emailFieldName", oicSecurityRealm.getEmailFieldName());
         var escapeHatch = oicSecurityRealm.getProperties().get(EscapeHatch.class);
@@ -147,8 +147,8 @@ class ConfigurationAsCodeTest {
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals(
                 "clientSecret",
-                Secret.toString(((ClientSecretAuthentication) oicSecurityRealm.getClientAuthentication())
-                        .getClientSecret()));
+                Secret.toString(
+                        ((ClientSecretAuthentication) oicSecurityRealm.getClientAuthentication()).getClientSecret()));
         assertFalse(oicSecurityRealm.isDisableSslVerification());
         assertNull(oicSecurityRealm.getEmailFieldName());
         assertNull(oicSecurityRealm.getFullNameFieldName());
@@ -184,8 +184,8 @@ class ConfigurationAsCodeTest {
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals(
                 "clientSecret",
-                Secret.toString(((ClientSecretAuthentication) oicSecurityRealm.getClientAuthentication())
-                        .getClientSecret()));
+                Secret.toString(
+                        ((ClientSecretAuthentication) oicSecurityRealm.getClientAuthentication()).getClientSecret()));
 
         assertEquals("sub", oicSecurityRealm.getUserNameField());
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());

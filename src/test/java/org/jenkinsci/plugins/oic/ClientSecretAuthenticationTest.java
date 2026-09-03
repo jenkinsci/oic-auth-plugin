@@ -28,13 +28,15 @@ class ClientSecretAuthenticationTest {
 
     @Test
     void doCheckClientSecret() {
-        ClientSecretAuthentication.DescriptorImpl descriptor =
-                (ClientSecretAuthentication.DescriptorImpl) jenkins.getDescriptorOrDie(ClientSecretAuthentication.class);
+        ClientSecretAuthentication.DescriptorImpl descriptor = (ClientSecretAuthentication.DescriptorImpl)
+                jenkins.getDescriptorOrDie(ClientSecretAuthentication.class);
         assertNotNull(descriptor);
 
         assertEquals(
-                "Client secret is required.", descriptor.doCheckClientSecret(null).getMessage());
-        assertEquals("Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
+                "Client secret is required.",
+                descriptor.doCheckClientSecret(null).getMessage());
+        assertEquals(
+                "Client secret is required.", descriptor.doCheckClientSecret("").getMessage());
         assertEquals(FormValidation.ok(), descriptor.doCheckClientSecret("password"));
     }
 }
