@@ -74,7 +74,7 @@
       <dependency>
         <groupId>io.jenkins.plugins</groupId>
         <artifactId>nimbus-jose-jwt-api</artifactId>
-        <version>10.9.1-4.v58e0353801ec</version>
+        <version>10.10-12.vd4e6d651b_7f7</version>
       </dependency>
       <dependency>
         <!-- do not exlude the annotations so we can benifit from spotbugs checks but set the to provided so we do not bundle them -->
