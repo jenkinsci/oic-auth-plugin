@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 public class PluginTestConstants {
+    /** The access token handed out by the mocked token endpoint. */
+    public static final String TEST_ACCESS_TOKEN = "AcCeSs_ToKeN";
+
     public static final String TEST_USER_USERNAME = "testUser";
     public static final String TEST_USER_EMAIL_ADDRESS = "test@jenkins.oic";
     public static final String TEST_USER_FULL_NAME = "Oic Test User";

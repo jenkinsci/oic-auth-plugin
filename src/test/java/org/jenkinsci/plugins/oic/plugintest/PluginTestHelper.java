@@ -75,6 +75,15 @@ public class PluginTestHelper {
 
     public static Map<String, Object> getUserInfo(
             @NonNull WireMockExtension wireMock, @Nullable Object groups, boolean withAvatar) {
+        return getUserInfo(wireMock, groups, withAvatar ? wireMock.url("/my-avatar.png") : null);
+    }
+
+    /**
+     * As {@link #getUserInfo(WireMockExtension, Object, boolean)} but with an explicit value for the
+     * {@code picture} claim, so that a non default (e.g. {@code https}) avatar location can be used.
+     */
+    public static Map<String, Object> getUserInfo(
+            @NonNull WireMockExtension wireMock, @Nullable Object groups, @CheckForNull String avatarUrl) {
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("sub", TEST_USER_USERNAME);
         userInfo.put(FULL_NAME_FIELD, TEST_USER_FULL_NAME);
@@ -82,8 +91,8 @@ public class PluginTestHelper {
         if (groups != null) {
             userInfo.put(GROUPS_FIELD, groups);
         }
-        if (withAvatar) {
-            userInfo.put("picture", wireMock.url("/my-avatar.png"));
+        if (avatarUrl != null) {
+            userInfo.put("picture", avatarUrl);
         }
         return userInfo;
     }

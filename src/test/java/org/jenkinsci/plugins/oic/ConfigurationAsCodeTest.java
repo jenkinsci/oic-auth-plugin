@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.oic.OicSecurityRealm.TokenAuthMethod;
+import org.jenkinsci.plugins.oic.avatar.NoAvatarHandler;
+import org.jenkinsci.plugins.oic.avatar.ServeFromURLAvatarHandler;
 import org.jenkinsci.plugins.oic.properties.EscapeHatch;
 import org.jenkinsci.plugins.oic.properties.LoginQueryParameters;
 import org.jenkinsci.plugins.oic.properties.LogoutQueryParameters;
@@ -70,6 +72,7 @@ class ConfigurationAsCodeTest {
         assertEquals("http://localhost/", serverConf.getIssuer());
         assertEquals("clientId", oicSecurityRealm.getClientId());
         assertEquals("clientSecret", Secret.toString(oicSecurityRealm.getClientSecret()));
+        assertInstanceOf(NoAvatarHandler.class, oicSecurityRealm.getAvatarHandler());
         assertTrue(oicSecurityRealm.isDisableSslVerification());
         assertEquals("emailFieldName", oicSecurityRealm.getEmailFieldName());
         var escapeHatch = oicSecurityRealm.getProperties().get(EscapeHatch.class);
@@ -147,6 +150,10 @@ class ConfigurationAsCodeTest {
         assertNull(oicSecurityRealm.getEmailFieldName());
         assertNull(oicSecurityRealm.getFullNameFieldName());
         assertNull(oicSecurityRealm.getGroupsFieldName());
+        assertInstanceOf(
+                ServeFromURLAvatarHandler.class,
+                oicSecurityRealm.getAvatarHandler(),
+                "serving the avatar from the provider must remain the default");
         assertEquals("openid email", serverConf.getScopes());
         assertEquals("http://localhost/token", serverConf.getTokenServerUrl());
         assertEquals(TokenAuthMethod.client_secret_post, serverConf.getTokenAuthMethod());
@@ -182,6 +189,7 @@ class ConfigurationAsCodeTest {
         assertTrue(oicSecurityRealm.isLogoutFromOpenidProvider());
 
         assertEquals(urlBase + "/well.known", serverConf.getWellKnownOpenIDConfigurationUrl());
+        assertInstanceOf(ServeFromURLAvatarHandler.class, oicSecurityRealm.getAvatarHandler());
         assertThat(oicSecurityRealm.getProperties(), empty());
     }
 

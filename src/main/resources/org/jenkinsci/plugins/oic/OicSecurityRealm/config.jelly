@@ -62,6 +62,8 @@
         <f:checkbox/>
       </f:entry>
     </f:advanced>
+    <f:dropdownDescriptorSelector field="avatarHandler" title="${%Avatar}"
+                                  default="${descriptor.defaultAvatarHandlerType}"/>
     <f:entry title="Properties">
       <f:repeatableHeteroProperty field="properties" hasHeader="true" oneEach="true"/>
     </f:entry>

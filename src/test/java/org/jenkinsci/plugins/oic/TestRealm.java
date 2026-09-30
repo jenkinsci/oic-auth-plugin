@@ -12,6 +12,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import jenkins.model.IdStrategy;
+import org.jenkinsci.plugins.oic.avatar.AvatarHandler;
 import org.jenkinsci.plugins.oic.properties.DisableNonce;
 import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
 import org.jenkinsci.plugins.oic.properties.EscapeHatch;
@@ -61,6 +62,7 @@ public class TestRealm extends OicSecurityRealm {
         public IdStrategy groupIdStrategy;
         public List<OidcProperty> properties = new ArrayList<>();
         public boolean allowTokenAccessWithoutOicSession = false;
+        public AvatarHandler avatarHandler = null;
 
         public Builder(WireMockExtension wireMock, boolean useTLS) throws IOException {
             this(
@@ -190,6 +192,11 @@ public class TestRealm extends OicSecurityRealm {
             return this;
         }
 
+        public Builder WithAvatarHandler(AvatarHandler avatarHandler) {
+            this.avatarHandler = avatarHandler;
+            return this;
+        }
+
         public Builder AddToProperties(List<OidcProperty> properties) {
             this.properties.addAll(properties);
             return this;
@@ -243,6 +250,10 @@ public class TestRealm extends OicSecurityRealm {
         this.setPostLogoutRedirectUrl(builder.postLogoutRedirectUrl);
         this.setProperties(builder.properties);
         this.setAllowTokenAccessWithoutOicSession(builder.allowTokenAccessWithoutOicSession);
+        // a null handler will default to the defaults
+        if (builder.avatarHandler != null) {
+            this.setAvatarHandler(builder.avatarHandler);
+        }
         // need to call the following method annotated with @PostConstruct and called
         // from readResolve and as such
         // is only called in regular use not code use.
