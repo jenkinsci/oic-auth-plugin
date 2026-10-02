@@ -344,7 +344,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>14.0.0</version>
+            <version>14.3.0</version>
           </dependency>
         </dependencies>
         <executions>
