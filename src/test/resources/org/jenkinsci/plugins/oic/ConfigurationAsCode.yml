@@ -9,6 +9,7 @@ jenkins:
           tokenAuthMethod: client_secret_post
           tokenServerUrl: http://localhost/token
           scopes: scopes
+      avatarHandler: noAvatar
       clientId: clientId
       clientSecret: clientSecret
       disableSslVerification: true

@@ -15,12 +15,15 @@ import hudson.model.User;
 import hudson.tasks.Mailer;
 import hudson.tasks.UserAvatarResolver;
 import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.oic.OicAvatarProperty;
+import org.jenkinsci.plugins.oic.avatar.AvatarProperty;
 import org.junit.jupiter.api.Assertions;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.springframework.security.core.Authentication;
 
 public class PluginTestAsserts {
+
+    /** The value {@link UserAvatarResolver} falls back to when nothing can resolve an avatar. */
+    public static final String DEFAULT_AVATAR = "symbol-person-circle";
 
     public static void assertAnonymous(@NonNull JenkinsRule.WebClient webClient) {
         Assertions.assertEquals(
@@ -49,19 +52,50 @@ public class PluginTestAsserts {
                 "Email should be " + TEST_USER_EMAIL_ADDRESS);
     }
 
+    /**
+     * Asserts the avatar of the user is the raw URL advertised by the provider, i.e. the behaviour of
+     * {@code ServeFromURLAvatarHandler} (the default).
+     * <p>
+     * A {@code null} user asserts the generic fallback instead.
+     */
     public static void assertTestAvatar(User user, WireMockExtension wireMock) {
+        assertTestAvatar(user, user == null ? null : wireMock.url("/my-avatar.png"));
+    }
+
+    /**
+     * As {@link #assertTestAvatar(User, WireMockExtension)} but with an explicit expected URL, for tests where the
+     * avatar is not at {@link WireMockExtension#url(String)} (which prefers {@code https} once an https port is
+     * enabled).
+     */
+    public static void assertTestAvatar(User user, String expectedAvatarUrl) {
         if (user != null) {
-            String expectedAvatarUrl = wireMock.url("/my-avatar.png");
-            OicAvatarProperty avatarProperty = user.getProperty(OicAvatarProperty.class);
+            AvatarProperty avatarProperty = user.getProperty(AvatarProperty.class);
+            assertNotNull(avatarProperty, "User should have an " + AvatarProperty.class.getSimpleName());
             assertEquals(expectedAvatarUrl, avatarProperty.getAvatarUrl(), "Avatar url should be " + expectedAvatarUrl);
-            assertEquals("OpenID Connect Avatar", avatarProperty.getDisplayName());
-            assertNull(avatarProperty.getIconFileName(), "Icon filename must be null");
             String urlViaAvatarResolver = UserAvatarResolver.resolve(user, "48x48");
             assertEquals(expectedAvatarUrl, urlViaAvatarResolver, "Avatar url should be " + expectedAvatarUrl);
         } else {
             String urlViaAvatarResolver = UserAvatarResolver.resolve(null, "48x48");
-            assertEquals("symbol-person-circle", urlViaAvatarResolver, "Avatar url should be symbol-person-circle");
+            assertEquals(DEFAULT_AVATAR, urlViaAvatarResolver, "Avatar url should be " + DEFAULT_AVATAR);
         }
+    }
+
+    /**
+     * Asserts that the user has no avatar at all: either no {@code AvatarProperty}, or one that
+     * yields no URL. Also asserts nothing is cached on disk.
+     */
+    public static void assertNoAvatar(@NonNull User user) {
+        AvatarProperty avatarProperty = user.getProperty(AvatarProperty.class);
+        if (avatarProperty != null) {
+            assertNull(
+                    avatarProperty.getAvatarUrl(),
+                    "User " + user.getId() + " should not have an avatar url, but had "
+                            + avatarProperty.getAvatarUrl());
+        }
+        assertEquals(
+                DEFAULT_AVATAR,
+                UserAvatarResolver.resolve(user, "48x48"),
+                "Avatar url should be the " + DEFAULT_AVATAR + " fallback");
     }
 
     public static void assertTestUserIsMemberOfGroups(User user, String... testUserGroups) {

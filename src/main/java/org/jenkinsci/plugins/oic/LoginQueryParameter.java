@@ -24,6 +24,11 @@ public class LoginQueryParameter extends AbstractQueryParameter<LoginQueryParame
             if (key == null || key.trim().isEmpty()) {
                 return FormValidation.error("key must not be blank");
             }
+            // These keys are set on the authorization request by pac4j itself, so overriding them
+            // through a login query parameter would conflict. `prompt` is intentionally NOT reserved:
+            // pac4j only sets it for its forceAuthn (prompt=login) and passive (prompt=none) modes,
+            // neither of which this plugin configures, so an operator-supplied `prompt` (for example
+            // `prompt=consent`, required to obtain Google offline-access refresh tokens) cannot clash.
             return switch (key.trim()) {
                 case OidcConfiguration.SCOPE,
                         OidcConfiguration.RESPONSE_TYPE,
@@ -32,7 +37,6 @@ public class LoginQueryParameter extends AbstractQueryParameter<LoginQueryParame
                         OidcConfiguration.CLIENT_ID,
                         OidcConfiguration.STATE,
                         OidcConfiguration.MAX_AGE,
-                        OidcConfiguration.PROMPT,
                         OidcConfiguration.NONCE,
                         OidcConfiguration.CODE_CHALLENGE,
                         OidcConfiguration.CODE_CHALLENGE_METHOD -> FormValidation.error(key + " is a reserved word");

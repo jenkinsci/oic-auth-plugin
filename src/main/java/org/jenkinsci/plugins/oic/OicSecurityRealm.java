@@ -91,6 +91,8 @@ import jenkins.security.FIPS140;
 import jenkins.security.SecurityListener;
 import jenkins.util.SystemProperties;
 import org.apache.commons.lang3.StringUtils;
+import org.jenkinsci.plugins.oic.avatar.AvatarHandler;
+import org.jenkinsci.plugins.oic.avatar.ServeFromURLAvatarHandler;
 import org.jenkinsci.plugins.oic.properties.AllowedTokenExpirationClockSkew;
 import org.jenkinsci.plugins.oic.properties.DisableNonce;
 import org.jenkinsci.plugins.oic.properties.DisableTokenVerification;
@@ -249,6 +251,9 @@ public class OicSecurityRealm extends SecurityRealm {
 
     private OicServerConfiguration serverConfiguration;
 
+    /** How the avatar advertised by the provider is made available to Jenkins pages. */
+    private AvatarHandler avatarHandler = new ServeFromURLAvatarHandler();
+
     /** @deprecated with no replacement.  See sub classes of {@link OicServerConfiguration} */
     @Deprecated
     private String overrideScopes = null;
@@ -375,6 +380,10 @@ public class OicSecurityRealm extends SecurityRealm {
     protected Object readResolve() throws ObjectStreamException {
         if (properties == null) {
             properties = new DescribableList<>(Saveable.NOOP);
+        }
+        if (avatarHandler == null) {
+            // configuration written before the avatar strategy was configurable: keep the old behaviour
+            avatarHandler = new ServeFromURLAvatarHandler();
         }
         // Fail if migrating to a FIPS non-compliant config
         if (FIPS140.useCompliantAlgorithms() && isDisableSslVerification()) {
@@ -564,6 +573,15 @@ public class OicSecurityRealm extends SecurityRealm {
     @DataBoundSetter
     public void setProperties(List<OidcProperty> properties) throws IOException {
         this.properties.replaceBy(properties);
+    }
+
+    public AvatarHandler getAvatarHandler() {
+        return avatarHandler;
+    }
+
+    @DataBoundSetter
+    public void setAvatarHandler(AvatarHandler avatarHandler) {
+        this.avatarHandler = avatarHandler;
     }
 
     @PostConstruct
@@ -870,20 +888,13 @@ public class OicSecurityRealm extends SecurityRealm {
             user.setFullName(fullName);
         }
 
-        // Set avatar if possible
-        String avatarUrl = determineStringField(avatarFieldExpr, idToken, userInfo);
-        OicAvatarProperty oicAvatarProperty;
-        if (avatarUrl != null) {
-            LOGGER.finest(() -> "Avatar url is: " + avatarUrl);
-            OicAvatarProperty.AvatarImage avatarImage = new OicAvatarProperty.AvatarImage(avatarUrl);
-            oicAvatarProperty = new OicAvatarProperty(avatarImage);
-        } else {
-            LOGGER.finest(() -> "No avatar URL found for user " + user.getId() + ". Ensure to remove existing avatar");
-            oicAvatarProperty = new OicAvatarProperty(null);
-        }
-        user.addProperty(oicAvatarProperty);
-
         user.addProperty(credentials);
+
+        // must happen after the credentials are stored: a handler may need the access token to
+        // fetch the image
+        String avatarUrl = determineStringField(avatarFieldExpr, idToken, userInfo);
+        LOGGER.finest(() -> "Avatar url for " + user.getId() + " is: " + avatarUrl);
+        avatarHandler.handleAvatar(this, user, avatarUrl);
 
         OicUserDetails userDetails = new OicUserDetails(userName, grantedAuthorities);
         SecurityListener.fireAuthenticated2(userDetails);
@@ -1483,6 +1494,11 @@ public class OicSecurityRealm extends SecurityRealm {
         @Restricted(NoExternalUse.class) // jelly only
         public Descriptor<OicServerConfiguration> getDefaultServerConfigurationType() {
             return Jenkins.get().getDescriptor(OicServerWellKnownConfiguration.class);
+        }
+
+        @Restricted(NoExternalUse.class) // jelly only
+        public Descriptor<AvatarHandler> getDefaultAvatarHandlerType() {
+            return Jenkins.get().getDescriptor(ServeFromURLAvatarHandler.class);
         }
 
         @Restricted(NoExternalUse.class) // used by jelly only

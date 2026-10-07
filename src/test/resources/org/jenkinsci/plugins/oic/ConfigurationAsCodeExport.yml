@@ -1,3 +1,4 @@
+avatarHandler: "noAvatar"
 clientId: "clientId"
 disableSslVerification: true
 emailFieldName: "emailFieldName"

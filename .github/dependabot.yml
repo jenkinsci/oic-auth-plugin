@@ -10,6 +10,9 @@ updates:
   target-branch: master
   labels:
   - skip-changelog
+  ignore:
+    # Ignore pac4j pending https://groups.google.com/g/pac4j-dev/c/PgWtjlRwP4E
+    - dependency-name: "org.pac4j:*"
 - package-ecosystem: github-actions
   directory: /
   schedule:

@@ -99,6 +99,21 @@ They are called claims in OpenID Connect terminology.
 | emailFieldName    | jmes path | claim to use for populating user email      |
 | groupsFieldName   | jmes path | groups the user belongs to                  |
 
+## Avatars
+
+The avatar advertised by the provider in the OpenID Connect `picture` claim (part of the
+`profile` claim) can be made available to Jenkins pages in several ways. The mode is
+selected by the `avatarHandler` field.
+
+| symbol                             | description                                                                                                    |
+|------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| `noAvatar`                         | Ignore the claim, and remove any avatar previously stored for the user                                         |
+| `serveFromProvider`                | Store the provider's URL so that the user's browser fetches the image directly from the provider (**default**) |
+
+`serveFromProvider` is the default and preserves the behaviour of earlier releases of the
+plugin: the provider must be reachable from every user's browser, and the provider's domain
+is added to the `img-src` Content Security Policy directive.
+
 ## Properties
 
 Additional properties can be configured. Third-party plugins may also add new properties.
@@ -158,6 +173,9 @@ jenkins:
       groupsFieldName: <string:jmes path>
       fullNameFieldName: <string:jmes path>
       emailFieldName: <string:jmes path>
+      # avatar handling, one of noAvatar, serveFromProvider,
+      # serveFromJenkins or serveFromJenkinsUsingAccessToken
+      avatarHandler: "serveFromProvider"
       # advanced configuration
       logoutFromOpenidProvider: <boolean>
       rootURLFromRequest: <boolean>

@@ -4,6 +4,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_ACCESS_TOKEN;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_GROUPS;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestConstants.TEST_USER_USERNAME;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestHelper.createKeyPair;
@@ -54,6 +55,14 @@ public class PluginTestMocks {
 
     public static void mockUserInfoWithAvatar(@NonNull WireMockExtension wireMock) {
         mockUserInfo(wireMock, getUserInfo(wireMock, null, true));
+    }
+
+    /**
+     * Mocks the userinfo endpoint with a {@code picture} claim pointing at the given URL, so that a
+     * non default (e.g. {@code https}) avatar location can be used.
+     */
+    public static void mockUserInfoWithAvatarUrl(@NonNull WireMockExtension wireMock, @NonNull String avatarUrl) {
+        mockUserInfo(wireMock, getUserInfo(wireMock, null, avatarUrl));
     }
 
     public static void mockUserInfoWithTestGroups(@NonNull WireMockExtension wireMock) {
@@ -117,7 +126,7 @@ public class PluginTestMocks {
             @CheckForNull String idToken,
             @CheckForNull Consumer<Map<String, String>>... tokenAcceptors) {
         var token = new HashMap<String, String>();
-        token.put("access_token", "AcCeSs_ToKeN");
+        token.put("access_token", TEST_ACCESS_TOKEN);
         token.put("token_type", "Bearer");
         token.put("expires_in", "3600");
         token.put("refresh_token", "ReFrEsH_ToKeN");

@@ -44,6 +44,16 @@ public class LoginQueryParameterTest {
     }
 
     @Test
+    public void testPromptIsAllowed() throws Exception {
+        // `prompt` must be settable so operators can request Google offline-access refresh tokens
+        // (prompt=consent). pac4j only sets `prompt` itself for its forceAuthn/passive modes, neither
+        // of which this plugin configures, so a user-supplied `prompt` cannot conflict.
+        LoginQueryParameter lqp = new LoginQueryParameter("prompt", "consent");
+        assertThat(lqp.getKey(), is("prompt"));
+        assertThat(lqp.getValue(), is("consent"));
+    }
+
+    @Test
     public void testValidKey() throws Exception {
         LoginQueryParameter lqp = new LoginQueryParameter("myKey", "myValue");
         assertThat(lqp.getKey(), is("myKey"));
