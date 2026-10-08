@@ -109,10 +109,18 @@ selected by the `avatarHandler` field.
 |------------------------------------|----------------------------------------------------------------------------------------------------------------|
 | `noAvatar`                         | Ignore the claim, and remove any avatar previously stored for the user                                         |
 | `serveFromProvider`                | Store the provider's URL so that the user's browser fetches the image directly from the provider (**default**) |
+| `serveFromJenkins`                 | The controller downloads the image and Jenkins serves it                                                       |
+| `serveFromJenkinsUsingAccessToken` | As `serveFromJenkins`, but the user's OIDC access token is sent as a bearer token                              |
 
 `serveFromProvider` is the default and preserves the behaviour of earlier releases of the
 plugin: the provider must be reachable from every user's browser, and the provider's domain
 is added to the `img-src` Content Security Policy directive.
+
+With `serveFromJenkins` and `serveFromJenkinsUsingAccessToken` the provider only needs to be
+reachable from the controller and no third-party domain is added to `img-src`. Because the
+controller performs the fetch, these modes only accept GIF, JPEG and PNG images and reject
+images of 5 MB or more. The download happens in the background, so logins are not delayed.
+`serveFromJenkinsUsingAccessToken` only ever sends the access token over HTTPS.
 
 ## Properties
 
