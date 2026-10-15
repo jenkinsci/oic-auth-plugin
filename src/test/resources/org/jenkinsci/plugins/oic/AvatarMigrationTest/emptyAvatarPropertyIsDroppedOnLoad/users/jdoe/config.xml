@@ -1,0 +1,9 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<user>
+  <version>10</version>
+  <id>jdoe</id>
+  <fullName>J Doe</fullName>
+  <properties>
+    <org.jenkinsci.plugins.oic.avatar.AvatarProperty plugin="oic-auth@4.999999-SNAPSHOT"/>
+  </properties>
+</user>

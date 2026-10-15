@@ -15,8 +15,8 @@ public class AvatarResolver extends UserAvatarResolver {
     /**
      * {@inheritDoc}
      * <p>
-     * {@code width} and {@code height} are ignored: so the image is always served at its natural size
-     * and scaling will occur on the browser.
+     * {@code width} and {@code height} are ignored: neither the provider URL nor the copy cached on
+     * the controller can be resized, so the image is always served at its natural size.
      */
     @Override
     public String findAvatarFor(User user, int width, int height) {

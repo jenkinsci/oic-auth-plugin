@@ -14,9 +14,12 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * Records the URL advertised by the provider as-is, so that each user's browser fetches the image
  * directly from the provider.
  * <p>
- * As the image is fetched by the browser rather than by the controller, the
- * URL must be reachable from every user's browser, and the provider's domain ends up in the
- * {@code img-src} Content Security Policy directive.
+ * This is the default, and is the behaviour of this plugin before the avatar strategy became
+ * configurable. Because the image is fetched by the browser rather than by the controller, the
+ * provider must be reachable from every user's browser, and the provider's domain ends up in the
+ * {@code img-src} Content Security Policy directive - which means a third party gets to observe
+ * requests originating from your users. It also cannot work with a provider that requires
+ * authentication to serve the image.
  */
 public class ServeFromURLAvatarHandler extends AvatarHandler {
 
@@ -31,7 +34,7 @@ public class ServeFromURLAvatarHandler extends AvatarHandler {
         if (avatarUrl == null) {
             AvatarProperty.clear(user);
         } else {
-            user.addProperty(new AvatarProperty(avatarUrl));
+            AvatarProperty.serveFromUrl(user, avatarUrl);
         }
     }
 

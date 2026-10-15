@@ -1,0 +1,8 @@
+<div>
+    Jenkins downloads the avatar from the provider, sending the user's OIDC access token as a bearer
+    token, and serves the image itself. Use this when the provider will not serve an avatar to an
+    unauthenticated request. The access token is only ever sent over HTTPS.
+    Only GIF, JPEG and PNG images are accepted, and images of 5&nbsp;MB or more are rejected.
+    The download happens in the background, so logins are not delayed by it; once it completes the image
+    is served by Jenkins from <code>/user/&lt;id&gt;/oic-avatar/image</code>.
+</div>
