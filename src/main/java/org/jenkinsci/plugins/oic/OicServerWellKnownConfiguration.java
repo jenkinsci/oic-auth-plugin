@@ -86,7 +86,7 @@ public class OicServerWellKnownConfiguration extends OicServerConfiguration {
         // so that we can cache and expire the result.
         // pac4j will cache the result yet never expire it.
         LocalDateTime now = LocalDateTime.now();
-        if (this.wellKnownExpires != null && this.wellKnownExpires.isBefore(now)) {
+        if (this.wellKnownExpires != null && this.wellKnownExpires.isAfter(now)) {
             // configuration is still fresh
             return oidcProviderMetadata;
         }
