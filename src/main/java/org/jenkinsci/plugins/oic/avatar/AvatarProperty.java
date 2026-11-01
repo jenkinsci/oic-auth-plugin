@@ -1,9 +1,12 @@
 package org.jenkinsci.plugins.oic.avatar;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.User;
 import hudson.model.UserProperty;
+import hudson.model.UserPropertyDescriptor;
 import java.io.IOException;
 import java.util.Objects;
 import jenkins.security.csp.AvatarContributor;
@@ -83,5 +86,27 @@ public class AvatarProperty extends UserProperty {
         }
         AvatarProperty other = (AvatarProperty) obj;
         return Objects.equals(avatarUrl, other.avatarUrl);
+    }
+
+    @Extension
+    public static class DescriptorImpl extends UserPropertyDescriptor {
+
+        @Override
+        @NonNull
+        public String getDisplayName() {
+            return Messages.AvatarProperty_DisplayName();
+        }
+
+        /** Not user-configurable, so hidden from the user's configure page. */
+        @Override
+        public boolean isEnabled() {
+            return false;
+        }
+
+        /** Users only get the property when they log in through OpenID Connect. */
+        @Override
+        public UserProperty newInstance(User user) {
+            return null;
+        }
     }
 }
