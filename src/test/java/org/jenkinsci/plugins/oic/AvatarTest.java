@@ -1,6 +1,9 @@
 package org.jenkinsci.plugins.oic;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertAnonymous;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertNoAvatar;
 import static org.jenkinsci.plugins.oic.plugintest.PluginTestAsserts.assertTestAvatar;
@@ -15,6 +18,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import hudson.model.User;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.oic.avatar.AvatarHandler;
+import org.jenkinsci.plugins.oic.avatar.AvatarProperty;
 import org.jenkinsci.plugins.oic.avatar.NoAvatarHandler;
 import org.jenkinsci.plugins.oic.avatar.ServeFromURLAvatarHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,6 +72,25 @@ class AvatarTest {
         User user = login(new ServeFromURLAvatarHandler());
         user = relogin(new NoAvatarHandler());
         assertNoAvatar(user);
+    }
+
+    @Test
+    void userPropertiesIncludeAvatarWithServeFromProviderHandler() throws Exception {
+        User user = login(new ServeFromURLAvatarHandler());
+        assertAvatarPropertyListed(user);
+    }
+
+    @Test
+    void userPropertiesIncludeAvatarWithNoAvatarHandler() throws Exception {
+        User user = login(new NoAvatarHandler());
+        assertAvatarPropertyListed(user);
+    }
+
+    /**
+     * {@link User#getProperties()} skips (and logs a warning for) every property that has no descriptor.
+     */
+    private static void assertAvatarPropertyListed(User user) {
+        assertThat(user.getProperties().values(), hasItem(instanceOf(AvatarProperty.class)));
     }
 
     /**
