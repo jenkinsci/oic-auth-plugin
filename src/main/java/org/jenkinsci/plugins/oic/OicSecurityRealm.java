@@ -592,6 +592,10 @@ public class OicSecurityRealm extends SecurityRealm {
     }
 
     ProxyAwareResourceRetriever getResourceRetriever() {
+        if (proxyAwareResourceRetriever == null) {
+            // not every caller of the constructor invokes @PostConstruct methods
+            createProxyAwareResourceRetriver();
+        }
         return proxyAwareResourceRetriever;
     }
 

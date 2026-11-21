@@ -191,6 +191,8 @@ class ConfigurationAsCodeTest {
         assertEquals(urlBase + "/well.known", serverConf.getWellKnownOpenIDConfigurationUrl());
         assertInstanceOf(ServeFromURLAvatarHandler.class, oicSecurityRealm.getAvatarHandler());
         assertThat(oicSecurityRealm.getProperties(), empty());
+        // the well-known document can be fetched for a realm created by JCasC
+        assertEquals(urlBase + "/", serverConf.toProviderMetadata().getIssuer().getValue());
     }
 
     /** Class to setup WellKnownMockExtension for well known with stub and setting port in env variable
@@ -203,6 +205,7 @@ class ConfigurationAsCodeTest {
         public WellKnownMockExtension(String mockPortEnvName, String wellKnownAnswer) {
             super(WireMockExtension.newInstance()
                     .failOnUnmatchedRequests(true)
+                    .resetOnEachTest(false)
                     .options(wireMockConfig().dynamicPort()));
             this.mockPortEnvName = mockPortEnvName;
             this.wellKnownAnswer = wellKnownAnswer;
