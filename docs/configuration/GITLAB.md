@@ -45,15 +45,16 @@ scopes.
 jenkins:
   securityRealm:
     oic:
-      wellKnownOpenIDConfigurationUrl: https://gitlab.com/.well-known/openid-configuration
-      automanualconfigure: auto
+      serverConfiguration:
+        wellKnown:
+          wellKnownOpenIDConfigurationUrl: https://gitlab.com/.well-known/openid-configuration
+          scopesOverride: openid profile email
       clientId: identifier-client-id
       clientSecret: identifuer-client-secret
-      overrideScopes: openid profile email
       userNameField: preferred_username
       fullNameFieldName: name
       emailFieldName: email
-      groupFieldName: groups
+      groupsFieldName: groups
       properties:
       - "pkce"
 ```
