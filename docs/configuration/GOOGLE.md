@@ -48,8 +48,9 @@ scopes.
 jenkins:
   securityRealm:
     oic:
-      wellKnownOpenIDConfigurationUrl: https://accounts.google.com/.well-known/openid-configuration
-      automanualconfigure: auto
+      serverConfiguration:
+        wellKnown:
+          wellKnownOpenIDConfigurationUrl: https://accounts.google.com/.well-known/openid-configuration
       clientId: identifier-client-id
       clientSecret: identifuer-client-secret
       userNameField: sub
